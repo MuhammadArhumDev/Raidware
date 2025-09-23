@@ -1,0 +1,130 @@
+# -----------------------------------------------------------------------------
+# General / OS
+# -----------------------------------------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# -----------------------------------------------------------------------------
+# Editors & IDEs
+# -----------------------------------------------------------------------------
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# IntelliJ / WebStorm
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# -----------------------------------------------------------------------------
+# Logs
+# -----------------------------------------------------------------------------
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# -----------------------------------------------------------------------------
+# Environment Variables (CRITICAL: Never commit secrets)
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+*.env.*
+
+# -----------------------------------------------------------------------------
+# Node.js / MERN (Frontend & Backend)
+# -----------------------------------------------------------------------------
+node_modules/
+jspm_packages/
+web_modules/
+
+# Build outputs
+dist/
+build/
+out/
+
+# Cache
+.eslintcache
+.stylelintcache
+.cache/
+.parcel-cache/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Next.js (if applicable)
+.next/
+
+# Nuxt.js (if applicable)
+.nuxt/
+
+# -----------------------------------------------------------------------------
+# Backend Specific (Express/Mongo)
+# -----------------------------------------------------------------------------
+# Optional: Local MongoDB data directory if you run db locally in project
+data/
+db/
+dump/
+
+# -----------------------------------------------------------------------------
+# Frontend Specific (React/Vite/Webpack)
+# -----------------------------------------------------------------------------
+# Vite
+*.tsbuildinfo
+
+# -----------------------------------------------------------------------------
+# PlatformIO / Arduino / C++
+# -----------------------------------------------------------------------------
+.pio/
+.pioenvs/
+.piolibdeps/
+.clang_complete
+.gcc-flags.json
+
+# Compiled Output
+*.bin
+*.elf
+*.hex
+*.map
+*.o
+*.a
+*.lst
+*.obj
+*.d
+
+# Espressif / ESP-IDF (if applicable)
+sdkconfig
+sdkconfig.old
+
+# -----------------------------------------------------------------------------
+# Python (Often used in scripts or PIO)
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
