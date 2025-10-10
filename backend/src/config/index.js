@@ -17,6 +17,7 @@ const config = {
     refreshTokenName: process.env.REFRESH_COOKIE_NAME || "refresh_token",
     secure: process.env.COOKIE_SECURE === "true",
   },
+  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:3000",
 };
 
 export default config;

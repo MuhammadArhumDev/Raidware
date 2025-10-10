@@ -86,32 +86,56 @@ export async function refreshToken(req, res, next) {
       req.cookies?.[config.cookie.refreshTokenName] || req.body.refreshToken;
     if (!token) return sendResponse(res, 401, false, "Refresh token missing");
 
-    // verify signature
+    // Clear the cookie immediately if we are processing it, to prevent race conditions or simple reuse
+    // (Optional strategy, but good for one-time use enforcement)
+    // res.clearCookie(config.cookie.refreshTokenName);
+
     import("jsonwebtoken")
       .then(({ default: jwt }) => {
         try {
           const payload = jwt.verify(token, config.jwt.refreshSecret);
           const userId = payload.id;
-          User.findById(userId)
-            .then((user) => {
-              if (!user)
-                return sendResponse(res, 401, false, "Invalid refresh token");
-              const found = user.refreshTokens.find((rt) => rt.token === token);
-              if (!found)
-                return sendResponse(res, 401, false, "Invalid refresh token");
 
+          User.findById(userId)
+            .then(async (user) => {
+              // 1. User not found
+              if (!user) {
+                return sendResponse(res, 401, false, "Invalid refresh token");
+              }
+
+              // 2. Token reuse detection
+              const foundToken = user.refreshTokens.find(
+                (rt) => rt.token === token
+              );
+
+              if (!foundToken) {
+                // Token is valid (signature-wise) but not in DB.
+                // This means it was already used/rotated!
+                // SECURITY ALERT: Delete ALL refresh tokens for this user.
+                user.refreshTokens = [];
+                await user.save();
+                res.clearCookie(config.cookie.refreshTokenName);
+                return sendResponse(
+                  res,
+                  403,
+                  false,
+                  "Refresh token reused. Security alert: Please login again."
+                );
+              }
+
+              // 3. Valid token found. Rotate it.
               const newAccess = generateAccessToken({
                 id: user._id,
                 role: user.role,
               });
               const newRefresh = generateRefreshToken({ id: user._id });
 
-              // replace refresh token
+              // Remove old token, add new one
               user.refreshTokens = user.refreshTokens.filter(
                 (rt) => rt.token !== token
               );
               user.refreshTokens.push({ token: newRefresh });
-              user.save();
+              await user.save();
 
               res.cookie(config.cookie.refreshTokenName, newRefresh, {
                 httpOnly: true,
@@ -126,6 +150,12 @@ export async function refreshToken(req, res, next) {
             })
             .catch(next);
         } catch (err) {
+          // Token verification failed (expired or invalid signature)
+          if (err.name === "TokenExpiredError") {
+            // If expired, we should just ask to login again, but also check if it WAS in db to remove it?
+            // For simplicity, just return 401.
+            res.clearCookie(config.cookie.refreshTokenName);
+          }
           return sendResponse(res, 401, false, "Invalid refresh token");
         }
       })

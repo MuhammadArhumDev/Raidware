@@ -4,14 +4,22 @@ import { validateBody } from "../middleware/validate.middleware.js";
 import validators from "../validators/auth.validator.js";
 import { protect } from "../middleware/auth.middleware.js";
 
+import { authLimiter } from "../middleware/rateLimit.middleware.js";
+
 const router = express.Router();
 
 router.post(
   "/register",
+  authLimiter,
   validateBody(validators.registerSchema),
   authCtrl.register
 );
-router.post("/login", validateBody(validators.loginSchema), authCtrl.login);
+router.post(
+  "/login",
+  authLimiter,
+  validateBody(validators.loginSchema),
+  authCtrl.login
+);
 router.post("/refresh", authCtrl.refreshToken);
 router.post("/logout", authCtrl.logout);
 router.get("/me", protect, authCtrl.me);
