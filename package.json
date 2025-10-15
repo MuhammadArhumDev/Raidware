@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "express-mongo-sanitize": "^2.2.0",
+    "hpp": "^0.2.3",
+    "ioredis": "^5.8.2",
+    "socket.io": "^4.8.3",
+    "xss-clean": "^0.1.4"
+  }
+}

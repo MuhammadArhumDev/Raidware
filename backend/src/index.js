@@ -7,13 +7,19 @@ import mongoSanitize from "express-mongo-sanitize";
 import xss from "xss-clean";
 import hpp from "hpp";
 
+import { createServer } from "http";
 import config from "./config/index.js";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js";
+import deviceRoutes from "./routes/device.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import { globalLimiter } from "./middleware/rateLimit.middleware.js";
+import { initSocket } from "./services/socket.service.js";
+import { syncDeviceHashes } from "./services/deviceAuth.service.js";
+import "./config/redis.js";
 
 const app = express();
+const httpServer = createServer(app);
 
 // Middlewares
 app.use(helmet());
@@ -38,15 +44,29 @@ app.use(globalLimiter);
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/devices", deviceRoutes);
 
 // Error handler
 app.use(errorHandler);
 
 const start = async () => {
-  await connectDB();
-  app.listen(config.port, () =>
-    console.log(`Server running on port ${config.port}`)
-  );
+  console.log("Starting server initialization...");
+  try {
+    await connectDB();
+    initSocket(httpServer);
+
+    // Initial Sync
+    await syncDeviceHashes();
+
+    // Periodic Sync (every 3 hours)
+    setInterval(syncDeviceHashes, 3 * 60 * 60 * 1000);
+
+    httpServer.listen(config.port, () =>
+      console.log(`Server running on port ${config.port}`)
+    );
+  } catch (error) {
+    console.error("Error starting server:", error);
+  }
 };
 
 start().catch((err) => {
