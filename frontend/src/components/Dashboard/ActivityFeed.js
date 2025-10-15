@@ -7,7 +7,6 @@ const activityIcons = {
   node: Network,
   alert: AlertTriangle,
   security: Shield,
-  cctv: Video,
   system: CheckCircle,
 };
 
@@ -41,7 +40,7 @@ export default function ActivityFeed({ activities = [] }) {
     {
       id: 'act4',
       type: 'cctv',
-      title: 'CCTV Camera 2 Activated',
+      title: 'Sensor Alert',
       description: 'Motion detected in loading dock',
       timestamp: Date.now() - 1200000,
       status: 'info',

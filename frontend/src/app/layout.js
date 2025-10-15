@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "Raidware - Cloud IoT Security Platform",
-  description: "Cloud platform for secure IoT network management with CCTV monitoring, sensor integration, mutual authentication, strong encryption, and IDS protection",
+  description: "Cloud platform for secure IoT network management with sensor integration, mutual authentication, strong encryption, and IDS protection",
 };
 
 export default function RootLayout({ children }) {

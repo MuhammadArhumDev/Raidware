@@ -10,7 +10,6 @@ import { Network, Video, Activity, Shield, TrendingUp, Users, Wifi, Lock, Server
 import { useMemo } from 'react';
 import ActivityFeed from '@/components/Dashboard/ActivityFeed';
 import PerformanceMetrics from '@/components/Dashboard/PerformanceMetrics';
-import QuickInsights from '@/components/Dashboard/QuickInsights';
 
 // Memoized sensor chart component to prevent re-renders
 function SensorDataChart({ sensors }) {
@@ -125,7 +124,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatsCard
             icon={Network}
             title="Active Nodes"
@@ -133,14 +132,6 @@ export default function DashboardPage() {
             change={2.5}
             trend="up"
             color="indigo"
-          />
-          <StatsCard
-            icon={Video}
-            title="CCTV Live Streams"
-            value={4}
-            change={0}
-            trend="up"
-            color="blue"
           />
           <StatsCard
             icon={Activity}
@@ -159,22 +150,17 @@ export default function DashboardPage() {
         </div>
 
         {/* Real-time Charts - Main Metrics */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <MetricChart
-              title="Network Health Trend"
-              dataSource={networkHealthHistory}
-              dataKey="value"
-              color="green"
-              type="area"
-              height={280}
-              unit="%"
-              gradient={true}
-            />
-          </div>
-          <div className="space-y-6">
-            <QuickInsights />
-          </div>
+        <div className="grid grid-cols-1 gap-6">
+          <MetricChart
+            title="Network Health Trend"
+            dataSource={networkHealthHistory}
+            dataKey="value"
+            color="green"
+            type="area"
+            height={280}
+            unit="%"
+            gradient={true}
+          />
         </div>
 
         {/* Secondary Charts */}
@@ -199,58 +185,14 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Sensor Data Chart */}
-        {sensors && sensors.length > 0 && (
-          <SensorDataChart sensors={sensors} />
-        )}
 
-        {/* Performance Metrics & Activity Feed */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Performance Metrics */}
+        <div className="grid grid-cols-1 gap-6">
           <PerformanceMetrics />
-          <ActivityFeed />
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Quick Actions
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <a
-              href="/dashboard/cctv"
-              className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
-            >
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                CCTV Live Streams
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Monitor all CCTV cameras in real-time
-              </p>
-            </a>
-            <a
-              href="/dashboard/sensors"
-              className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
-            >
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                Sensor Data
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Monitor environmental conditions
-              </p>
-            </a>
-            <a
-              href="/dashboard/alerts"
-              className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
-            >
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-                View Alerts
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Check security and system alerts
-              </p>
-            </a>
-          </div>
-        </div>
+
 
         {/* System Status & Network Info */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

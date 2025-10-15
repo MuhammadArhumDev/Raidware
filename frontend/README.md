@@ -10,7 +10,7 @@ Built with Next.js and real-time data visualization. Currently uses mock data - 
 - 🔐 **Mutual Authentication** - Two-way authentication between devices and gateway
 - 🔒 **Strong Encryption** - AES-256, ASCON (Post-Quantum), and other encryption options
 - 🛡️ **Intrusion Detection System (IDS)** - Real-time monitoring of network attacks (Rogue AP, ARP Spoofing, Deauth attacks, etc.)
-- 📹 **CCTV Integration** - Support for CCTV cameras with AI analytics
+
 - 📊 **Sensor Monitoring** - Temperature, humidity, pressure, motion, and other sensor types
 - 🗺️ **Network Map** - Interactive visualization of IoT devices and their locations
 - 🚨 **IDS Alerts** - Real-time security alerts with attack type classification
