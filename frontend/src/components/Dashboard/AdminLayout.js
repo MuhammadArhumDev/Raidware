@@ -1,21 +1,36 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import AdminSidebar from './AdminSidebar';
-import { Loader2 } from 'lucide-react';
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import AdminSidebar from "./AdminSidebar";
+import { Loader2 } from "lucide-react";
+import useAuthStore from "@/store/useAuthStore";
 
 export default function AdminLayout({ children }) {
-  const { user, loading, userRole } = useAuth();
+  const user = useAuthStore((state) => state.user);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
+  const checkAuth = useAuthStore((state) => state.checkAuth);
   const router = useRouter();
 
+  // Derive loading and userRole
+  const loading = !_hasHydrated || !isInitialized || isLoading;
+  const userRole = user?.role || null;
+
+  // Run checkAuth on mount if hydrated
+  useEffect(() => {
+    if (_hasHydrated && !isInitialized && !isLoading) {
+      checkAuth();
+    }
+  }, [_hasHydrated, isInitialized, isLoading, checkAuth]);
+
+  // Handle redirects
   useEffect(() => {
     if (!loading && !user) {
-      router.push('/');
-    } else if (!loading && user && userRole !== 'admin') {
-      // Redirect organization users to their dashboard
-      router.push('/dashboard');
+      router.push("/");
+    } else if (!loading && user && userRole !== "admin") {
+      router.push("/dashboard");
     }
   }, [user, loading, userRole, router]);
 
@@ -27,17 +42,14 @@ export default function AdminLayout({ children }) {
     );
   }
 
-  if (!user || userRole !== 'admin') {
+  if (!user || userRole !== "admin") {
     return null;
   }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <AdminSidebar />
-      <main className="lg:ml-64 min-h-screen p-4 lg:p-8">
-        {children}
-      </main>
+      <main className="lg:ml-64 min-h-screen p-4 lg:p-8">{children}</main>
     </div>
   );
 }
-

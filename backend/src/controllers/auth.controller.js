@@ -67,17 +67,16 @@ export async function login(req, res, next) {
       maxAge: 1000 * 60 * 60 * 24 * 7,
     });
 
-    // Set organization_token cookie (for regular users)
-    res.cookie("organization_token", accessToken, {
-      httpOnly: true,
-      secure: config.cookie.secure,
-      sameSite: "lax",
-      maxAge: 1000 * 60 * 15, // 15 minutes
-    });
-
-    // If user is admin in DB, ALSO set the admin_token
+    // Set role-specific token cookie
     if (user.role === "admin") {
       res.cookie("admin_token", accessToken, {
+        httpOnly: true,
+        secure: config.cookie.secure,
+        sameSite: "lax",
+        maxAge: 1000 * 60 * 15, // 15 minutes
+      });
+    } else {
+      res.cookie("organization_token", accessToken, {
         httpOnly: true,
         secure: config.cookie.secure,
         sameSite: "lax",
@@ -87,8 +86,8 @@ export async function login(req, res, next) {
 
     console.log("Login Successful for:", user.email, "Role:", user.role);
     console.log(
-      "Cookies set: refreshToken, organization_token",
-      user.role === "admin" ? ", admin_token" : ""
+      "Cookies set: refreshToken,",
+      user.role === "admin" ? "admin_token" : "organization_token"
     );
 
     return sendResponse(res, 200, true, "Logged in", {
@@ -194,7 +193,15 @@ export async function logout(req, res, next) {
   try {
     const token =
       req.cookies?.[config.cookie.refreshTokenName] || req.body.refreshToken;
-    if (!token) return sendResponse(res, 200, true, "No refresh token");
+
+    // Always clear access token cookies regardless of refresh token
+    res.clearCookie("organization_token");
+    res.clearCookie("admin_token");
+
+    if (!token) {
+      res.clearCookie(config.cookie.refreshTokenName);
+      return sendResponse(res, 200, true, "Logged out");
+    }
 
     // Remove token from user
     import("jsonwebtoken")
@@ -204,7 +211,10 @@ export async function logout(req, res, next) {
           const userId = payload.id;
           User.findById(userId)
             .then(async (user) => {
-              if (!user) return sendResponse(res, 200, true, "Logged out");
+              if (!user) {
+                res.clearCookie(config.cookie.refreshTokenName);
+                return sendResponse(res, 200, true, "Logged out");
+              }
               user.refreshTokens = user.refreshTokens.filter(
                 (rt) => rt.token !== token
               );

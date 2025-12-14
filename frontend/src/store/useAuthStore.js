@@ -10,7 +10,13 @@ const useAuthStore = create(
       token: null,
       isAuthenticated: false,
       isLoading: false,
+      isInitialized: false, // true after first checkAuth completes
       error: null,
+      _hasHydrated: false,
+
+      setHasHydrated: (state) => {
+        set({ _hasHydrated: state });
+      },
 
       login: async (email, password) => {
         set({ isLoading: true, error: null });
@@ -29,6 +35,7 @@ const useAuthStore = create(
             token: data.data.accessToken,
             isAuthenticated: true,
             isLoading: false,
+            isInitialized: true,
           });
           return data.data.user; // Return user object
         } catch (err) {
@@ -54,6 +61,7 @@ const useAuthStore = create(
             token: data.data.accessToken,
             isAuthenticated: true,
             isLoading: false,
+            isInitialized: true,
           });
           return data.data.user; // Return user object
         } catch (err) {
@@ -63,6 +71,17 @@ const useAuthStore = create(
       },
 
       checkAuth: async () => {
+        // Skip if not hydrated yet or already authenticated
+        const state = get();
+        if (!state._hasHydrated) {
+          console.log("[checkAuth] Skipping - not hydrated yet");
+          return state.user;
+        }
+        if (state.isAuthenticated && state.user) {
+          console.log("[checkAuth] Skipping - already authenticated");
+          return state.user;
+        }
+
         set({ isLoading: true });
         try {
           const res = await fetch(`${BACKEND_URL}/api/auth/me`, {
@@ -77,6 +96,7 @@ const useAuthStore = create(
             user: data.data.user,
             isAuthenticated: true,
             isLoading: false,
+            isInitialized: true,
           });
           return data.data.user;
         } catch (err) {
@@ -85,6 +105,7 @@ const useAuthStore = create(
             token: null,
             isAuthenticated: false,
             isLoading: false,
+            isInitialized: true,
           });
           return null;
         }
@@ -98,11 +119,19 @@ const useAuthStore = create(
           });
         } catch (e) {}
 
-        set({ user: null, token: null, isAuthenticated: false });
+        set({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+          isInitialized: false,
+        });
       },
     }),
     {
       name: "auth-storage",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

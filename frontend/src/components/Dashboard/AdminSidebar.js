@@ -1,41 +1,42 @@
-'use client';
+"use client";
 
-import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { 
-  LayoutDashboard, 
+import { useRouter, usePathname } from "next/navigation";
+import useAuthStore from "@/store/useAuthStore";
+import {
+  LayoutDashboard,
   Building2,
   Network,
   Shield,
   Users,
   Activity,
   Bell,
-  Settings, 
+  Settings,
   LogOut,
   Menu,
-  X
-} from 'lucide-react';
-import { useState } from 'react';
+  X,
+} from "lucide-react";
+import { useState } from "react";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/dashboard' },
-  { icon: Building2, label: 'Organizations', path: '/admin/organizations' },
-  { icon: Network, label: 'All Networks', path: '/admin/networks' },
-  { icon: Shield, label: 'Security Overview', path: '/admin/security' },
-  { icon: Activity, label: 'System Monitoring', path: '/admin/monitoring' },
-  { icon: Bell, label: 'Global Alerts', path: '/admin/alerts' },
-  { icon: Settings, label: 'Settings', path: '/admin/settings' },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/admin/dashboard" },
+  { icon: Building2, label: "Organizations", path: "/admin/organizations" },
+  { icon: Network, label: "All Networks", path: "/admin/networks" },
+  { icon: Shield, label: "Security Overview", path: "/admin/security" },
+  { icon: Activity, label: "System Monitoring", path: "/admin/monitoring" },
+  { icon: Bell, label: "Global Alerts", path: "/admin/alerts" },
+  { icon: Settings, label: "Settings", path: "/admin/settings" },
 ];
 
 export default function AdminSidebar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { logout, user } = useAuth();
+  const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore((state) => state.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
-    router.push('/');
+    router.push("/");
   };
 
   const handleNavigation = (path) => {
@@ -62,7 +63,11 @@ export default function AdminSidebar() {
         className={`
           fixed top-0 left-0 h-full w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800
           transform transition-transform duration-300 ease-in-out z-40
-          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${
+            mobileMenuOpen
+              ? "translate-x-0"
+              : "-translate-x-full lg:translate-x-0"
+          }
         `}
       >
         <div className="flex flex-col h-full">
@@ -81,16 +86,17 @@ export default function AdminSidebar() {
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.path;
-              
+
               return (
                 <button
                   key={item.path}
                   onClick={() => handleNavigation(item.path)}
                   className={`
                     w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
-                    ${isActive
-                      ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    ${
+                      isActive
+                        ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                     }
                   `}
                 >
@@ -105,7 +111,7 @@ export default function AdminSidebar() {
           <div className="p-4 border-t border-gray-200 dark:border-gray-800">
             <div className="mb-4 px-4 py-2">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {user?.email || 'Admin'}
+                {user?.email || "Admin"}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 System Administrator
@@ -132,4 +138,3 @@ export default function AdminSidebar() {
     </>
   );
 }
-

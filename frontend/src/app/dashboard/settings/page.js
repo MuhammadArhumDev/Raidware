@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import DashboardLayout from '@/components/Dashboard/DashboardLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { User, Bell, Shield, Database } from 'lucide-react';
+import DashboardLayout from "@/components/Dashboard/DashboardLayout";
+import useAuthStore from "@/store/useAuthStore";
+import { User, Bell, Shield, Database } from "lucide-react";
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const user = useAuthStore((state) => state.user);
 
   return (
     <DashboardLayout>
@@ -34,7 +34,7 @@ export default function SettingsPage() {
               </label>
               <input
                 type="email"
-                value={user?.email || ''}
+                value={user?.email || ""}
                 disabled
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
               />
@@ -45,7 +45,9 @@ export default function SettingsPage() {
               </label>
               <input
                 type="text"
-                value={user?.email?.includes('admin') ? 'Administrator' : 'Operator'}
+                value={
+                  user?.email?.includes("admin") ? "Administrator" : "Operator"
+                }
                 disabled
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
               />
@@ -64,24 +66,47 @@ export default function SettingsPage() {
           <div className="space-y-4">
             <label className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
               <div>
-                <p className="font-medium text-gray-900 dark:text-white">Email Notifications</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Receive alerts via email</p>
+                <p className="font-medium text-gray-900 dark:text-white">
+                  Email Notifications
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Receive alerts via email
+                </p>
               </div>
-              <input type="checkbox" defaultChecked className="w-5 h-5 text-indigo-600 rounded" />
+              <input
+                type="checkbox"
+                defaultChecked
+                className="w-5 h-5 text-indigo-600 rounded"
+              />
             </label>
             <label className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
               <div>
-                <p className="font-medium text-gray-900 dark:text-white">Push Notifications</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Receive browser push notifications</p>
+                <p className="font-medium text-gray-900 dark:text-white">
+                  Push Notifications
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Receive browser push notifications
+                </p>
               </div>
-              <input type="checkbox" defaultChecked className="w-5 h-5 text-indigo-600 rounded" />
+              <input
+                type="checkbox"
+                defaultChecked
+                className="w-5 h-5 text-indigo-600 rounded"
+              />
             </label>
             <label className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50">
               <div>
-                <p className="font-medium text-gray-900 dark:text-white">Critical Alerts Only</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Only notify for critical severity alerts</p>
+                <p className="font-medium text-gray-900 dark:text-white">
+                  Critical Alerts Only
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Only notify for critical severity alerts
+                </p>
               </div>
-              <input type="checkbox" className="w-5 h-5 text-indigo-600 rounded" />
+              <input
+                type="checkbox"
+                className="w-5 h-5 text-indigo-600 rounded"
+              />
             </label>
           </div>
         </div>
@@ -114,16 +139,28 @@ export default function SettingsPage() {
           </div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Data Source</span>
-              <span className="text-gray-900 dark:text-white font-medium">Mock Data</span>
+              <span className="text-gray-600 dark:text-gray-400">
+                Data Source
+              </span>
+              <span className="text-gray-900 dark:text-white font-medium">
+                Mock Data
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">API Version</span>
-              <span className="text-gray-900 dark:text-white font-medium">v1.0.0</span>
+              <span className="text-gray-600 dark:text-gray-400">
+                API Version
+              </span>
+              <span className="text-gray-900 dark:text-white font-medium">
+                v1.0.0
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Last Sync</span>
-              <span className="text-gray-900 dark:text-white font-medium">Just now</span>
+              <span className="text-gray-600 dark:text-gray-400">
+                Last Sync
+              </span>
+              <span className="text-gray-900 dark:text-white font-medium">
+                Just now
+              </span>
             </div>
           </div>
         </div>
@@ -131,4 +168,3 @@ export default function SettingsPage() {
     </DashboardLayout>
   );
 }
-

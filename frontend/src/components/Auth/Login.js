@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useAuthStore from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
 import { Lock, Mail, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
@@ -14,8 +14,22 @@ export default function Login() {
 
   const login = useAuthStore((state) => state.login);
   const authError = useAuthStore((state) => state.error);
+  const user = useAuthStore((state) => state.user);
+  const isInitialized = useAuthStore((state) => state.isInitialized);
+  const _hasHydrated = useAuthStore((state) => state._hasHydrated);
 
   const router = useRouter();
+
+  // Redirect authenticated users away from login page
+  useEffect(() => {
+    if (_hasHydrated && isInitialized && user) {
+      if (user.role === "admin") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/dashboard");
+      }
+    }
+  }, [user, isInitialized, _hasHydrated, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
