@@ -1,0 +1,110 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+const useAuthStore = create(
+  persist(
+    (set, get) => ({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isLoading: false,
+      error: null,
+
+      login: async (email, password) => {
+        set({ isLoading: true, error: null });
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Login failed");
+
+          set({
+            user: data.data.user,
+            token: data.data.accessToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          return data.data.user; // Return user object
+        } catch (err) {
+          set({ error: err.message, isLoading: false });
+          return null;
+        }
+      },
+
+      signup: async (userData) => {
+        set({ isLoading: true, error: null });
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(userData),
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "Signup failed");
+
+          set({
+            user: data.data.user,
+            token: data.data.accessToken,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          return data.data.user; // Return user object
+        } catch (err) {
+          set({ error: err.message, isLoading: false });
+          return null;
+        }
+      },
+
+      checkAuth: async () => {
+        set({ isLoading: true });
+        try {
+          const res = await fetch(`${BACKEND_URL}/api/auth/me`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error("Session invalid");
+
+          set({
+            user: data.data.user,
+            isAuthenticated: true,
+            isLoading: false,
+          });
+          return data.data.user;
+        } catch (err) {
+          set({
+            user: null,
+            token: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+          return null;
+        }
+      },
+
+      logout: async () => {
+        try {
+          await fetch(`${BACKEND_URL}/api/auth/logout`, {
+            method: "POST",
+            credentials: "include",
+          });
+        } catch (e) {}
+
+        set({ user: null, token: null, isAuthenticated: false });
+      },
+    }),
+    {
+      name: "auth-storage",
+    }
+  )
+);
+
+export default useAuthStore;

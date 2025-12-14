@@ -1,32 +1,45 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { Lock, Mail, AlertCircle, Loader2 } from 'lucide-react';
+import { useState } from "react";
+import useAuthStore from "@/store/useAuthStore";
+import { useRouter } from "next/navigation";
+import { Lock, Mail, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+
+  const login = useAuthStore((state) => state.login);
+  const authError = useAuthStore((state) => state.error);
+
   const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
+    setSuccessMsg("");
     setLoading(true);
 
-    const result = await login(email, password);
-    
-    if (result.success) {
-      router.push('/dashboard');
+    const user = await login(email, password);
+
+    if (user) {
+      setSuccessMsg("Login successful! Redirecting...");
+
+      // Short delay to show success message
+      setTimeout(() => {
+        if (user.role === "admin") {
+          router.push("/admin/dashboard");
+        } else {
+          router.push("/dashboard");
+        }
+      }, 1000);
     } else {
-      setError(result.error || 'Failed to login');
+      setError(authError || "Failed to login. Please check your credentials.");
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (
@@ -47,13 +60,25 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}
 
+          {successMsg && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+              <p className="text-sm text-green-600 dark:text-green-400">
+                {successMsg}
+              </p>
+            </div>
+          )}
+
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Email Address
             </label>
             <div className="relative">
@@ -71,7 +96,10 @@ export default function Login() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Password
             </label>
             <div className="relative">
@@ -99,24 +127,26 @@ export default function Login() {
                 Signing in...
               </>
             ) : (
-              'Sign In'
+              "Sign In"
             )}
           </button>
         </form>
 
         <div className="mt-6 text-center space-y-2">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Don't have an account?{' '}
-            <a href="/signup" className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium">
+            Don't have an account?{" "}
+            <a
+              href="/signup"
+              className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+            >
               Sign up
             </a>
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-500">
-            Demo: admin@organization.com / admin123
+            Demo: admin@raidware.com / adminsecret
           </p>
         </div>
       </div>
     </div>
   );
 }
-

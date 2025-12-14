@@ -1,43 +1,58 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useData } from '@/contexts/DataContext';
-import DashboardLayout from '@/components/Dashboard/DashboardLayout';
-import StatsCard from '@/components/Dashboard/StatsCard';
-import MetricChart from '@/components/Dashboard/MetricChart';
-import RealTimeChart from '@/components/Dashboard/RealTimeChart';
-import { Network, Video, Activity, Shield, TrendingUp, Users, Wifi, Lock, Server } from 'lucide-react';
-import { useMemo } from 'react';
-import ActivityFeed from '@/components/Dashboard/ActivityFeed';
-import PerformanceMetrics from '@/components/Dashboard/PerformanceMetrics';
+import { useEffect, useState } from "react";
+import useDeviceStore from "@/store/useDeviceStore";
+import DashboardLayout from "@/components/Dashboard/DashboardLayout";
+import StatsCard from "@/components/Dashboard/StatsCard";
+import MetricChart from "@/components/Dashboard/MetricChart";
+import RealTimeChart from "@/components/Dashboard/RealTimeChart";
+import {
+  Network,
+  Video,
+  Activity,
+  Shield,
+  TrendingUp,
+  Users,
+  Wifi,
+  Lock,
+  Server,
+} from "lucide-react";
+import { useMemo } from "react";
+import ActivityFeed from "@/components/Dashboard/ActivityFeed";
+import PerformanceMetrics from "@/components/Dashboard/PerformanceMetrics";
+import TopologyView from "@/components/Dashboard/TopologyView";
 
 // Memoized sensor chart component to prevent re-renders
 function SensorDataChart({ sensors }) {
   const sensorData = useMemo(() => {
     const sensorLabels = sensors.slice(-20).map((_, i) => {
-      const timestamp = sensors[sensors.length - 20 + i]?.timestamp || Date.now();
-      return new Date(timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const timestamp =
+        sensors[sensors.length - 20 + i]?.timestamp || Date.now();
+      return new Date(timestamp).toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
     });
     return {
       labels: sensorLabels,
       datasets: [
         {
-          label: 'Temperature (°C)',
-          data: sensors.slice(-20).map(s => s.temperature || 0),
-          borderColor: 'rgba(239, 68, 68, 1)',
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          label: "Temperature (°C)",
+          data: sensors.slice(-20).map((s) => s.temperature || 0),
+          borderColor: "rgba(239, 68, 68, 1)",
+          backgroundColor: "rgba(239, 68, 68, 0.1)",
           tension: 0.4,
           fill: true,
-          yAxisID: 'y',
+          yAxisID: "y",
         },
         {
-          label: 'Humidity (%)',
-          data: sensors.slice(-20).map(s => s.humidity || 0),
-          borderColor: 'rgba(59, 130, 246, 1)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          label: "Humidity (%)",
+          data: sensors.slice(-20).map((s) => s.humidity || 0),
+          borderColor: "rgba(59, 130, 246, 1)",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
           tension: 0.4,
           fill: true,
-          yAxisID: 'y1',
+          yAxisID: "y1",
         },
       ],
     };
@@ -54,8 +69,14 @@ function SensorDataChart({ sensors }) {
 }
 
 export default function DashboardPage() {
-  const { nodes, containers, alerts, sensors } = useData();
+  const { nodes, alerts, sensors, connectSocket, disconnectSocket } =
+    useDeviceStore();
   const [networkHealth, setNetworkHealth] = useState(95);
+
+  useEffect(() => {
+    connectSocket();
+    return () => disconnectSocket();
+  }, [connectSocket, disconnectSocket]);
   const [networkHealthHistory, setNetworkHealthHistory] = useState([]);
   const [nodeCountHistory, setNodeCountHistory] = useState([]);
   const [alertCountHistory, setAlertCountHistory] = useState([]);
@@ -68,7 +89,7 @@ export default function DashboardPage() {
         return 0;
       }
       const onlineNodes = Object.values(nodes).filter(
-        node => node.status === 'online' && Date.now() - node.lastSeen < 60000
+        (node) => node.status === "online" && Date.now() - node.lastSeen < 60000
       ).length;
       const health = Math.min(95 + Math.random() * 5, 100); // Simulate 95-100% health
       return health;
@@ -77,35 +98,41 @@ export default function DashboardPage() {
     // Initial calculation
     const initialHealth = calculateNetworkHealth();
     setNetworkHealth(initialHealth);
-    
+
     // Update history initially
     const now = Date.now();
     setNetworkHealthHistory([{ timestamp: now, value: initialHealth }]);
     setNodeCountHistory([{ timestamp: now, value: Object.keys(nodes).length }]);
     setAlertCountHistory([{ timestamp: now, value: alerts.length }]);
-    
+
     // Set up interval for updates
     const updateInterval = setInterval(() => {
       const health = calculateNetworkHealth();
       setNetworkHealth(health);
-      
+
       const updateTime = Date.now();
-      setNetworkHealthHistory(prev => {
+      setNetworkHealthHistory((prev) => {
         const newHistory = [...prev, { timestamp: updateTime, value: health }];
         return newHistory.slice(-30); // Keep last 30 points
       });
-      setNodeCountHistory(prev => {
+      setNodeCountHistory((prev) => {
         const currentNodeCount = Object.keys(nodes).length;
-        const newHistory = [...prev, { timestamp: updateTime, value: currentNodeCount }];
+        const newHistory = [
+          ...prev,
+          { timestamp: updateTime, value: currentNodeCount },
+        ];
         return newHistory.slice(-30);
       });
-      setAlertCountHistory(prev => {
+      setAlertCountHistory((prev) => {
         const currentAlertCount = alerts.length;
-        const newHistory = [...prev, { timestamp: updateTime, value: currentAlertCount }];
+        const newHistory = [
+          ...prev,
+          { timestamp: updateTime, value: currentAlertCount },
+        ];
         return newHistory.slice(-30);
       });
     }, 5000);
-    
+
     return () => {
       clearInterval(updateInterval);
     };
@@ -119,7 +146,8 @@ export default function DashboardPage() {
             Dashboard Overview
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Cloud platform for secure IoT network management with CCTV, sensors, and IDS protection
+            Cloud platform for secure IoT network management with CCTV, sensors,
+            and IDS protection
           </p>
         </div>
 
@@ -150,7 +178,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Real-time Charts - Main Metrics */}
-        <div className="grid grid-cols-1 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <MetricChart
             title="Network Health Trend"
             dataSource={networkHealthHistory}
@@ -161,6 +189,7 @@ export default function DashboardPage() {
             unit="%"
             gradient={true}
           />
+          <TopologyView nodes={nodes} />
         </div>
 
         {/* Secondary Charts */}
@@ -185,14 +214,10 @@ export default function DashboardPage() {
           />
         </div>
 
-
-
         {/* Performance Metrics */}
         <div className="grid grid-cols-1 gap-6">
           <PerformanceMetrics />
         </div>
-
-
 
         {/* System Status & Network Info */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -207,8 +232,12 @@ export default function DashboardPage() {
                     <Wifi className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Mesh Network</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">All nodes connected</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      Mesh Network
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      All nodes connected
+                    </p>
                   </div>
                 </div>
                 <span className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded-full text-sm font-medium">
@@ -221,8 +250,12 @@ export default function DashboardPage() {
                     <Server className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Gateway Connection</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Raspberry Pi gateway</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      Gateway Connection
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Raspberry Pi gateway
+                    </p>
                   </div>
                 </div>
                 <span className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded-full text-sm font-medium">
@@ -235,8 +268,12 @@ export default function DashboardPage() {
                     <Activity className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Data Sync</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Real-time updates</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      Data Sync
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Real-time updates
+                    </p>
                   </div>
                 </div>
                 <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-full text-sm font-medium">
@@ -249,8 +286,12 @@ export default function DashboardPage() {
                     <Shield className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Intrusion Detection</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">IDS monitoring active</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      Intrusion Detection
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      IDS monitoring active
+                    </p>
                   </div>
                 </div>
                 <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-full text-sm font-medium">
@@ -268,35 +309,60 @@ export default function DashboardPage() {
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Encryption</span>
-                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">AES-256</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Encryption
+                  </span>
+                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                    AES-256
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: '100%' }} />
+                  <div
+                    className="bg-green-600 h-2 rounded-full"
+                    style={{ width: "100%" }}
+                  />
                 </div>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mutual Authentication</span>
-                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">Enabled</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Mutual Authentication
+                  </span>
+                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                    Enabled
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: '100%' }} />
+                  <div
+                    className="bg-green-600 h-2 rounded-full"
+                    style={{ width: "100%" }}
+                  />
                 </div>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">MAC Whitelisting</span>
-                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">Active</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    MAC Whitelisting
+                  </span>
+                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                    Active
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: '100%' }} />
+                  <div
+                    className="bg-green-600 h-2 rounded-full"
+                    style={{ width: "100%" }}
+                  />
                 </div>
               </div>
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Overall Security Score</span>
-                  <span className="text-2xl font-bold text-green-600 dark:text-green-400">96%</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Overall Security Score
+                  </span>
+                  <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    96%
+                  </span>
                 </div>
               </div>
             </div>
@@ -306,4 +372,3 @@ export default function DashboardPage() {
     </DashboardLayout>
   );
 }
-

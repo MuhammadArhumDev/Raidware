@@ -1,0 +1,77 @@
+import { create } from "zustand";
+import { io } from "socket.io-client";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+const useDeviceStore = create((set, get) => ({
+  socket: null,
+  nodes: {},
+  sensors: [],
+  alerts: [],
+  loading: true,
+
+  connectSocket: () => {
+    const existingSocket = get().socket;
+    if (existingSocket) return;
+
+    const newSocket = io(`${BACKEND_URL}/frontend`, {
+      transports: ["websocket"],
+    });
+
+    set({ socket: newSocket });
+
+    newSocket.on("connect", () => {
+      console.log("Connected to backend socket");
+      newSocket.emit("frontend:init");
+    });
+
+    newSocket.on("device:list", (devices) => {
+      const nodesMap = {};
+      devices.forEach((device) => {
+        nodesMap[device.id] = device;
+      });
+      set({ nodes: nodesMap, loading: false });
+    });
+
+    newSocket.on("device:update", (data) => {
+      set((state) => {
+        const prevNodes = state.nodes;
+        // If device was offline, maybe we only update status
+        const newNode = { ...(prevNodes[data.macAddress] || {}), ...data };
+        return { nodes: { ...prevNodes, [data.macAddress]: newNode } };
+      });
+    });
+
+    // Initialize mock data for sensors/alerts for now
+    import("@/services/mockData").then(
+      ({ mockDataService, reinitializeMockData }) => {
+        reinitializeMockData();
+        mockDataService.startUpdates();
+
+        mockDataService.subscribe("sensors", (data) => {
+          set({ sensors: data });
+        });
+        mockDataService.subscribe("alerts", (data) => {
+          set({ alerts: data });
+        });
+      }
+    );
+  },
+
+  disconnectSocket: () => {
+    const socket = get().socket;
+    if (socket) socket.disconnect();
+    import("@/services/mockData").then(({ mockDataService }) => {
+      mockDataService.stopUpdates();
+    });
+    set({ socket: null });
+  },
+
+  dismissAlert: (alertId) => {
+    set((state) => ({
+      alerts: state.alerts.filter((a) => a.id !== alertId),
+    }));
+  },
+}));
+
+export default useDeviceStore;

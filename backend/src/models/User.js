@@ -12,7 +12,11 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
     password: { type: String, required: true },
-    role: { type: String, enum: ["user", "admin"], default: "user" },
+    role: {
+      type: String,
+      enum: ["admin", "organization"],
+      default: "organization",
+    },
     refreshTokens: [
       { token: String, createdAt: { type: Date, default: Date.now } },
     ],

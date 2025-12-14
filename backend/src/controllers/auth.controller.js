@@ -8,12 +8,12 @@ import config from "../config/index.js";
 
 export async function register(req, res, next) {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     const exists = await User.findOne({ email });
     if (exists)
       return sendResponse(res, 400, false, "Email already registered");
 
-    const user = new User({ name, email, password });
+    const user = new User({ name, email, password, role: role || "user" });
     await user.save();
 
     const accessToken = generateAccessToken({ id: user._id, role: user.role });
@@ -47,6 +47,7 @@ export async function register(req, res, next) {
 export async function login(req, res, next) {
   try {
     const { email, password } = req.body;
+
     const user = await User.findOne({ email });
     if (!user) return sendResponse(res, 401, false, "Invalid credentials");
 
@@ -65,6 +66,30 @@ export async function login(req, res, next) {
       sameSite: "lax",
       maxAge: 1000 * 60 * 60 * 24 * 7,
     });
+
+    // Set organization_token cookie (for regular users)
+    res.cookie("organization_token", accessToken, {
+      httpOnly: true,
+      secure: config.cookie.secure,
+      sameSite: "lax",
+      maxAge: 1000 * 60 * 15, // 15 minutes
+    });
+
+    // If user is admin in DB, ALSO set the admin_token
+    if (user.role === "admin") {
+      res.cookie("admin_token", accessToken, {
+        httpOnly: true,
+        secure: config.cookie.secure,
+        sameSite: "lax",
+        maxAge: 1000 * 60 * 15, // 15 minutes
+      });
+    }
+
+    console.log("Login Successful for:", user.email, "Role:", user.role);
+    console.log(
+      "Cookies set: refreshToken, organization_token",
+      user.role === "admin" ? ", admin_token" : ""
+    );
 
     return sendResponse(res, 200, true, "Logged in", {
       accessToken,

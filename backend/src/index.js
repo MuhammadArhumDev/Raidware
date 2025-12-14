@@ -35,8 +35,11 @@ app.use(cookieParser());
 app.use(morgan("dev"));
 
 // Security
-app.use(mongoSanitize());
-app.use(xss());
+// app.use(mongoSanitize()); // Incompatible with Express 5 direct assignment
+import { safeMongoSanitize } from "./middleware/security.middleware.js";
+app.use(safeMongoSanitize);
+
+// app.use(xss()); // Potentially incompatible or redundant with modern React/Helmet. Disabling to prevent similar crash.
 app.use(hpp());
 
 // Rate Limiting

@@ -5,12 +5,10 @@ import pkg from "crystals-kyber";
 const { Kyber768 } = pkg;
 import crypto from "crypto";
 
-// --- Crypto Helpers ---
-
-// AES-256-GCM Decrypt
+// Decrypt AES-256-GCM message
 const decryptMessage = (encryptedObj, sharedSecretHex) => {
   try {
-    const key = Buffer.from(sharedSecretHex, "hex"); // 32 bytes
+    const key = Buffer.from(sharedSecretHex, "hex");
     const iv = Buffer.from(encryptedObj.iv, "hex");
     const tag = Buffer.from(encryptedObj.tag, "hex");
     const encryptedText = Buffer.from(encryptedObj.data, "hex");
@@ -27,7 +25,7 @@ const decryptMessage = (encryptedObj, sharedSecretHex) => {
   }
 };
 
-// AES-256-GCM Encrypt
+// Encrypt message with AES-256-GCM
 const encryptMessage = (plaintext, sharedSecretHex) => {
   try {
     const key = Buffer.from(sharedSecretHex, "hex");
@@ -49,76 +47,59 @@ const encryptMessage = (plaintext, sharedSecretHex) => {
   }
 };
 
-// SHA-256 Hash for MAC
+// Generate SHA-256 hash of MAC address
 const hashMacAddress = (mac) => {
   return crypto.createHash("sha256").update(mac).digest("hex");
 };
 
 let io;
 
+// Initialize Socket.IO server
 export const initSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: "*", // Allow all for now, lock down in production
+      origin: "*",
       methods: ["GET", "POST"],
     },
   });
 
   console.log("Socket.IO initialized");
 
-  // Namespace for Devices
   const deviceNamespace = io.of("/devices");
 
-  // Namespace for Frontend
   const frontendNamespace = io.of("/frontend");
 
-  // --- Device Logic ---
+  // Handle device connections and authentication
   deviceNamespace.on("connection", (socket) => {
     console.log(`[Device] Connected: ${socket.id}`);
 
-    // Auth State Tracker for this socket
     let authState = {
       isAuthenticated: false,
       macAddress: null,
       nonce: null,
     };
 
-    // Step 1: Device initiates (or we trigger it)
-    // Device says: "Hello, I am MAC_ADDRESS"
     socket.on("auth:init", async ({ macAddress }) => {
       console.log(`[Device] Auth Init from ${macAddress}`);
 
-      // Hash MAC for Lookup
       const macHash = hashMacAddress(macAddress);
-      authState.macAddress = macAddress; // Keep raw for internal ref, but DB uses hash?
-      // User said: "Store authenticated MAC hashed".
-      // Assuming we verify against a whitelist.
-      // For now, let's just proceed with challenge.
+      authState.macAddress = macAddress;
 
-      // Generate Nonce
       const nonce = generateNonce();
       authState.nonce = nonce;
 
-      // Store nonce temporarily
       await redis.set(`auth:nonce:${macHash}`, nonce, "EX", 30);
 
-      // --- Kyber KeyGen ---
-      // Generate (pk, sk)
       const { pk, sk } = Kyber768.keyPair();
 
-      // Store sk in redis (as byte array or base64) to retrieve it when response comes
-      // Convert to Base64/Hex for storage?
-      // crystals-kyber usually returns Uint8Array.
       const skHex = Buffer.from(sk).toString("hex");
       const pkHex = Buffer.from(pk).toString("hex");
 
       await redis.set(`auth:kyber:${macHash}`, skHex, "EX", 30);
 
-      // Send Challenge with Nonce AND Kyber Public Key
       socket.emit("auth:challenge", { nonce, pk: pkHex });
     });
 
-    // Step 2: Device responds with Signature AND Kyber Ciphertext
     socket.on("auth:response", async ({ signature, ciphertext }) => {
       const { macAddress, nonce } = authState;
 
@@ -126,7 +107,6 @@ export const initSocket = (httpServer) => {
         return socket.emit("auth:failed", { reason: "No auth session init" });
       }
 
-      // Fetch Auth Data from Redis (Synced from Mongo)
       const authData = await redis.hgetall(`device:${macAddress}:auth`);
 
       if (!authData || !authData.sharedSecret) {
@@ -136,8 +116,6 @@ export const initSocket = (httpServer) => {
         return socket.emit("auth:failed", { reason: "Unknown device" });
       }
 
-      // Check Signature
-      // Payload = nonce + macAddress (Must match Firmware logic)
       const payload = nonce + macAddress;
       const isValid = verifySignature(
         payload,
@@ -145,7 +123,6 @@ export const initSocket = (httpServer) => {
         authData.sharedSecret
       );
 
-      // Kyber Decapsulation
       let sharedSecretHex = null;
       try {
         const skHex = await redis.get(`auth:kyber:${macAddress}`);
@@ -170,27 +147,17 @@ export const initSocket = (httpServer) => {
       if (isValid && sharedSecretHex) {
         console.log(`[Device] Authenticated: ${macAddress}`);
         authState.isAuthenticated = true;
-        authState.sharedSecret = sharedSecretHex; // Store for encryption
+        authState.sharedSecret = sharedSecretHex;
 
-        // Hash MAC
         const macHash = hashMacAddress(macAddress);
-
-        // Update Redis Status using HASHED MAC?
-        // User said "Store authenticated MAC addresses (hashed) in Redis".
-        // Example: SADD allowed_devices <hash> ?
-        // Or just key naming convention?
-        // "Redis keys matching device:*:status" in frontend logic suggests we might need to be careful if we change key names.
-        // But user asked explicitly for hashing.
-        // Let's use Hashed MAC for the session key.
 
         await redis.hset(`device:${macHash}:status`, {
           online: true,
           lastSeen: Date.now(),
           socketId: socket.id,
-          rawMac: macAddress, // Optional: store raw inside value if needed for display
+          rawMac: macAddress,
         });
 
-        // Notify Frontend
         frontendNamespace.emit("device:update", {
           macAddress,
           status: "online",
@@ -207,14 +174,10 @@ export const initSocket = (httpServer) => {
       }
     });
 
-    // Heartbeat
     socket.on("pulse", async (encryptedPayload) => {
       if (!authState.isAuthenticated || !authState.sharedSecret) return;
 
       try {
-        // Decrypt Pulse
-        // Expecting encryptedPayload to be JSON object or string with { iv, tag, data }
-        // If it comes as a string, parse it.
         let payload = encryptedPayload;
         if (typeof encryptedPayload === "string") {
           try {
@@ -228,10 +191,6 @@ export const initSocket = (httpServer) => {
           return;
         }
 
-        // const data = JSON.parse(decryptedJson); // If pulse content is JSON
-
-        // Update Redis
-        // Use MAC HASH as key?
         const macHash = hashMacAddress(authState.macAddress);
         await redis.hset(`device:${macHash}:status`, "lastSeen", Date.now());
       } catch (e) {
@@ -253,17 +212,42 @@ export const initSocket = (httpServer) => {
     });
   });
 
-  // --- Frontend Logic ---
+  // Handle frontend connection and updates
   frontendNamespace.on("connection", (socket) => {
     console.log(`[Frontend] Connected: ${socket.id}`);
 
-    // Send initial list of online devices?
-    // Could iterate Redis keys matching device:*:status
+    socket.on("frontend:init", async () => {
+      console.log(`[Frontend] Init request from: ${socket.id}`);
+      try {
+        const keys = await redis.keys("device:*:status");
+        if (keys.length > 0) {
+          const devices = [];
+          for (const key of keys) {
+            const statusData = await redis.hgetall(key);
+            if (statusData && statusData.rawMac) {
+              devices.push({
+                id: statusData.rawMac,
+                macAddress: statusData.rawMac,
+                status: statusData.online === "true" ? "online" : "offline",
+                lastSeen: parseInt(statusData.lastSeen) || Date.now(),
+                ...statusData,
+              });
+            }
+          }
+          socket.emit("device:list", devices);
+        } else {
+          socket.emit("device:list", []);
+        }
+      } catch (err) {
+        console.error("Error fetching initial device list:", err);
+      }
+    });
   });
 
   return io;
 };
 
+// Get IO instance logic
 export const getIO = () => {
   if (!io) {
     throw new Error("Socket.io not initialized!");
@@ -271,6 +255,7 @@ export const getIO = () => {
   return io;
 };
 
+// Emit device update helper
 export const emitDeviceUpdate = (data) => {
   if (!io) {
     console.warn("Socket.io not initialized, skipping device update emit");

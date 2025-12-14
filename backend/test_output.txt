@@ -1,0 +1,18 @@
+[36m--- STARTING API TESTS ---[0m
+[36m
+1. Testing Organization Signup...[0m
+[32m✓ Signup Successful[0m
+[36m  User ID: 6956d5aea1188e7e00a645e5[0m
+[36m  Role: organization[0m
+[36m
+2. Testing Organization Login...[0m
+[32m✓ Org Login Successful[0m
+[36m  Token received: true[0m
+[36m
+3. Testing Admin Login...[0m
+[32m✓ Admin Login Successful[0m
+[36m  Role: admin[0m
+[36m  Token received: true[0m
+[36m  Cookies: refresh_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluLWlkIiwiaWF0IjoxNzY3Mjk4NDc5LCJleHAiOjE3Njc5MDMyNzl9.shDKqrQbhGxF1NfzCF9mM6vkfknFu2Cf7Q6jQBuUuFM; Max-Age=604800; Path=/; Expires=Thu, 08 Jan 2026 20:14:39 GMT; HttpOnly; SameSite=Lax, admin_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImFkbWluLWlkIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzY3Mjk4NDc5LCJleHAiOjE3NjcyOTkzNzl9.2pa6_S4YNkhNyzLG0ywggEvtRadqdSajjvpP6YYTipE; Max-Age=900; Path=/; Expires=Thu, 01 Jan 2026 20:29:39 GMT; HttpOnly; SameSite=Lax[0m
+[36m
+--- TESTS COMPLETED ---[0m

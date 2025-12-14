@@ -1,65 +1,81 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Building2, Mail, Lock, User, AlertCircle, Loader2, Shield } from 'lucide-react';
-import Link from 'next/link';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Building2,
+  Mail,
+  Lock,
+  User,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import Link from "next/link";
+import useAuthStore from "@/store/useAuthStore";
 
 export default function Signup() {
-  const [userType, setUserType] = useState('organization'); // 'organization' or 'admin'
   const [formData, setFormData] = useState({
-    organizationName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    fullName: '',
+    organizationName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    fullName: "",
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  const signup = useAuthStore((state) => state.signup);
+  const authError = useAuthStore((state) => state.error);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
-    setError('');
+    setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       setLoading(false);
       return;
     }
 
     if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError("Password must be at least 8 characters");
       setLoading(false);
       return;
     }
 
-    // TODO: Replace with actual API call
-    // Simulate signup
-    setTimeout(() => {
+    const payload = {
+      name: formData.organizationName, // Use Organization Name as main name
+      email: formData.email,
+      password: formData.password,
+      role: "organization", // Hardcoded role
+      // Additional fields if model supports them, e.g. contactPerson: formData.fullName
+    };
+
+    const user = await signup(payload);
+
+    if (user) {
       setLoading(false);
-      if (userType === 'organization') {
-        // Store organization info
-        localStorage.setItem('organization', JSON.stringify({
-          name: formData.organizationName,
-          email: formData.email,
-        }));
-        router.push('/dashboard/setup');
+      // Determine redirect based on role (though it should be organization)
+      if (user.role === "admin") {
+        router.push("/admin/dashboard");
       } else {
-        // Admin signup - redirect to admin dashboard
-        router.push('/admin/dashboard');
+        router.push("/dashboard");
       }
-    }, 1000);
+    } else {
+      setLoading(false);
+      setError(authError || "Signup failed");
+    }
   };
 
   return (
@@ -73,49 +89,8 @@ export default function Signup() {
             Cloud Platform for IoT Security
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-            {userType === 'organization' ? 'Create your organization account' : 'Create admin account'}
+            Create your organization account
           </p>
-        </div>
-
-        {/* User Type Selection */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Account Type
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setUserType('organization')}
-              className={`
-                p-4 rounded-lg border-2 transition-all
-                ${userType === 'organization'
-                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                }
-              `}
-            >
-              <Building2 className={`w-6 h-6 mx-auto mb-2 ${userType === 'organization' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'}`} />
-              <p className={`font-medium text-sm ${userType === 'organization' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                Organization
-              </p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setUserType('admin')}
-              className={`
-                p-4 rounded-lg border-2 transition-all
-                ${userType === 'admin'
-                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                }
-              `}
-            >
-              <Shield className={`w-6 h-6 mx-auto mb-2 ${userType === 'admin' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400'}`} />
-              <p className={`font-medium text-sm ${userType === 'admin' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-400'}`}>
-                Admin
-              </p>
-            </button>
-          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -126,30 +101,34 @@ export default function Signup() {
             </div>
           )}
 
-          {userType === 'organization' && (
-            <div>
-              <label htmlFor="organizationName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Organization Name
-              </label>
-              <div className="relative">
-                <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  id="organizationName"
-                  name="organizationName"
-                  type="text"
-                  value={formData.organizationName}
-                  onChange={handleChange}
-                  required={userType === 'organization'}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  placeholder="Acme Corporation"
-                />
-              </div>
+          <div>
+            <label
+              htmlFor="organizationName"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Organization Name
+            </label>
+            <div className="relative">
+              <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                id="organizationName"
+                name="organizationName"
+                type="text"
+                value={formData.organizationName}
+                onChange={handleChange}
+                required
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Acme Corporation"
+              />
             </div>
-          )}
+          </div>
 
           <div>
-            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Full Name
+            <label
+              htmlFor="fullName"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Contact Person
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -167,7 +146,10 @@ export default function Signup() {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Email Address
             </label>
             <div className="relative">
@@ -186,7 +168,10 @@ export default function Signup() {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Password
             </label>
             <div className="relative">
@@ -209,7 +194,10 @@ export default function Signup() {
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
               Confirm Password
             </label>
             <div className="relative">
@@ -238,15 +226,18 @@ export default function Signup() {
                 Creating Account...
               </>
             ) : (
-              'Create Account'
+              "Create Organization Account"
             )}
           </button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Already have an account?{' '}
-            <Link href="/" className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+            Already have an account?{" "}
+            <Link
+              href="/"
+              className="font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
               Sign in
             </Link>
           </p>

@@ -1,7 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { DataProvider } from "@/contexts/DataContext";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "Raidware - Cloud IoT Security Platform",
-  description: "Cloud platform for secure IoT network management with sensor integration, mutual authentication, strong encryption, and IDS protection",
+  description:
+    "Cloud platform for secure IoT network management with sensor integration, mutual authentication, strong encryption, and IDS protection",
 };
 
 export default function RootLayout({ children }) {
@@ -25,11 +25,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >
-        <AuthProvider>
-          <DataProvider>
-            {children}
-          </DataProvider>
-        </AuthProvider>
+        {children}
       </body>
     </html>
   );
