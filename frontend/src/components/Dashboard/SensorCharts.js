@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { Line, Bar } from 'react-chartjs-2';
+import { Line, Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,10 +11,10 @@ import {
   Title,
   Tooltip,
   Legend,
-  Filler
-} from 'chart.js';
-import { useData } from '@/contexts/DataContext';
-import { Thermometer, Droplets, Gauge } from 'lucide-react';
+  Filler,
+} from "chart.js";
+import useDeviceStore from "@/store/useDeviceStore";
+import { Thermometer, Droplets, Gauge } from "lucide-react";
 
 ChartJS.register(
   CategoryScale,
@@ -29,17 +29,18 @@ ChartJS.register(
 );
 
 export default function SensorCharts() {
-  const { sensors: sensorData, loading } = useData();
+  const sensorData = useDeviceStore((state) => state.sensors || []);
+  const loading = false;
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top',
+        position: "top",
       },
       tooltip: {
-        mode: 'index',
+        mode: "index",
         intersect: false,
       },
     },
@@ -47,7 +48,7 @@ export default function SensorCharts() {
       y: {
         beginAtZero: false,
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)',
+          color: "rgba(0, 0, 0, 0.05)",
         },
       },
       x: {
@@ -60,17 +61,20 @@ export default function SensorCharts() {
 
   const timeLabels = sensorData.map((_, index) => {
     const date = new Date(sensorData[index]?.timestamp || Date.now());
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   });
 
   const temperatureData = {
     labels: timeLabels,
     datasets: [
       {
-        label: 'Temperature (°C)',
-        data: sensorData.map(s => s.temperature || 0),
-        borderColor: 'rgb(239, 68, 68)',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        label: "Temperature (°C)",
+        data: sensorData.map((s) => s.temperature || 0),
+        borderColor: "rgb(239, 68, 68)",
+        backgroundColor: "rgba(239, 68, 68, 0.1)",
         fill: true,
         tension: 0.4,
       },
@@ -81,10 +85,10 @@ export default function SensorCharts() {
     labels: timeLabels,
     datasets: [
       {
-        label: 'Humidity (%)',
-        data: sensorData.map(s => s.humidity || 0),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        label: "Humidity (%)",
+        data: sensorData.map((s) => s.humidity || 0),
+        borderColor: "rgb(59, 130, 246)",
+        backgroundColor: "rgba(59, 130, 246, 0.1)",
         fill: true,
         tension: 0.4,
       },
@@ -95,10 +99,10 @@ export default function SensorCharts() {
     labels: timeLabels,
     datasets: [
       {
-        label: 'Pressure (hPa)',
-        data: sensorData.map(s => s.pressure || 0),
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        label: "Pressure (hPa)",
+        data: sensorData.map((s) => s.pressure || 0),
+        borderColor: "rgb(34, 197, 94)",
+        backgroundColor: "rgba(34, 197, 94, 0.1)",
         fill: true,
         tension: 0.4,
       },
@@ -110,7 +114,9 @@ export default function SensorCharts() {
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-        <div className="text-gray-500 dark:text-gray-400">Loading sensor data...</div>
+        <div className="text-gray-500 dark:text-gray-400">
+          Loading sensor data...
+        </div>
       </div>
     );
   }
@@ -126,9 +132,11 @@ export default function SensorCharts() {
             </div>
           </div>
           <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-            {currentReading.temperature?.toFixed(1) || 'N/A'}°C
+            {currentReading.temperature?.toFixed(1) || "N/A"}°C
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Temperature</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Temperature
+          </p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
@@ -138,7 +146,7 @@ export default function SensorCharts() {
             </div>
           </div>
           <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-            {currentReading.humidity?.toFixed(1) || 'N/A'}%
+            {currentReading.humidity?.toFixed(1) || "N/A"}%
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">Humidity</p>
         </div>
@@ -150,7 +158,7 @@ export default function SensorCharts() {
             </div>
           </div>
           <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-            {currentReading.pressure?.toFixed(1) || 'N/A'} hPa
+            {currentReading.pressure?.toFixed(1) || "N/A"} hPa
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">Pressure</p>
         </div>
@@ -188,4 +196,3 @@ export default function SensorCharts() {
     </div>
   );
 }
-

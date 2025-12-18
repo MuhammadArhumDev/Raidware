@@ -1,74 +1,97 @@
-'use client';
+"use client";
 
-import { useState, useMemo } from 'react';
-import { useData } from '@/contexts/DataContext';
-import { AlertTriangle, CheckCircle, XCircle, Info, X, Shield, Network, Lock } from 'lucide-react';
-import { format } from 'date-fns';
+import { useState, useMemo } from "react";
+import useDeviceStore from "@/store/useDeviceStore";
+import {
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Info,
+  X,
+  Shield,
+  Network,
+  Lock,
+} from "lucide-react";
+import { format } from "date-fns";
 
 const severityConfig = {
   critical: {
     icon: XCircle,
-    color: 'red',
-    bgColor: 'bg-red-50 dark:bg-red-900/20',
-    borderColor: 'border-red-200 dark:border-red-800',
-    textColor: 'text-red-600 dark:text-red-400',
+    color: "red",
+    bgColor: "bg-red-50 dark:bg-red-900/20",
+    borderColor: "border-red-200 dark:border-red-800",
+    textColor: "text-red-600 dark:text-red-400",
   },
   high: {
     icon: AlertTriangle,
-    color: 'orange',
-    bgColor: 'bg-orange-50 dark:bg-orange-900/20',
-    borderColor: 'border-orange-200 dark:border-orange-800',
-    textColor: 'text-orange-600 dark:text-orange-400',
+    color: "orange",
+    bgColor: "bg-orange-50 dark:bg-orange-900/20",
+    borderColor: "border-orange-200 dark:border-orange-800",
+    textColor: "text-orange-600 dark:text-orange-400",
   },
   medium: {
     icon: Info,
-    color: 'yellow',
-    bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-    borderColor: 'border-yellow-200 dark:border-yellow-800',
-    textColor: 'text-yellow-600 dark:text-yellow-400',
+    color: "yellow",
+    bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+    borderColor: "border-yellow-200 dark:border-yellow-800",
+    textColor: "text-yellow-600 dark:text-yellow-400",
   },
   low: {
     icon: CheckCircle,
-    color: 'blue',
-    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-    borderColor: 'border-blue-200 dark:border-blue-800',
-    textColor: 'text-blue-600 dark:text-blue-400',
+    color: "blue",
+    bgColor: "bg-blue-50 dark:bg-blue-900/20",
+    borderColor: "border-blue-200 dark:border-blue-800",
+    textColor: "text-blue-600 dark:text-blue-400",
   },
 };
 
 const attackTypes = {
-  'rogue-ap': { icon: Network, label: 'Rogue Access Point Detected' },
-  'arp-spoofing': { icon: Network, label: 'ARP Spoofing Attack' },
-  'deauth-attack': { icon: Lock, label: 'Deauthentication Attack' },
-  'brute-force': { icon: Shield, label: 'Brute Force Attempt' },
-  'unauthorized-access': { icon: XCircle, label: 'Unauthorized Access' },
-  'data-exfiltration': { icon: AlertTriangle, label: 'Data Exfiltration Attempt' },
+  "rogue-ap": { icon: Network, label: "Rogue Access Point Detected" },
+  "arp-spoofing": { icon: Network, label: "ARP Spoofing Attack" },
+  "deauth-attack": { icon: Lock, label: "Deauthentication Attack" },
+  "brute-force": { icon: Shield, label: "Brute Force Attempt" },
+  "unauthorized-access": { icon: XCircle, label: "Unauthorized Access" },
+  "data-exfiltration": {
+    icon: AlertTriangle,
+    label: "Data Exfiltration Attempt",
+  },
 };
 
 export default function IDSAlerts() {
-  const { alerts: allAlerts, dismissAlert, loading } = useData();
-  const [filter, setFilter] = useState('all');
-  const [attackTypeFilter, setAttackTypeFilter] = useState('all');
+  const allAlerts = useDeviceStore((state) => state.alerts || []);
+  const dismissAlert = useDeviceStore((state) => state.dismissAlert);
+  const loading = false;
+  const [filter, setFilter] = useState("all");
+  const [attackTypeFilter, setAttackTypeFilter] = useState("all");
 
   // Enhance alerts with attack type information
   const enhancedAlerts = useMemo(() => {
-    return allAlerts.map(alert => {
+    return allAlerts.map((alert) => {
       // Detect attack type from alert source/message
-      let attackType = 'unknown';
-      const message = alert.message?.toLowerCase() || '';
-      
-      if (message.includes('rogue') || message.includes('unauthorized ap')) {
-        attackType = 'rogue-ap';
-      } else if (message.includes('arp') || message.includes('spoofing')) {
-        attackType = 'arp-spoofing';
-      } else if (message.includes('deauth') || message.includes('deauthentication')) {
-        attackType = 'deauth-attack';
-      } else if (message.includes('brute') || message.includes('force')) {
-        attackType = 'brute-force';
-      } else if (message.includes('unauthorized') || message.includes('access')) {
-        attackType = 'unauthorized-access';
-      } else if (message.includes('exfiltrat') || message.includes('data leak')) {
-        attackType = 'data-exfiltration';
+      let attackType = "unknown";
+      const message = alert.message?.toLowerCase() || "";
+
+      if (message.includes("rogue") || message.includes("unauthorized ap")) {
+        attackType = "rogue-ap";
+      } else if (message.includes("arp") || message.includes("spoofing")) {
+        attackType = "arp-spoofing";
+      } else if (
+        message.includes("deauth") ||
+        message.includes("deauthentication")
+      ) {
+        attackType = "deauth-attack";
+      } else if (message.includes("brute") || message.includes("force")) {
+        attackType = "brute-force";
+      } else if (
+        message.includes("unauthorized") ||
+        message.includes("access")
+      ) {
+        attackType = "unauthorized-access";
+      } else if (
+        message.includes("exfiltrat") ||
+        message.includes("data leak")
+      ) {
+        attackType = "data-exfiltration";
       }
 
       return {
@@ -80,40 +103,54 @@ export default function IDSAlerts() {
 
   const alerts = useMemo(() => {
     let filtered = enhancedAlerts.sort((a, b) => b.timestamp - a.timestamp);
-    
-    if (filter !== 'all') {
-      filtered = filtered.filter(alert => alert.severity === filter);
+
+    if (filter !== "all") {
+      filtered = filtered.filter((alert) => alert.severity === filter);
     }
-    
-    if (attackTypeFilter !== 'all') {
-      filtered = filtered.filter(alert => alert.attackType === attackTypeFilter);
+
+    if (attackTypeFilter !== "all") {
+      filtered = filtered.filter(
+        (alert) => alert.attackType === attackTypeFilter
+      );
     }
-    
+
     return filtered;
   }, [enhancedAlerts, filter, attackTypeFilter]);
 
   const alertCounts = {
     all: enhancedAlerts.length,
-    critical: enhancedAlerts.filter(a => a.severity === 'critical').length,
-    high: enhancedAlerts.filter(a => a.severity === 'high').length,
-    medium: enhancedAlerts.filter(a => a.severity === 'medium').length,
-    low: enhancedAlerts.filter(a => a.severity === 'low').length,
+    critical: enhancedAlerts.filter((a) => a.severity === "critical").length,
+    high: enhancedAlerts.filter((a) => a.severity === "high").length,
+    medium: enhancedAlerts.filter((a) => a.severity === "medium").length,
+    low: enhancedAlerts.filter((a) => a.severity === "low").length,
   };
 
   const attackTypeCounts = {
     all: enhancedAlerts.length,
-    'rogue-ap': enhancedAlerts.filter(a => a.attackType === 'rogue-ap').length,
-    'arp-spoofing': enhancedAlerts.filter(a => a.attackType === 'arp-spoofing').length,
-    'deauth-attack': enhancedAlerts.filter(a => a.attackType === 'deauth-attack').length,
-    'brute-force': enhancedAlerts.filter(a => a.attackType === 'brute-force').length,
-    'unauthorized-access': enhancedAlerts.filter(a => a.attackType === 'unauthorized-access').length,
-    'data-exfiltration': enhancedAlerts.filter(a => a.attackType === 'data-exfiltration').length,
+    "rogue-ap": enhancedAlerts.filter((a) => a.attackType === "rogue-ap")
+      .length,
+    "arp-spoofing": enhancedAlerts.filter(
+      (a) => a.attackType === "arp-spoofing"
+    ).length,
+    "deauth-attack": enhancedAlerts.filter(
+      (a) => a.attackType === "deauth-attack"
+    ).length,
+    "brute-force": enhancedAlerts.filter((a) => a.attackType === "brute-force")
+      .length,
+    "unauthorized-access": enhancedAlerts.filter(
+      (a) => a.attackType === "unauthorized-access"
+    ).length,
+    "data-exfiltration": enhancedAlerts.filter(
+      (a) => a.attackType === "data-exfiltration"
+    ).length,
   };
 
   if (loading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-        <div className="text-gray-500 dark:text-gray-400">Loading IDS alerts...</div>
+        <div className="text-gray-500 dark:text-gray-400">
+          Loading IDS alerts...
+        </div>
       </div>
     );
   }
@@ -138,7 +175,9 @@ export default function IDSAlerts() {
       {/* Filter Tabs */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
         <div className="mb-4">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by Severity</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Filter by Severity
+          </p>
           <div className="flex flex-wrap gap-2">
             {Object.entries(alertCounts).map(([key, count]) => (
               <button
@@ -146,9 +185,10 @@ export default function IDSAlerts() {
                 onClick={() => setFilter(key)}
                 className={`
                   px-4 py-2 rounded-lg font-medium transition-colors text-sm
-                  ${filter === key
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ${
+                    filter === key
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }
                 `}
               >
@@ -159,19 +199,22 @@ export default function IDSAlerts() {
         </div>
 
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Filter by Attack Type</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Filter by Attack Type
+          </p>
           <div className="flex flex-wrap gap-2">
             {Object.entries(attackTypeCounts).map(([key, count]) => {
-              if (key === 'all') {
+              if (key === "all") {
                 return (
                   <button
                     key={key}
                     onClick={() => setAttackTypeFilter(key)}
                     className={`
                       px-4 py-2 rounded-lg font-medium transition-colors text-sm
-                      ${attackTypeFilter === key
-                        ? 'bg-indigo-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                      ${
+                        attackTypeFilter === key
+                          ? "bg-indigo-600 text-white"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                       }
                     `}
                   >
@@ -187,9 +230,10 @@ export default function IDSAlerts() {
                   onClick={() => setAttackTypeFilter(key)}
                   className={`
                     px-4 py-2 rounded-lg font-medium transition-colors text-sm flex items-center gap-2
-                    ${attackTypeFilter === key
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    ${
+                      attackTypeFilter === key
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                     }
                   `}
                 >
@@ -208,7 +252,11 @@ export default function IDSAlerts() {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-12 text-center border border-gray-200 dark:border-gray-700">
             <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 dark:text-gray-400">
-              No {filter !== 'all' || attackTypeFilter !== 'all' ? 'matching ' : ''}IDS alerts at this time
+              No{" "}
+              {filter !== "all" || attackTypeFilter !== "all"
+                ? "matching "
+                : ""}
+              IDS alerts at this time
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
               Your network is secure
@@ -218,16 +266,19 @@ export default function IDSAlerts() {
           alerts.map((alert) => {
             const config = severityConfig[alert.severity] || severityConfig.low;
             const Icon = config.icon;
-            const attackInfo = attackTypes[alert.attackType] || { icon: Shield, label: 'Security Alert' };
+            const attackInfo = attackTypes[alert.attackType] || {
+              icon: Shield,
+              label: "Security Alert",
+            };
             const AttackIcon = attackInfo.icon;
-            
+
             return (
               <div
                 key={alert.id}
                 className={`
                   bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2
                   ${config.borderColor}
-                  ${alert.dismissed ? 'opacity-60' : ''}
+                  ${alert.dismissed ? "opacity-60" : ""}
                 `}
               >
                 <div className="flex items-start justify-between">
@@ -243,10 +294,12 @@ export default function IDSAlerts() {
                             {alert.title || attackInfo.label}
                           </h3>
                         </div>
-                        <span className={`
+                        <span
+                          className={`
                           px-2 py-1 text-xs font-semibold rounded
                           ${config.bgColor} ${config.textColor}
-                        `}>
+                        `}
+                        >
                           {alert.severity?.toUpperCase()}
                         </span>
                         {alert.dismissed && (
@@ -256,19 +309,20 @@ export default function IDSAlerts() {
                         )}
                       </div>
                       <p className="text-gray-600 dark:text-gray-400 mb-3">
-                        {alert.message || alert.description || 'Network security threat detected'}
+                        {alert.message ||
+                          alert.description ||
+                          "Network security threat detected"}
                       </p>
                       <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-500">
                         <span>
-                          {format(new Date(alert.timestamp), 'MMM dd, yyyy HH:mm:ss')}
+                          {format(
+                            new Date(alert.timestamp),
+                            "MMM dd, yyyy HH:mm:ss"
+                          )}
                         </span>
-                        {alert.source && (
-                          <span>• Source: {alert.source}</span>
-                        )}
-                        {alert.nodeId && (
-                          <span>• Node: {alert.nodeId}</span>
-                        )}
-                        {alert.attackType && alert.attackType !== 'unknown' && (
+                        {alert.source && <span>• Source: {alert.source}</span>}
+                        {alert.nodeId && <span>• Node: {alert.nodeId}</span>}
+                        {alert.attackType && alert.attackType !== "unknown" && (
                           <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded text-xs">
                             {attackInfo.label}
                           </span>
@@ -294,4 +348,3 @@ export default function IDSAlerts() {
     </div>
   );
 }
-

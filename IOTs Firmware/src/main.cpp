@@ -255,6 +255,22 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                              // pixel.setPixelColor(0, pixel.Color(255, 0, 0)); // Red
                              // pixel.show();
                          }
+                         else if (event == "message") {
+                             // Handle incoming encrypted message
+                             // Payload is expected to be { iv, tag, data }
+                             String msgPayload;
+                             serializeJson(doc[1], msgPayload);
+                             
+                             Serial.println("[Message] Received Payload (Encrypted): " + msgPayload);
+                             
+                             String decrypted = decryptMessage(msgPayload);
+                             if (decrypted != "") {
+                                 Serial.println("[Message] Decrypted Content: " + decrypted);
+                                 // Optional: Act on message, e.g. "REBOOT"
+                             } else {
+                                 Serial.println("[Message] Decryption Failed!");
+                             }
+                         }
                     }
                 }
             }

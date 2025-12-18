@@ -8,6 +8,7 @@ import {
   getSystemMonitoring,
   getGrowthAnalytics,
   getDeviceActivity,
+  updateOrgKeys,
 } from "../controllers/admin.controller.js";
 
 const router = express.Router();
@@ -35,5 +36,8 @@ router.get("/analytics/growth", getGrowthAnalytics);
 
 // Device activity
 router.get("/devices/activity", getDeviceActivity);
+
+// Organization Keys
+router.post("/settings/keys", updateOrgKeys);
 
 export default router;

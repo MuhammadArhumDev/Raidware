@@ -381,3 +381,27 @@ export const getDeviceActivity = async (req, res) => {
     res.status(500).json({ error: "Failed to get device activity" });
   }
 };
+
+// Update organization keys (Global Device Key)
+export const updateOrgKeys = async (req, res) => {
+  try {
+    const { sharedSecret } = req.body;
+
+    if (!sharedSecret) {
+      return res.status(400).json({ error: "Shared secret is required" });
+    }
+
+    // Determine organization ID from user (admin)
+    // For this prototype, we assume single organization or "global" fallback
+    // We use a fixed key for global fallback
+    await redis.set("org:default_secret", sharedSecret);
+
+    res.json({
+      success: true,
+      message: "Organization keys updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating organization keys:", error);
+    res.status(500).json({ error: "Failed to update keys" });
+  }
+};

@@ -66,7 +66,6 @@ export const initSocket = (httpServer) => {
   console.log("Socket.IO initialized");
 
   const deviceNamespace = io.of("/devices");
-
   const frontendNamespace = io.of("/frontend");
 
   // Handle device connections and authentication
@@ -77,6 +76,7 @@ export const initSocket = (httpServer) => {
       isAuthenticated: false,
       macAddress: null,
       nonce: null,
+      sharedSecret: null,
     };
 
     socket.on("auth:init", async ({ macAddress }) => {
@@ -85,19 +85,34 @@ export const initSocket = (httpServer) => {
       const macHash = hashMacAddress(macAddress);
       authState.macAddress = macAddress;
 
+      // Check validation whitelist (MAC Hash)
+      const isKnown = await redis.get(`auth:whitelist:${macHash}`);
+      if (isKnown) {
+        console.log(`[Auth] Device ${macAddress} found in whitelist.`);
+      } else {
+        console.log(
+          `[Auth] Device ${macAddress} NOT in whitelist. Proceeding with full auth.`
+        );
+      }
+
       const nonce = generateNonce();
       authState.nonce = nonce;
 
       await redis.set(`auth:nonce:${macHash}`, nonce, "EX", 30);
 
-      const { pk, sk } = Kyber768.keyPair();
+      try {
+        const { pk, sk } = Kyber768.keyPair(); // Ensure crystals-kyber is working
 
-      const skHex = Buffer.from(sk).toString("hex");
-      const pkHex = Buffer.from(pk).toString("hex");
+        const skHex = Buffer.from(sk).toString("hex");
+        const pkHex = Buffer.from(pk).toString("hex");
 
-      await redis.set(`auth:kyber:${macHash}`, skHex, "EX", 30);
+        await redis.set(`auth:kyber:${macHash}`, skHex, "EX", 60);
 
-      socket.emit("auth:challenge", { nonce, pk: pkHex });
+        socket.emit("auth:challenge", { nonce, pk: pkHex });
+      } catch (e) {
+        console.error("Kyber Error:", e);
+        socket.emit("auth:failed", { reason: "Internal encryption error" });
+      }
     });
 
     socket.on("auth:response", async ({ signature, ciphertext }) => {
@@ -109,7 +124,18 @@ export const initSocket = (httpServer) => {
 
       const authData = await redis.hgetall(`device:${macAddress}:auth`);
 
-      if (!authData || !authData.sharedSecret) {
+      let secretToUse = authData?.sharedSecret;
+
+      // Fallback to Global Org Key if no individual key found
+      if (!secretToUse) {
+        const globalSecret = await redis.get("org:default_secret");
+        if (globalSecret) {
+          console.log(`[Auth] Using Global Organization Key for ${macAddress}`);
+          secretToUse = globalSecret;
+        }
+      }
+
+      if (!secretToUse) {
         console.warn(
           `[Device] Unknown device or keys not synced: ${macAddress}`
         );
@@ -117,15 +143,13 @@ export const initSocket = (httpServer) => {
       }
 
       const payload = nonce + macAddress;
-      const isValid = verifySignature(
-        payload,
-        signature,
-        authData.sharedSecret
-      );
+      const isValid = verifySignature(payload, signature, secretToUse);
 
       let sharedSecretHex = null;
       try {
-        const skHex = await redis.get(`auth:kyber:${macAddress}`);
+        const macHash = hashMacAddress(macAddress);
+        const skHex = await redis.get(`auth:kyber:${macHash}`);
+
         if (skHex && ciphertext) {
           const sk = new Uint8Array(Buffer.from(skHex, "hex"));
           const ct = new Uint8Array(Buffer.from(ciphertext, "hex"));
@@ -151,6 +175,18 @@ export const initSocket = (httpServer) => {
 
         const macHash = hashMacAddress(macAddress);
 
+        // Cache MAC Hash in Redis (Whitelist)
+        await redis.set(`auth:whitelist:${macHash}`, "true");
+
+        // Map Socket ID and Session Key for backend-initiated messaging
+        await redis.set(`socket:device:${macAddress}`, socket.id);
+        await redis.set(
+          `session:key:${macHash}`,
+          sharedSecretHex,
+          "EX",
+          3600 * 24
+        ); // 24 hours
+
         await redis.hset(`device:${macHash}:status`, {
           online: true,
           lastSeen: Date.now(),
@@ -164,7 +200,7 @@ export const initSocket = (httpServer) => {
           lastSeen: Date.now(),
         });
 
-        socket.emit("auth:success", { token: "session-token-placeholder" });
+        socket.emit("auth:success", { token: "session-active" });
       } else {
         console.warn(`[Device] Auth Failed: ${macAddress}`);
         socket.emit("auth:failed", {
@@ -175,34 +211,36 @@ export const initSocket = (httpServer) => {
     });
 
     socket.on("pulse", async (encryptedPayload) => {
+      // Pulse handling
       if (!authState.isAuthenticated || !authState.sharedSecret) return;
-
       try {
         let payload = encryptedPayload;
-        if (typeof encryptedPayload === "string") {
-          try {
-            payload = JSON.parse(encryptedPayload);
-          } catch (e) {}
+        if (
+          typeof encryptedPayload === "string" &&
+          !encryptedPayload.startsWith("{")
+        ) {
+          // raw string?
+        } else if (typeof encryptedPayload !== "string") {
+          payload = encryptedPayload;
         }
 
         const decryptedJson = decryptMessage(payload, authState.sharedSecret);
-        if (!decryptedJson) {
-          console.warn(`[Pulse] Decrypt failed from ${authState.macAddress}`);
-          return;
+        if (decryptedJson) {
+          const macHash = hashMacAddress(authState.macAddress);
+          await redis.hset(`device:${macHash}:status`, "lastSeen", Date.now());
         }
-
-        const macHash = hashMacAddress(authState.macAddress);
-        await redis.hset(`device:${macHash}:status`, "lastSeen", Date.now());
       } catch (e) {
         console.error("[Pulse] Error:", e);
       }
     });
 
     socket.on("disconnect", async () => {
-      console.log(`[Device] Disconnect: ${socket.id}`);
       if (authState.isAuthenticated && authState.macAddress) {
         const macHash = hashMacAddress(authState.macAddress);
+        await redis.del(`socket:device:${authState.macAddress}`);
+        await redis.del(`session:key:${macHash}`); // Clear session key on disconnect? Or keep for resume? Cleaning up is safer.
         await redis.hset(`device:${macHash}:status`, "online", false);
+
         frontendNamespace.emit("device:update", {
           macAddress: authState.macAddress,
           status: "offline",
@@ -212,12 +250,11 @@ export const initSocket = (httpServer) => {
     });
   });
 
-  // Handle frontend connection and updates
+  // Handle frontend connection
   frontendNamespace.on("connection", (socket) => {
     console.log(`[Frontend] Connected: ${socket.id}`);
 
     socket.on("frontend:init", async () => {
-      console.log(`[Frontend] Init request from: ${socket.id}`);
       try {
         const keys = await redis.keys("device:*:status");
         if (keys.length > 0) {
@@ -240,6 +277,40 @@ export const initSocket = (httpServer) => {
         }
       } catch (err) {
         console.error("Error fetching initial device list:", err);
+      }
+    });
+
+    // Frontend sending message to Device
+    socket.on("frontend:send_message", async ({ targetMac, message }) => {
+      console.log(`[Frontend] Message Request: "${message}" to ${targetMac}`);
+
+      const sendToDevice = async (mac, msg) => {
+        const socketId = await redis.get(`socket:device:${mac}`);
+        if (!socketId) return { success: false, reason: "offline" };
+
+        const macHash = hashMacAddress(mac);
+        const sessionKey = await redis.get(`session:key:${macHash}`);
+
+        if (!sessionKey) return { success: false, reason: "no-secure-session" };
+
+        // Encrypt and Send
+        const encrypted = encryptMessage(msg, sessionKey);
+        if (encrypted) {
+          // We need to send this to the specific socket in deviceNamespace
+          const targetSocket = deviceNamespace.sockets.get(socketId);
+          if (targetSocket) {
+            targetSocket.emit("message", encrypted);
+            return { success: true };
+          }
+        }
+        return { success: false, reason: "send-failed" };
+      };
+
+      if (targetMac === "BROADCAST") {
+        // Logic for broadcast if needed
+      } else {
+        const result = await sendToDevice(targetMac, message);
+        socket.emit("message:status", { target: targetMac, ...result });
       }
     });
   });

@@ -1,18 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import { useData } from '@/contexts/DataContext';
-import { Package, Thermometer, Droplets, Gauge } from 'lucide-react';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import { useState, useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import useDeviceStore from "@/store/useDeviceStore";
+import { Package, Thermometer, Droplets, Gauge } from "lucide-react";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 
 // Fix for default marker icons in Next.js
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
 function MapUpdater({ center }) {
@@ -24,7 +27,8 @@ function MapUpdater({ center }) {
 }
 
 export default function WarehouseMap() {
-  const { containers: containersData, loading } = useData();
+  const containersData = useDeviceStore((state) => state.nodes);
+  const loading = false;
   const [selectedContainer, setSelectedContainer] = useState(null);
 
   const containers = Object.entries(containersData).map(([id, container]) => ({
@@ -33,7 +37,7 @@ export default function WarehouseMap() {
   }));
 
   // Default warehouse center (adjust to your actual location)
-  const warehouseCenter = [40.7128, -74.0060]; // Example: New York
+  const warehouseCenter = [40.7128, -74.006]; // Example: New York
 
   if (loading) {
     return (
@@ -53,7 +57,7 @@ export default function WarehouseMap() {
           <MapContainer
             center={warehouseCenter}
             zoom={15}
-            style={{ height: '100%', width: '100%' }}
+            style={{ height: "100%", width: "100%" }}
             scrollWheelZoom={true}
           >
             <TileLayer
@@ -64,7 +68,10 @@ export default function WarehouseMap() {
             {containers.map((container) => (
               <Marker
                 key={container.id}
-                position={[container.latitude || warehouseCenter[0], container.longitude || warehouseCenter[1]]}
+                position={[
+                  container.latitude || warehouseCenter[0],
+                  container.longitude || warehouseCenter[1],
+                ]}
                 eventHandlers={{
                   click: () => setSelectedContainer(container),
                 }}
@@ -119,8 +126,8 @@ export default function WarehouseMap() {
                 onClick={() => setSelectedContainer(container)}
                 className={`p-4 rounded-lg border cursor-pointer transition-colors ${
                   selectedContainer?.id === container.id
-                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300'
+                    ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                    : "border-gray-200 dark:border-gray-700 hover:border-indigo-300"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -150,4 +157,3 @@ export default function WarehouseMap() {
     </div>
   );
 }
-

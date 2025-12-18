@@ -38,32 +38,26 @@ const useDeviceStore = create((set, get) => ({
         const prevNodes = state.nodes;
         // If device was offline, maybe we only update status
         const newNode = { ...(prevNodes[data.macAddress] || {}), ...data };
+
+        // Also update alerts if high severity event? (For now just node status)
+
         return { nodes: { ...prevNodes, [data.macAddress]: newNode } };
       });
     });
 
-    // Initialize mock data for sensors/alerts for now
-    import("@/services/mockData").then(
-      ({ mockDataService, reinitializeMockData }) => {
-        reinitializeMockData();
-        mockDataService.startUpdates();
+    // Listen for alerts and sensor data from backend (if implemented later)
+    newSocket.on("dashboard:alerts", (newAlerts) => {
+      set({ alerts: newAlerts });
+    });
 
-        mockDataService.subscribe("sensors", (data) => {
-          set({ sensors: data });
-        });
-        mockDataService.subscribe("alerts", (data) => {
-          set({ alerts: data });
-        });
-      }
-    );
+    newSocket.on("dashboard:sensors", (newSensors) => {
+      set({ sensors: newSensors });
+    });
   },
 
   disconnectSocket: () => {
     const socket = get().socket;
     if (socket) socket.disconnect();
-    import("@/services/mockData").then(({ mockDataService }) => {
-      mockDataService.stopUpdates();
-    });
     set({ socket: null });
   },
 

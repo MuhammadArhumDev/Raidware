@@ -21,6 +21,7 @@ import { useMemo } from "react";
 import ActivityFeed from "@/components/Dashboard/ActivityFeed";
 import PerformanceMetrics from "@/components/Dashboard/PerformanceMetrics";
 import TopologyView from "@/components/Dashboard/TopologyView";
+import MessageSender from "@/components/Dashboard/MessageSender";
 
 // Memoized sensor chart component to prevent re-renders
 function SensorDataChart({ sensors }) {
@@ -89,9 +90,10 @@ export default function DashboardPage() {
         return 0;
       }
       const onlineNodes = Object.values(nodes).filter(
-        (node) => node.status === "online" && Date.now() - node.lastSeen < 60000
+        (node) => node.status === "online"
       ).length;
-      const health = Math.min(95 + Math.random() * 5, 100); // Simulate 95-100% health
+
+      const health = (onlineNodes / nodeCount) * 100;
       return health;
     };
 
@@ -192,7 +194,7 @@ export default function DashboardPage() {
           <TopologyView nodes={nodes} />
         </div>
 
-        {/* Secondary Charts */}
+        {/* Secondary Charts & Messaging */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <MetricChart
             title="Active Nodes Count"
@@ -203,15 +205,7 @@ export default function DashboardPage() {
             height={250}
             unit=" nodes"
           />
-          <MetricChart
-            title="Active Alerts Trend"
-            dataSource={alertCountHistory}
-            dataKey="value"
-            color="red"
-            type="bar"
-            height={250}
-            unit=" alerts"
-          />
+          <MessageSender />
         </div>
 
         {/* Performance Metrics */}
@@ -301,7 +295,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Network Security Status */}
+          {/* Network Security Status (Dynamic) */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Security Status
@@ -310,39 +304,7 @@ export default function DashboardPage() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Encryption
-                  </span>
-                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                    AES-256
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{ width: "100%" }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Mutual Authentication
-                  </span>
-                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                    Enabled
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{ width: "100%" }}
-                  />
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    MAC Whitelisting
+                    Encryption (Kyber-768)
                   </span>
                   <span className="text-sm font-semibold text-green-600 dark:text-green-400">
                     Active
@@ -355,13 +317,41 @@ export default function DashboardPage() {
                   />
                 </div>
               </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Online Devices
+                  </span>
+                  <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                    {
+                      Object.values(nodes).filter((n) => n.status === "online")
+                        .length
+                    }{" "}
+                    / {Object.keys(nodes).length}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-indigo-600 h-2 rounded-full"
+                    style={{
+                      width: `${
+                        (Object.values(nodes).filter(
+                          (n) => n.status === "online"
+                        ).length /
+                          (Object.keys(nodes).length || 1)) *
+                        100
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Overall Security Score
+                    Encryption Status
                   </span>
                   <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    96%
+                    SECURE
                   </span>
                 </div>
               </div>
