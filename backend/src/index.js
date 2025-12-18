@@ -12,6 +12,7 @@ import config from "./config/index.js";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import deviceRoutes from "./routes/device.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import { globalLimiter } from "./middleware/rateLimit.middleware.js";
 import { initSocket } from "./services/socket.service.js";
@@ -48,6 +49,7 @@ app.use(globalLimiter);
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/devices", deviceRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Error handler
 app.use(errorHandler);

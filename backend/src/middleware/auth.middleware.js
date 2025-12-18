@@ -69,4 +69,20 @@ export function authorizeRoles(...roles) {
   };
 }
 
-export default { protect, authorizeRoles };
+// Alias for protect - used in admin routes
+export const verifyToken = protect;
+
+// Middleware to require admin role
+export function requireAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: "Not authorized" });
+  }
+  if (req.user.role !== "admin") {
+    return res
+      .status(403)
+      .json({ success: false, message: "Admin access required" });
+  }
+  next();
+}
+
+export default { protect, authorizeRoles, verifyToken, requireAdmin };
