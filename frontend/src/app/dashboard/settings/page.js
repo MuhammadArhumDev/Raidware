@@ -2,7 +2,7 @@
 
 import DashboardLayout from "@/components/Dashboard/DashboardLayout";
 import useAuthStore from "@/store/useAuthStore";
-import { User, Bell, Shield, Database } from "lucide-react";
+import { User, Bell, Shield, Database, Lock } from "lucide-react";
 
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);

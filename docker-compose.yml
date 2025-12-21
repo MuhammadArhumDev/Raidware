@@ -1,0 +1,22 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: raidware-backend
+    ports:
+      - "5000:5000"
+    restart: always
+    env_file:
+      - ./backend/.env
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: raidware-frontend
+    ports:
+      - "3000:3000"
+    restart: always
+    env_file:
+      - ./frontend/.env
+    depends_on:
+      - backend

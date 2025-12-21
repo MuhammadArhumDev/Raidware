@@ -1,0 +1,42 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [main, master] # Trigger on push to main or master branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USERNAME }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          port: ${{ secrets.DO_PORT }}
+          script: |
+            # Navigate to the repository directory (adjust path if needed)
+            # Assuming the repo name or path. The user said "Fetch the code from the repository".
+            # I will assume a standard directory structure or that they clonned it to ~/Raidware
+            # If strictly needed, we can clone if not exists, but usually we just pull.
+
+            # Using a generic approach to ensure directory exists or CD into it.
+            # I'll stick to a likely path '~/Raidware' based on the project name.
+
+            mkdir -p ~/Raidware
+            cd ~/Raidware
+
+            # Check if it is a git repo, if not clone it (first time setup helper)
+            if [ ! -d ".git" ]; then
+              git clone git@github.com:${{ github.repository }}.git .
+            else
+              git pull origin main
+            fi
+
+            # Rebuild and restart containers
+            # Force recreation to ensure new images are used
+            docker compose up -d --build --force-recreate
+
+            # Prune unused images to save space
+            docker image prune -f

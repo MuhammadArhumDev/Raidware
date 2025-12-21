@@ -31,20 +31,29 @@ export default function TopologyView({ nodes }) {
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw Central Gateway/Server
+      // Draw Central Server/Backend
       const cx = canvas.width / 2;
       const cy = 50;
 
       ctx.beginPath();
-      ctx.arc(cx, cy, 20, 0, 2 * Math.PI);
+      ctx.arc(cx, cy, 24, 0, 2 * Math.PI);
       ctx.fillStyle = "#4f46e5"; // Indigo
       ctx.fill();
+      // Outer glow
+      ctx.beginPath();
+      ctx.arc(cx, cy, 30, 0, 2 * Math.PI);
+      ctx.strokeStyle = "rgba(79, 70, 229, 0.3)";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
       ctx.fillStyle = "white";
-      ctx.fillText("GW", cx - 8, cy + 3);
+      ctx.font = "bold 12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("SERVER", cx, cy + 4);
 
       // Draw Nodes
       nodeList.forEach((node, i) => {
-        // Position nodes in a row/grid below gateway
+        // Position nodes in a row/grid below server
         const perRow = Math.floor(canvas.width / gw);
         const row = Math.floor(i / perRow) + 1;
         const col = i % perRow;
@@ -57,11 +66,12 @@ export default function TopologyView({ nodes }) {
         const x = xOffset + col * gw;
         const y = cy + row * gh;
 
-        // Draw Line to Gateway (Logic: All connect to gateway in star topology for now)
+        // Draw Line to Server (Direct Connection)
         ctx.beginPath();
-        ctx.moveTo(cx, cy + 20);
-        ctx.lineTo(x, y - 15);
+        ctx.moveTo(cx, cy + 30);
+        ctx.lineTo(x, y - 20);
         ctx.strokeStyle = "#e5e7eb";
+        ctx.lineWidth = 1;
         ctx.stroke();
 
         // Draw Node Circle
@@ -74,7 +84,7 @@ export default function TopologyView({ nodes }) {
         ctx.font = "10px sans-serif";
         // Shorten MAC
         const label = node.macAddress ? node.macAddress.substring(0, 4) : "???";
-        ctx.fillText(label, x - 10, y + 25);
+        ctx.fillText(label, x, y + 28);
       });
     };
 

@@ -125,13 +125,13 @@ export default function NetworkTopology() {
           </div>
           <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <Router className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <Server className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Gateways
+                Server
               </span>
             </div>
             <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              1
+              Online
             </p>
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function NetworkTopology() {
             Network Infrastructure
           </h3>
           <div className="relative min-h-[500px] bg-gray-50 dark:bg-gray-900/50 rounded-lg p-8">
-            {/* Gateway (Center) */}
+            {/* Cloud Backend (Center) */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <div className="relative">
                 <div className="p-6 bg-indigo-600 rounded-full shadow-lg border-4 border-white dark:border-gray-800">
@@ -152,10 +152,10 @@ export default function NetworkTopology() {
                 </div>
                 <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Gateway
+                    Cloud Backend
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
-                    Raspberry Pi
+                    Raidware Server
                   </p>
                 </div>
               </div>
