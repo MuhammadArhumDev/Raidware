@@ -32,8 +32,13 @@ jobs:
               git pull origin main
             fi
 
+            # STOP the current containers to allow full cleanup
+            docker compose down || true
+
+            # AGGRESSIVE CLEANUP: Remove all unused images, containers, networks to free space
+            # -a: Remove all unused images not just dangling ones
+            # -f: Force without prompt
+            docker system prune -a -f
+
             # Rebuild and restart containers
             docker compose up -d --build --force-recreate
-
-            # Prune unused images to save space
-            docker image prune -f
