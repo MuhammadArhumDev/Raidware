@@ -66,9 +66,6 @@ export default function Login() {
           <p className="text-gray-600 dark:text-gray-400">
             Cloud IoT Security Platform
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-            Secure your IoT networks with CCTV, sensors, and advanced security
-          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -155,9 +152,6 @@ export default function Login() {
             >
               Sign up
             </a>
-          </p>
-          <p className="text-xs text-gray-500 dark:text-gray-500">
-            Demo: admin@raidware.com / adminsecret
           </p>
         </div>
       </div>
