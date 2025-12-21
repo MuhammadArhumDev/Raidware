@@ -10,11 +10,14 @@ jobs:
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
+        env:
+          GIT_TOKEN: ${{ secrets.PERSONAL_GIT_TOKEN }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
           port: ${{ secrets.DO_PORT }}
+          envs: GIT_TOKEN
           script: |
             # Ensure the directory exists
             mkdir -p ~/Raidware
@@ -22,12 +25,10 @@ jobs:
 
             # Check if it is a git repo, if not clone it (first time setup helper)
             if [ ! -d ".git" ]; then
-              # NOTE: This requires the server to have SSH access to GitHub or use HTTPS with token
-              # A simpler approach for public repos is HTTPS, but for private (which this likely is), SSH agent forwarding or a deploy key is best.
-              # However, the user provided code implies a simple git pull.
-              # If the repo is private, they will need to add their SSH key to the server's authorized keys for GitHub.
-              git clone git@github.com:${{ github.repository }}.git .
+              git clone https://$GIT_TOKEN@github.com/${{ github.repository }}.git .
             else
+              # Define remote URL with token to ensure access
+              git remote set-url origin https://$GIT_TOKEN@github.com/${{ github.repository }}.git
               git pull origin main
             fi
 
