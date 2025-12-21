@@ -22,7 +22,7 @@ import "./config/redis.js";
 const app = express();
 const httpServer = createServer(app);
 
-app.use(helmet());
+// app.use(helmet());
 app.use(
   cors({
     origin: true,
