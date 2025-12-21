@@ -2,7 +2,7 @@ name: Deploy to DigitalOcean
 
 on:
   push:
-    branches: [main, master] # Trigger on push to main or master branch
+    branches: [main, master]
 
 jobs:
   deploy:
@@ -16,26 +16,22 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           port: ${{ secrets.DO_PORT }}
           script: |
-            # Navigate to the repository directory (adjust path if needed)
-            # Assuming the repo name or path. The user said "Fetch the code from the repository".
-            # I will assume a standard directory structure or that they clonned it to ~/Raidware
-            # If strictly needed, we can clone if not exists, but usually we just pull.
-
-            # Using a generic approach to ensure directory exists or CD into it.
-            # I'll stick to a likely path '~/Raidware' based on the project name.
-
+            # Ensure the directory exists
             mkdir -p ~/Raidware
             cd ~/Raidware
 
             # Check if it is a git repo, if not clone it (first time setup helper)
             if [ ! -d ".git" ]; then
+              # NOTE: This requires the server to have SSH access to GitHub or use HTTPS with token
+              # A simpler approach for public repos is HTTPS, but for private (which this likely is), SSH agent forwarding or a deploy key is best.
+              # However, the user provided code implies a simple git pull.
+              # If the repo is private, they will need to add their SSH key to the server's authorized keys for GitHub.
               git clone git@github.com:${{ github.repository }}.git .
             else
               git pull origin main
             fi
 
             # Rebuild and restart containers
-            # Force recreation to ensure new images are used
             docker compose up -d --build --force-recreate
 
             # Prune unused images to save space

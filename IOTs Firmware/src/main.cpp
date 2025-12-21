@@ -18,19 +18,18 @@ Adafruit_NeoPixel pixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 WiFiMulti wifiMulti;
 WebSocketsClient webSocket;
 
-// Global State
+
 String macAddress;
 bool isAuthenticated = false;
 
-// LED & WiFi State
+
 unsigned long lastWifiReconnectAttempt = 0;
 const unsigned long WIFI_RECONNECT_INTERVAL = 5000;
 unsigned long lastLedBlink = 0;
 const unsigned long LED_BLINK_INTERVAL = 500;
 bool ledOn = false;
 
-// --- Crypto Helper: HMAC-SHA256 ---
-// --- Crypto Helper: HMAC-SHA256 ---
+
 String hmacSHA256(String key, String payload) {
     byte hmacResult[32];
     mbedtls_md_context_t ctx;
@@ -50,14 +49,11 @@ String hmacSHA256(String key, String payload) {
     return hashStr;
 }
 
-// --- Crypto Helper: AES-GCM ---
 #include "mbedtls/gcm.h"
 
 uint8_t sharedSecret[32]; // 32 bytes for AES-256
 bool hasSharedSecret = false;
 
-// Encrypt payload (AES-256-GCM)
-// Returns JSON string: { "iv": "hex", "tag": "hex", "data": "hex" }
 String encryptMessage(String plaintext) {
     if (!hasSharedSecret) return plaintext; // Fallback or Error
 
@@ -88,8 +84,6 @@ String encryptMessage(String plaintext) {
     return jsonString;
 }
 
-// Decrypt payload (AES-256-GCM)
-// Expects JSON { "iv": "hex", "tag": "hex", "data": "hex" }
 String decryptMessage(String jsonPayload) {
     if (!hasSharedSecret) return "";
 
@@ -133,7 +127,7 @@ String decryptMessage(String jsonPayload) {
     return result;
 }
 
-// --- Hex Helpers ---
+
 void hexStringToBytes(String hex, uint8_t* bytes, size_t len) {
     for (size_t i = 0; i < len; i++) {
         String byteStr = hex.substring(i * 2, i * 2 + 2);
@@ -150,12 +144,11 @@ String bytesToHexString(const uint8_t* bytes, size_t len) {
     return hex;
 }
 
-// --- Socket.IO Helper Functions ---
+
 
 void sendSocketEvent(String eventName, DynamicJsonDocument& doc) {
     String jsonString;
     serializeJson(doc, jsonString);
-    // Socket.IO 42 format: 4 (Message) 2 (Event) [ "event", payload ]
     String output = "42[\"" + eventName + "\"," + jsonString + "]";
     webSocket.sendTXT(output);
 }
@@ -194,8 +187,6 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
             }
 			break;
 		case WStype_TEXT:
-            // Handle Socket.IO packets
-            // Format 42["event", data]
             String text = (char*)payload;
             if (text.startsWith("42")) {
                 // Parse Event
@@ -300,16 +291,7 @@ void setup() {
     Serial.println(WiFi.localIP());
 
     // WebSocket Init
-    // Namespace: /devices
-    // Socket.IO Handshake URL format: /socket.io/?EIO=4&transport=websocket
-    // But we use the /devices namespace -> URL: /socket.io/?EIO=4&transport=websocket&sid=... (handled by lib?)
-    // WebSocketsClient doesn't handle namespaces automatically in the URL path for handshake 
-    // Usually we connect to root, then send namespace packet. 
-    // Or we append path.
-    
-    // For simplicity with this library, let's try connecting to the default path and check if the backend handles it.
-    // However, my backend logic is `io.of("/devices")`.
-    // Standard Socket.io client connects to `/socket.io/` then sends a CONNECT packet `40/devices,`.
+
     
     webSocket.begin(SECRET_HOST, SECRET_PORT, "/socket.io/?EIO=4&transport=websocket");
     webSocket.onEvent(webSocketEvent);

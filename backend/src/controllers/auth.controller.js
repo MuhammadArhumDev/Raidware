@@ -19,7 +19,6 @@ export async function register(req, res, next) {
     const accessToken = generateAccessToken({ id: user._id, role: user.role });
     const refreshToken = generateRefreshToken({ id: user._id });
 
-    // Save refresh token on user
     user.refreshTokens.push({ token: refreshToken });
     await user.save();
 
@@ -27,7 +26,7 @@ export async function register(req, res, next) {
       httpOnly: true,
       secure: config.cookie.secure,
       sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     });
 
     return sendResponse(res, 201, true, "User registered", {
@@ -67,20 +66,19 @@ export async function login(req, res, next) {
       maxAge: 1000 * 60 * 60 * 24 * 7,
     });
 
-    // Set role-specific token cookie
     if (user.role === "admin") {
       res.cookie("admin_token", accessToken, {
         httpOnly: true,
         secure: config.cookie.secure,
         sameSite: "lax",
-        maxAge: 1000 * 60 * 15, // 15 minutes
+        maxAge: 1000 * 60 * 15,
       });
     } else {
       res.cookie("organization_token", accessToken, {
         httpOnly: true,
         secure: config.cookie.secure,
         sameSite: "lax",
-        maxAge: 1000 * 60 * 15, // 15 minutes
+        maxAge: 1000 * 60 * 15,
       });
     }
 
@@ -110,10 +108,6 @@ export async function refreshToken(req, res, next) {
       req.cookies?.[config.cookie.refreshTokenName] || req.body.refreshToken;
     if (!token) return sendResponse(res, 401, false, "Refresh token missing");
 
-    // Clear the cookie immediately if we are processing it, to prevent race conditions or simple reuse
-    // (Optional strategy, but good for one-time use enforcement)
-    // res.clearCookie(config.cookie.refreshTokenName);
-
     import("jsonwebtoken")
       .then(({ default: jwt }) => {
         try {
@@ -122,20 +116,15 @@ export async function refreshToken(req, res, next) {
 
           User.findById(userId)
             .then(async (user) => {
-              // 1. User not found
               if (!user) {
                 return sendResponse(res, 401, false, "Invalid refresh token");
               }
 
-              // 2. Token reuse detection
               const foundToken = user.refreshTokens.find(
                 (rt) => rt.token === token
               );
 
               if (!foundToken) {
-                // Token is valid (signature-wise) but not in DB.
-                // This means it was already used/rotated!
-                // SECURITY ALERT: Delete ALL refresh tokens for this user.
                 user.refreshTokens = [];
                 await user.save();
                 res.clearCookie(config.cookie.refreshTokenName);
@@ -147,14 +136,12 @@ export async function refreshToken(req, res, next) {
                 );
               }
 
-              // 3. Valid token found. Rotate it.
               const newAccess = generateAccessToken({
                 id: user._id,
                 role: user.role,
               });
               const newRefresh = generateRefreshToken({ id: user._id });
 
-              // Remove old token, add new one
               user.refreshTokens = user.refreshTokens.filter(
                 (rt) => rt.token !== token
               );
@@ -176,8 +163,6 @@ export async function refreshToken(req, res, next) {
         } catch (err) {
           // Token verification failed (expired or invalid signature)
           if (err.name === "TokenExpiredError") {
-            // If expired, we should just ask to login again, but also check if it WAS in db to remove it?
-            // For simplicity, just return 401.
             res.clearCookie(config.cookie.refreshTokenName);
           }
           return sendResponse(res, 401, false, "Invalid refresh token");
@@ -194,7 +179,6 @@ export async function logout(req, res, next) {
     const token =
       req.cookies?.[config.cookie.refreshTokenName] || req.body.refreshToken;
 
-    // Always clear access token cookies regardless of refresh token
     res.clearCookie("organization_token");
     res.clearCookie("admin_token");
 
@@ -203,7 +187,6 @@ export async function logout(req, res, next) {
       return sendResponse(res, 200, true, "Logged out");
     }
 
-    // Remove token from user
     import("jsonwebtoken")
       .then(({ default: jwt }) => {
         try {
@@ -224,7 +207,6 @@ export async function logout(req, res, next) {
             })
             .catch(next);
         } catch (err) {
-          // token invalid: still clear cookie
           res.clearCookie(config.cookie.refreshTokenName);
           return sendResponse(res, 200, true, "Logged out");
         }

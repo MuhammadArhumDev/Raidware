@@ -1,0 +1,82 @@
+# GitHub Secrets Configuration
+
+To enable the deployment workflow, you must add the following secrets to your GitHub repository:
+**Settings** > **Secrets and variables** > **Actions** > **New repository secret**
+
+## Required Secrets
+
+**1. DO_HOST**
+
+```text
+139.59.30.129
+```
+
+**2. DO_USERNAME**
+
+```text
+root
+```
+
+**3. DO_PORT**
+
+```text
+22
+```
+
+**4. DO_SSH_KEY**
+_(Copy the entire block below, including BEGIN and END lines)_
+
+```text
+-----BEGIN OPENSSH PRIVATE KEY-----
+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
+-----END OPENSSH PRIVATE KEY-----
+```
+
+**5. OTHER ENVS**
+Ensure your backend/frontend `.env` variables are correctly set on the server or passed via this workflow if needed (currently not configured to pass envs).

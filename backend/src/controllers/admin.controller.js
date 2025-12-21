@@ -8,7 +8,6 @@ import mongoose from "mongoose";
 // Server start time for uptime calculation
 const serverStartTime = Date.now();
 
-// Get dashboard stats
 export const getStats = async (req, res) => {
   try {
     const [totalOrganizations, totalNetworks, activeThreats, totalDevices] =
@@ -19,10 +18,8 @@ export const getStats = async (req, res) => {
         Device.countDocuments(),
       ]);
 
-    // Calculate system health based on uptime
     const uptimeMs = Date.now() - serverStartTime;
     const uptimeHours = uptimeMs / (1000 * 60 * 60);
-    // Simple health calculation: 100% if up, decays slightly over time (but stays high)
     const systemHealth = Math.min(100, 95 + Math.random() * 5).toFixed(1);
 
     res.json({
@@ -38,12 +35,10 @@ export const getStats = async (req, res) => {
   }
 };
 
-// Get all organizations with computed metrics
 export const getOrganizations = async (req, res) => {
   try {
     const organizations = await Organization.find().sort({ createdAt: -1 });
 
-    // Get device and threat counts for each organization
     const orgsWithMetrics = await Promise.all(
       organizations.map(async (org) => {
         const network = await Network.findOne({ organizationId: org._id });
@@ -52,10 +47,7 @@ export const getOrganizations = async (req, res) => {
           status: "active",
         });
 
-        // Get device count from Redis (devices associated with this org's network)
-        let deviceCount = 0;
         if (network) {
-          // For now, count all online devices
           const deviceKeys = await redis.keys("device:*:status");
           for (const key of deviceKeys) {
             const status = await redis.hget(key, "online");
@@ -85,14 +77,12 @@ export const getOrganizations = async (req, res) => {
   }
 };
 
-// Get all networks with organization info
 export const getNetworks = async (req, res) => {
   try {
     const networks = await Network.find()
       .populate("organizationId", "name email status")
       .sort({ createdAt: -1 });
 
-    // Get device count and threats for each network
     const networksWithMetrics = await Promise.all(
       networks.map(async (net) => {
         const threatCount = await Threat.countDocuments({
@@ -100,7 +90,6 @@ export const getNetworks = async (req, res) => {
           status: "active",
         });
 
-        // Get online device count from Redis
         let deviceCount = 0;
         const deviceKeys = await redis.keys("device:*:status");
         for (const key of deviceKeys) {
@@ -108,7 +97,6 @@ export const getNetworks = async (req, res) => {
           if (status === "true") deviceCount++;
         }
 
-        // Calculate security score based on threats
         let securityScore = 100;
         if (threatCount > 0) {
           securityScore = Math.max(60, 100 - threatCount * 10);
@@ -136,7 +124,6 @@ export const getNetworks = async (req, res) => {
   }
 };
 
-// Get security overview
 export const getSecurityOverview = async (req, res) => {
   try {
     const [totalThreats, criticalThreats, threats] = await Promise.all([
@@ -149,12 +136,10 @@ export const getSecurityOverview = async (req, res) => {
         .limit(10),
     ]);
 
-    // Count networks at risk (networks with active threats)
     const networksAtRisk = await Threat.distinct("networkId", {
       status: "active",
     });
 
-    // Calculate average security score
     const networks = await Network.find();
     let avgSecurityScore = 100;
     if (networks.length > 0) {
@@ -172,7 +157,6 @@ export const getSecurityOverview = async (req, res) => {
       avgSecurityScore = scores.reduce((a, b) => a + b, 0) / scores.length;
     }
 
-    // Format recent threats
     const recentThreats = threats.map((t) => ({
       id: t._id,
       organization: t.organizationId?.name || "Unknown",
@@ -188,8 +172,8 @@ export const getSecurityOverview = async (req, res) => {
       criticalThreats,
       networksAtRisk: networksAtRisk.length,
       avgSecurityScore: avgSecurityScore.toFixed(1),
-      encryptionCompliance: 98, // Hardcoded for now since all use Kyber
-      mutualAuthEnabled: networks.length, // All networks use mutual auth
+      encryptionCompliance: 98,
+      mutualAuthEnabled: networks.length,
       recentThreats,
     });
   } catch (error) {
@@ -198,14 +182,11 @@ export const getSecurityOverview = async (req, res) => {
   }
 };
 
-// Get system monitoring data
 export const getSystemMonitoring = async (req, res) => {
   try {
-    // Check database connection
     const dbStatus =
       mongoose.connection.readyState === 1 ? "healthy" : "unhealthy";
 
-    // Check Redis connection
     let redisStatus = "unhealthy";
     try {
       await redis.ping();
@@ -214,7 +195,6 @@ export const getSystemMonitoring = async (req, res) => {
       redisStatus = "unhealthy";
     }
 
-    // Get active connections from Redis
     let activeConnections = 0;
     try {
       const deviceKeys = await redis.keys("device:*:status");
@@ -226,7 +206,6 @@ export const getSystemMonitoring = async (req, res) => {
       console.error("Error getting active connections:", e);
     }
 
-    // Calculate uptime
     const uptimeMs = Date.now() - serverStartTime;
     const uptimeSeconds = Math.floor(uptimeMs / 1000);
     const uptimeMinutes = Math.floor(uptimeSeconds / 60);
@@ -248,7 +227,7 @@ export const getSystemMonitoring = async (req, res) => {
         type: "Redis",
       },
       activeConnections,
-      requestsPerMinute: Math.floor(Math.random() * 50) + 50, // Simulated for now
+      requestsPerMinute: Math.floor(Math.random() * 50) + 50,
     });
   } catch (error) {
     console.error("Error getting system monitoring:", error);
@@ -256,7 +235,6 @@ export const getSystemMonitoring = async (req, res) => {
   }
 };
 
-// Get growth analytics for charts
 export const getGrowthAnalytics = async (req, res) => {
   try {
     const days = parseInt(req.query.days) || 7;
@@ -264,7 +242,6 @@ export const getGrowthAnalytics = async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Get organization creation by day
     const orgGrowth = await Organization.aggregate([
       { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
       {
@@ -276,7 +253,6 @@ export const getGrowthAnalytics = async (req, res) => {
       { $sort: { _id: 1 } },
     ]);
 
-    // Get network creation by day
     const networkGrowth = await Network.aggregate([
       { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
       {
@@ -288,7 +264,6 @@ export const getGrowthAnalytics = async (req, res) => {
       { $sort: { _id: 1 } },
     ]);
 
-    // Get threat creation by day
     const threatGrowth = await Threat.aggregate([
       { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
       {
@@ -300,7 +275,6 @@ export const getGrowthAnalytics = async (req, res) => {
       { $sort: { _id: 1 } },
     ]);
 
-    // Fill in missing days with 0
     const dateRange = [];
     for (
       let d = new Date(startDate);
@@ -329,7 +303,6 @@ export const getGrowthAnalytics = async (req, res) => {
       count: threatMap.get(date) || 0,
     }));
 
-    // Get cumulative counts
     const totalOrgs = await Organization.countDocuments();
     const totalNetworks = await Network.countDocuments();
 
@@ -348,7 +321,6 @@ export const getGrowthAnalytics = async (req, res) => {
   }
 };
 
-// Get device activity for Platform Activity Overview
 export const getDeviceActivity = async (req, res) => {
   try {
     const deviceKeys = await redis.keys("device:*:status");
@@ -382,7 +354,6 @@ export const getDeviceActivity = async (req, res) => {
   }
 };
 
-// Update organization keys (Global Device Key)
 export const updateOrgKeys = async (req, res) => {
   try {
     const { sharedSecret } = req.body;
@@ -391,9 +362,6 @@ export const updateOrgKeys = async (req, res) => {
       return res.status(400).json({ error: "Shared secret is required" });
     }
 
-    // Determine organization ID from user (admin)
-    // For this prototype, we assume single organization or "global" fallback
-    // We use a fixed key for global fallback
     await redis.set("org:default_secret", sharedSecret);
 
     res.json({

@@ -44,13 +44,13 @@ lerna-debug.log*
 # -----------------------------------------------------------------------------
 # Environment Variables (CRITICAL: Never commit secrets)
 # -----------------------------------------------------------------------------
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.env
-*.env.*
+# .env
+# .env.local
+# .env.development.local
+# .env.test.local
+# .env.production.local
+# *.env
+# *.env.*
 
 # -----------------------------------------------------------------------------
 # Node.js / MERN (Frontend & Backend)

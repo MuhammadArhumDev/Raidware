@@ -14,18 +14,15 @@ export default function DashboardLayout({ children }) {
   const checkAuth = useAuthStore((state) => state.checkAuth);
   const router = useRouter();
 
-  // Derive loading and userRole
   const loading = !_hasHydrated || !isInitialized || isLoading;
   const userRole = user?.role || null;
 
-  // Run checkAuth on mount if hydrated
   useEffect(() => {
     if (_hasHydrated && !isInitialized && !isLoading) {
       checkAuth();
     }
   }, [_hasHydrated, isInitialized, isLoading, checkAuth]);
 
-  // Handle redirects
   useEffect(() => {
     if (!loading && !user) {
       router.push("/");

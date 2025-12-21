@@ -220,7 +220,7 @@ export default function DashboardPage() {
               System Status
             </h2>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-600 rounded-lg">
                     <Wifi className="w-5 h-5 text-white" />
@@ -238,7 +238,7 @@ export default function DashboardPage() {
                   Operational
                 </span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-600 rounded-lg">
                     <Server className="w-5 h-5 text-white" />
@@ -256,7 +256,7 @@ export default function DashboardPage() {
                   Connected
                 </span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-600 rounded-lg">
                     <Activity className="w-5 h-5 text-white" />
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                   Active
                 </span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-800">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-yellow-600 rounded-lg">
                     <Shield className="w-5 h-5 text-white" />

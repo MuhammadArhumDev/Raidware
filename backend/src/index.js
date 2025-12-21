@@ -22,7 +22,6 @@ import "./config/redis.js";
 const app = express();
 const httpServer = createServer(app);
 
-// Middlewares
 app.use(helmet());
 app.use(
   cors({
@@ -30,28 +29,22 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({ limit: "10kb" })); // Body limit
+app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan("dev"));
 
-// Security
-// app.use(mongoSanitize()); // Incompatible with Express 5 direct assignment
 import { safeMongoSanitize } from "./middleware/security.middleware.js";
 app.use(safeMongoSanitize);
 
-// app.use(xss()); // Potentially incompatible or redundant with modern React/Helmet. Disabling to prevent similar crash.
 app.use(hpp());
 
-// Rate Limiting
 app.use(globalLimiter);
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/devices", deviceRoutes);
 app.use("/api/admin", adminRoutes);
 
-// Error handler
 app.use(errorHandler);
 
 const start = async () => {
@@ -60,10 +53,8 @@ const start = async () => {
     await connectDB();
     initSocket(httpServer);
 
-    // Initial Sync
     await syncDeviceHashes();
 
-    // Periodic Sync (every 3 hours)
     setInterval(syncDeviceHashes, 3 * 60 * 60 * 1000);
 
     httpServer.listen(config.port, () =>

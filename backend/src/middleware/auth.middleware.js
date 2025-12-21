@@ -13,16 +13,13 @@ export async function protect(req, res, next) {
     );
     console.log("Cookies:", JSON.stringify(req.cookies));
 
-    // 1. Check Authorization Header
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith("Bearer ")
     ) {
       token = req.headers.authorization.split(" ")[1];
       console.log("Token Source: Bearer Header");
-    }
-    // 2. Check Cookies (admin_token or organization_token)
-    else if (req.cookies?.admin_token) {
+    } else if (req.cookies?.admin_token) {
       token = req.cookies.admin_token;
       console.log("Token Source: admin_token cookie");
     } else if (req.cookies?.organization_token) {
@@ -69,10 +66,8 @@ export function authorizeRoles(...roles) {
   };
 }
 
-// Alias for protect - used in admin routes
 export const verifyToken = protect;
 
-// Middleware to require admin role
 export function requireAdmin(req, res, next) {
   if (!req.user) {
     return res.status(401).json({ success: false, message: "Not authorized" });
