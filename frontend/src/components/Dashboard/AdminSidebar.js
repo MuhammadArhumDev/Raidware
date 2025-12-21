@@ -10,7 +10,6 @@ import {
   Users,
   Activity,
   Bell,
-  Settings,
   LogOut,
   Menu,
   X,
@@ -23,7 +22,6 @@ const menuItems = [
   { icon: Network, label: "All Networks", path: "/admin/networks" },
   { icon: Shield, label: "Security Overview", path: "/admin/security" },
   { icon: Activity, label: "System Monitoring", path: "/admin/monitoring" },
-  { icon: Settings, label: "Settings", path: "/admin/settings" },
 ];
 
 export default function AdminSidebar() {
