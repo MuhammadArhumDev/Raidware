@@ -8,7 +8,8 @@ import RealTimeChart from "@/components/Dashboard/RealTimeChart";
 import { Building2, Network, Shield, Activity, Cpu } from "lucide-react";
 import { io } from "socket.io-client";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({

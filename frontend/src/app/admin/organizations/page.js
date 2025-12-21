@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import AdminLayout from "@/components/Dashboard/AdminLayout";
 import { Building2, Network, Shield, Search, Cpu } from "lucide-react";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 export default function OrganizationsPage() {
   const [searchTerm, setSearchTerm] = useState("");

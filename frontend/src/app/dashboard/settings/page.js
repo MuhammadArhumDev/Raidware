@@ -149,7 +149,8 @@ export default function SettingsPage() {
               try {
                 const res = await fetch(
                   `${
-                    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+                    process.env.NEXT_PUBLIC_BACKEND_URL ||
+                    "http://localhost:5000"
                   }/api/admin/settings/keys`,
                   {
                     method: "POST",
