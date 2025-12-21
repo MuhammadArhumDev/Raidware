@@ -7,7 +7,7 @@ const char* SECRET_SSID = "botnet";
 const char* SECRET_PASS = "123456789";
 
 const char* SECRET_HOST = "139.59.30.129"; // Replace with your Node.js server IP
-const uint16_t SECRET_PORT = 3000;
+const uint16_t SECRET_PORT = 5000;
 
 // Shared Secret for HMAC Auth (Must match DB entry for this device)
 const char* DEVICE_SHARED_SECRET = "super-secret-key-123";
