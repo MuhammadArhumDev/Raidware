@@ -6,14 +6,13 @@
 const char* SECRET_SSID = "botnet";
 const char* SECRET_PASS = "123456789";
 
-const char* SECRET_HOST = "139.59.30.129"; // Replace with your Node.js server IP
+const char* SECRET_HOST = "139.59.30.129";
 const uint16_t SECRET_PORT = 5000;
 
-// Shared Secret for HMAC Auth (Must match DB entry for this device)
+
 const char* DEVICE_SHARED_SECRET = "super-secret-key-123";
 
-// Root CA Certificate (Server's CA)
-// This allows the ESP32 to verify the server's identity.
+
 const char* root_ca = \
 "-----BEGIN CERTIFICATE-----\n" \
 "MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF\n" \
@@ -36,14 +35,13 @@ const char* root_ca = \
 "rqXRfboQnoZsG4q5WTP468SQvvG5\n" \
 "-----END CERTIFICATE-----\n";
 
-// Client Certificate
-// This allows the Server to verify the ESP32's identity.
+
 const char* client_cert = \
 "-----BEGIN CERTIFICATE-----\n" \
 "MIIDWjCCAkKgAwIBAgIVAJM5...\n" \
 "-----END CERTIFICATE-----\n";
 
-// Client Private Key
+
 const char* client_key = \
 "-----BEGIN RSA PRIVATE KEY-----\n" \
 "MIIEpAIBAAKCAQEA...\n" \
