@@ -5,11 +5,17 @@
 #include <ArduinoJson.h>
 #include <WiFiMulti.h>
 #include <Adafruit_NeoPixel.h>
+
+// mbedtls includes
 #include "mbedtls/md.h"
-#include "Secrets.h" // Must contain SECRET_SSID, SECRET_PASS, SERVER_HOST, SERVER_PORT, DEVICE_SHARED_SECRET
+#include "mbedtls/gcm.h"
+
+// Kyber PQC library
 extern "C" {
     #include "api.h"
 }
+
+#include "Secrets.h" 
 
 #define LED_PIN 48
 #define NUM_PIXELS 1
@@ -18,10 +24,8 @@ Adafruit_NeoPixel pixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
 WiFiMulti wifiMulti;
 WebSocketsClient webSocket;
 
-
 String macAddress;
 bool isAuthenticated = false;
-
 
 unsigned long lastWifiReconnectAttempt = 0;
 const unsigned long WIFI_RECONNECT_INTERVAL = 5000;
@@ -29,6 +33,15 @@ unsigned long lastLedBlink = 0;
 const unsigned long LED_BLINK_INTERVAL = 500;
 bool ledOn = false;
 
+// ==========================================
+// FORWARD DECLARATIONS (Crucial for Scope)
+// ==========================================
+void hexStringToBytes(String hex, uint8_t* bytes, size_t len);
+String bytesToHexString(const uint8_t* bytes, size_t len);
+
+// ==========================================
+// CRYPTO HELPERS
+// ==========================================
 
 String hmacSHA256(String key, String payload) {
     byte hmacResult[32];
@@ -46,16 +59,15 @@ String hmacSHA256(String key, String payload) {
     for (int i = 0; i < 32; i++) {
         if (hmacResult[i] < 16) hashStr += "0";
         hashStr += String(hmacResult[i], HEX);
+    }
     return hashStr;
 }
 
-#include "mbedtls/gcm.h"
-
-uint8_t sharedSecret[32]; // 32 bytes for AES-256
+uint8_t sharedSecret[32]; // AES-256
 bool hasSharedSecret = false;
 
 String encryptMessage(String plaintext) {
-    if (!hasSharedSecret) return plaintext; // Fallback or Error
+    if (!hasSharedSecret) return plaintext;
 
     mbedtls_gcm_context aes;
     mbedtls_gcm_init(&aes);
@@ -68,11 +80,14 @@ String encryptMessage(String plaintext) {
     uint8_t* output = new uint8_t[len];
     uint8_t tag[16];
 
-    mbedtls_gcm_crypt_and_tag(&aes, MBEDTLS_GCM_ENCRYPT, len, iv, 12, NULL, 0, (const unsigned char*)plaintext.c_str(), output, tag);
+    // FIX: Correct signature for ESP32 mbedTLS (note the placement of 16 for tag_len)
+    // The error "too few arguments" and "invalid conversion" was because of missing tag_len
+    mbedtls_gcm_crypt_and_tag(&aes, MBEDTLS_GCM_ENCRYPT, len, iv, 12, NULL, 0, (const unsigned char*)plaintext.c_str(), output, 16, tag);
+    
     mbedtls_gcm_free(&aes);
 
-    // Format as JSON
     DynamicJsonDocument doc(2048);
+    // These functions are now declared above, so scope issue is resolved
     doc["iv"] = bytesToHexString(iv, 12);
     doc["tag"] = bytesToHexString(tag, 16);
     doc["data"] = bytesToHexString(output, len);
@@ -88,8 +103,7 @@ String decryptMessage(String jsonPayload) {
     if (!hasSharedSecret) return "";
 
     DynamicJsonDocument doc(2048);
-    DeserializationError error = deserializeJson(doc, jsonPayload);
-    if (error) return "";
+    if (deserializeJson(doc, jsonPayload)) return "";
 
     String ivHex = doc["iv"];
     String tagHex = doc["tag"];
@@ -127,6 +141,9 @@ String decryptMessage(String jsonPayload) {
     return result;
 }
 
+// ==========================================
+// STRING HELPERS (Defined here)
+// ==========================================
 
 void hexStringToBytes(String hex, uint8_t* bytes, size_t len) {
     for (size_t i = 0; i < len; i++) {
@@ -144,7 +161,9 @@ String bytesToHexString(const uint8_t* bytes, size_t len) {
     return hex;
 }
 
-
+// ==========================================
+// WEBSOCKET & APP LOGIC
+// ==========================================
 
 void sendSocketEvent(String eventName, DynamicJsonDocument& doc) {
     String jsonString;
@@ -153,120 +172,80 @@ void sendSocketEvent(String eventName, DynamicJsonDocument& doc) {
     webSocket.sendTXT(output);
 }
 
-void hexdump(const void *mem, uint32_t len, uint8_t cols = 16) {
-	const uint8_t* src = (const uint8_t*) mem;
-	Serial.printf("\n[HEXDUMP] Address: 0x%08X len: 0x%X (%d)", (ptrdiff_t)src, len, len);
-	for(uint32_t i = 0; i < len; i++) {
-		if(i % cols == 0) {
-			Serial.printf("\n[0x%08X] 0x%08X: ", (ptrdiff_t)src, i);
-		}
-		Serial.printf("%02X ", *src);
-		src++;
-	}
-	Serial.printf("\n");
-}
-
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
-	switch(type) {
-		case WStype_DISCONNECTED:
-			Serial.printf("[WSc] Disconnected!\n");
+    switch(type) {
+        case WStype_DISCONNECTED:
+            Serial.println("[WSc] Disconnected!");
             isAuthenticated = false;
-            // pixel.setPixelColor(0, pixel.Color(255, 0, 0)); // Red
-            // pixel.show();
-			break;
-		case WStype_CONNECTED:
-			Serial.printf("[WSc] Connected to url: %s\n", payload);
-            // pixel.setPixelColor(0, pixel.Color(255, 165, 0)); // Orange (Connected, waiting auth)
-            // pixel.show();
+            break;
 
-            // Init Auth: "auth:init"
-            {
-                DynamicJsonDocument doc(1024);
-                doc["macAddress"] = macAddress;
-                sendSocketEvent("auth:init", doc);
-            }
-			break;
-		case WStype_TEXT:
+        case WStype_CONNECTED: {
+            Serial.printf("[WSc] Connected to %s\n", payload);
+            DynamicJsonDocument doc(256);
+            doc["macAddress"] = macAddress;
+            sendSocketEvent("auth:init", doc);
+            break;
+        }
+
+        case WStype_TEXT: {
             String text = (char*)payload;
-            if (text.startsWith("42")) {
-                // Parse Event
-                int jsonStart = text.indexOf('[');
-                if (jsonStart != -1) {
-                    String jsonBody = text.substring(jsonStart);
-                    DynamicJsonDocument doc(2048);
-                    DeserializationError error = deserializeJson(doc, jsonBody);
-                    if (!error) {
-                         String event = doc[0];
-                         
-                         if (event == "auth:challenge") {
-                             String nonce = doc[1]["nonce"];
-                             String pkHex = doc[1]["pk"];
-                             Serial.println("[Auth] Received Nonce: " + nonce);
-                             
-                             uint8_t pk[PQCLEAN_MLKEM768_CLEAN_CRYPTO_PUBLICKEYBYTES];
-                             uint8_t ss[PQCLEAN_MLKEM768_CLEAN_CRYPTO_BYTES];
-                             uint8_t ct[PQCLEAN_MLKEM768_CLEAN_CRYPTO_CIPHERTEXTBYTES];
-                             
-                             if (pkHex.length() == PQCLEAN_MLKEM768_CLEAN_CRYPTO_PUBLICKEYBYTES * 2) {
-                                 hexStringToBytes(pkHex, pk, PQCLEAN_MLKEM768_CLEAN_CRYPTO_PUBLICKEYBYTES);
-                                 PQCLEAN_MLKEM768_CLEAN_crypto_kem_enc(ct, ss, pk);
-                                 memcpy(sharedSecret, ss, 32);
-                                 hasSharedSecret = true;
-                                 Serial.println("[Kyber] Shared Secret stored.");
-                             } else {
-                                 Serial.print("[Kyber] Error: Invalid PK length! Expected ");
-                                 Serial.print(PQCLEAN_MLKEM768_CLEAN_CRYPTO_PUBLICKEYBYTES * 2);
-                                 Serial.print(" but got ");
-                                 Serial.println(pkHex.length());
-                             }
-                             
-                             // Calculate Signature (Standard Auth)
-                             // Payload: nonce + macAddress
-                             String payload = nonce + macAddress;
-                             // Secret: Defined in Secrets.h or dynamically loaded
-                             String signature = hmacSHA256(DEVICE_SHARED_SECRET, payload);
-                             
-                             // Send Response
-                             DynamicJsonDocument resp(2048);
-                             resp["signature"] = signature;
-                             // Attach Kyber Ciphertext
-                             resp["ciphertext"] = bytesToHexString(ct, PQCLEAN_MLKEM768_CLEAN_CRYPTO_CIPHERTEXTBYTES);
-                             
-                             sendSocketEvent("auth:response", resp);
-                         } 
-                         else if (event == "auth:success") {
-                             Serial.println("[Auth] SUCCESS!");
-                             isAuthenticated = true;
-                             // pixel.setPixelColor(0, pixel.Color(0, 255, 0)); // Green
-                             // pixel.show();
-                         }
-                         else if (event == "auth:failed") {
-                             Serial.println("[Auth] FAILED!");
-                             isAuthenticated = false;
-                             // pixel.setPixelColor(0, pixel.Color(255, 0, 0)); // Red
-                             // pixel.show();
-                         }
-                         else if (event == "message") {
-                             // Handle incoming encrypted message
-                             // Payload is expected to be { iv, tag, data }
-                             String msgPayload;
-                             serializeJson(doc[1], msgPayload);
-                             
-                             Serial.println("[Message] Received Payload (Encrypted): " + msgPayload);
-                             
-                             String decrypted = decryptMessage(msgPayload);
-                             if (decrypted != "") {
-                                 Serial.println("[Message] Decrypted Content: " + decrypted);
-                                 // Optional: Act on message, e.g. "REBOOT"
-                             } else {
-                                 Serial.println("[Message] Decryption Failed!");
-                             }
-                         }
-                    }
+            if (!text.startsWith("42")) break;
+
+            int jsonStart = text.indexOf('[');
+            if (jsonStart < 0) break;
+
+            DynamicJsonDocument doc(2048);
+            if (deserializeJson(doc, text.substring(jsonStart))) break;
+
+            String event = doc[0];
+
+            if (event == "auth:challenge") {
+                String nonce = doc[1]["nonce"];
+                String pkHex = doc[1]["pk"];
+                Serial.println("[Auth] Received Nonce: " + nonce);
+                
+                uint8_t pk[PQCLEAN_MLKEM768_CLEAN_CRYPTO_PUBLICKEYBYTES];
+                uint8_t ss[PQCLEAN_MLKEM768_CLEAN_CRYPTO_BYTES];
+                uint8_t ct[PQCLEAN_MLKEM768_CLEAN_CRYPTO_CIPHERTEXTBYTES];
+                
+                if (pkHex.length() == PQCLEAN_MLKEM768_CLEAN_CRYPTO_PUBLICKEYBYTES * 2) {
+                    hexStringToBytes(pkHex, pk, PQCLEAN_MLKEM768_CLEAN_CRYPTO_PUBLICKEYBYTES);
+                    PQCLEAN_MLKEM768_CLEAN_crypto_kem_enc(ct, ss, pk);
+                    memcpy(sharedSecret, ss, 32);
+                    hasSharedSecret = true;
+                    Serial.println("[Kyber] Shared Secret stored.");
+                } else {
+                    Serial.print("[Kyber] Error: Invalid PK length!");
+                }
+                
+                String payloadForSig = nonce + macAddress;
+                String signature = hmacSHA256(DEVICE_SHARED_SECRET, payloadForSig);
+                
+                DynamicJsonDocument resp(2048);
+                resp["signature"] = signature;
+                resp["ciphertext"] = bytesToHexString(ct, PQCLEAN_MLKEM768_CLEAN_CRYPTO_CIPHERTEXTBYTES);
+                
+                sendSocketEvent("auth:response", resp);
+            } 
+            else if (event == "auth:success") {
+                Serial.println("[Auth] SUCCESS");
+                isAuthenticated = true;
+            }
+            else if (event == "auth:failed") {
+                Serial.println("[Auth] FAILED");
+                isAuthenticated = false;
+            }
+            else if (event == "message") {
+                String enc;
+                serializeJson(doc[1], enc);
+                String dec = decryptMessage(enc);
+                if (dec.length()) {
+                    Serial.println("[MSG] " + dec);
                 }
             }
-			break;
-	}
+            break;
+        }
+    }
 }
 
 void setup() {
@@ -274,10 +253,9 @@ void setup() {
     pixel.begin();
     pixel.setBrightness(20);
 
-    // Get MAC
     macAddress = WiFi.macAddress();
-    macAddress.replace(":", ""); // Remove colons to match backend
-    Serial.println("Device MAC: " + macAddress);
+    macAddress.replace(":", "");
+    Serial.println("MAC: " + macAddress);
 
     wifiMulti.addAP(SECRET_SSID, SECRET_PASS);
     
@@ -287,73 +265,32 @@ void setup() {
         delay(500);
     }
     Serial.println("\nWiFi Connected");
-    Serial.print("IP: ");
-    Serial.println(WiFi.localIP());
 
-    // WebSocket Init
-
-    
     webSocket.begin(SECRET_HOST, SECRET_PORT, "/socket.io/?EIO=4&transport=websocket");
     webSocket.onEvent(webSocketEvent);
     webSocket.setReconnectInterval(5000);
-    
-    // Set headers if needed?
 }
 
 unsigned long lastPulse = 0;
 
 void loop() {
-    unsigned long currentMillis = millis();
+    wifiMulti.run();
+    webSocket.loop();
 
-    // --- WiFi Connection Logic (WiFiMulti) ---
-    // wifiMulti.run() manages connection automatically
-    if (wifiMulti.run() != WL_CONNECTED) {
-        Serial.println("[WiFi] Reconnecting...");
-        delay(100); 
-        // wifiMulti.run() should be called frequently
-        
-        // Blink RED when disconnected
-        if (currentMillis - lastLedBlink > LED_BLINK_INTERVAL) {
-            lastLedBlink = currentMillis;
-            ledOn = !ledOn;
-            if (ledOn) pixel.setPixelColor(0, pixel.Color(255, 0, 0)); // Red
-            else pixel.setPixelColor(0, pixel.Color(0, 0, 0)); // Off
-            pixel.show();
-        }
-    } else {
-        // --- Connected Logic ---
-        // Blink GREEN when connected
-        if (currentMillis - lastLedBlink > LED_BLINK_INTERVAL) {
-            lastLedBlink = currentMillis;
-            ledOn = !ledOn;
-            if (ledOn) pixel.setPixelColor(0, pixel.Color(0, 255, 0)); // Green
-            else pixel.setPixelColor(0, pixel.Color(0, 0, 0)); // Off
-            pixel.show();
-        }
+    if (isAuthenticated && millis() - lastPulse > 5000 && hasSharedSecret) {
+        lastPulse = millis();
 
-        webSocket.loop();
+        DynamicJsonDocument doc(128);
+        doc["status"] = "online";
+        doc["ts"] = millis();
 
-        if (isAuthenticated && currentMillis - lastPulse > 5000) {
-            lastPulse = currentMillis;
-            // Send Pulse
-            // "42/devices,[\"pulse\",{}]"
-            
-            if (hasSharedSecret) {
-                DynamicJsonDocument pulseDoc(64);
-                pulseDoc["status"] = "online";
-                pulseDoc["timestamp"] = millis();
-                String pulseJson;
-                serializeJson(pulseDoc, pulseJson);
-                
-                String encryptedPulse = encryptMessage(pulseJson);
-                
-                // Wrap in JSON object for Socket.IO
-                DynamicJsonDocument outDoc(2048);
-                DeserializationError err = deserializeJson(outDoc, encryptedPulse);
-                if(!err) sendSocketEvent("pulse", outDoc);
-            } else {
-                 webSocket.sendTXT("42/devices,[\"pulse\",{}]");
-            }
-        }
+        String plain;
+        serializeJson(doc, plain);
+
+        String enc = encryptMessage(plain);
+
+        DynamicJsonDocument out(512);
+        deserializeJson(out, enc);
+        sendSocketEvent("pulse", out);
     }
 }
