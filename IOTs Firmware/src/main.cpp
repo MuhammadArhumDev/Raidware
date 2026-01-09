@@ -6,11 +6,11 @@
 #include <WiFiMulti.h>
 #include <Adafruit_NeoPixel.h>
 
-// mbedtls includes
+
 #include "mbedtls/md.h"
 #include "mbedtls/gcm.h"
 
-// Kyber PQC library
+
 extern "C" {
     #include "api.h"
 }
@@ -33,15 +33,11 @@ unsigned long lastLedBlink = 0;
 const unsigned long LED_BLINK_INTERVAL = 500;
 bool ledOn = false;
 
-// ==========================================
-// FORWARD DECLARATIONS (Crucial for Scope)
-// ==========================================
+
 void hexStringToBytes(String hex, uint8_t* bytes, size_t len);
 String bytesToHexString(const uint8_t* bytes, size_t len);
 
-// ==========================================
-// CRYPTO HELPERS
-// ==========================================
+
 
 String hmacSHA256(String key, String payload) {
     byte hmacResult[32];
@@ -63,7 +59,7 @@ String hmacSHA256(String key, String payload) {
     return hashStr;
 }
 
-uint8_t sharedSecret[32]; // AES-256
+uint8_t sharedSecret[32];
 bool hasSharedSecret = false;
 
 String encryptMessage(String plaintext) {
@@ -80,14 +76,12 @@ String encryptMessage(String plaintext) {
     uint8_t* output = new uint8_t[len];
     uint8_t tag[16];
 
-    // FIX: Correct signature for ESP32 mbedTLS (note the placement of 16 for tag_len)
-    // The error "too few arguments" and "invalid conversion" was because of missing tag_len
     mbedtls_gcm_crypt_and_tag(&aes, MBEDTLS_GCM_ENCRYPT, len, iv, 12, NULL, 0, (const unsigned char*)plaintext.c_str(), output, 16, tag);
     
     mbedtls_gcm_free(&aes);
 
     DynamicJsonDocument doc(2048);
-    // These functions are now declared above, so scope issue is resolved
+
     doc["iv"] = bytesToHexString(iv, 12);
     doc["tag"] = bytesToHexString(tag, 16);
     doc["data"] = bytesToHexString(output, len);
@@ -141,9 +135,7 @@ String decryptMessage(String jsonPayload) {
     return result;
 }
 
-// ==========================================
-// STRING HELPERS (Defined here)
-// ==========================================
+
 
 void hexStringToBytes(String hex, uint8_t* bytes, size_t len) {
     for (size_t i = 0; i < len; i++) {
@@ -161,9 +153,7 @@ String bytesToHexString(const uint8_t* bytes, size_t len) {
     return hex;
 }
 
-// ==========================================
-// WEBSOCKET & APP LOGIC
-// ==========================================
+
 
 void sendSocketEvent(String eventName, DynamicJsonDocument& doc) {
     String jsonString;
@@ -189,6 +179,18 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
         case WStype_TEXT: {
             String text = (char*)payload;
+
+            if (text.startsWith("2")) {
+                Serial.println("[WSc] Received Ping (2), sending Pong (3)");
+                webSocket.sendTXT("3");
+                return;
+            }
+
+            if (text.startsWith("0")) {
+                Serial.printf("[WSc] Session Open: %s\n", payload);
+                return;
+            }
+
             if (!text.startsWith("42")) break;
 
             int jsonStart = text.indexOf('[');

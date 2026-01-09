@@ -8,7 +8,7 @@ const redis = connectionUrl
       lazyConnect: true,
     })
   : new Redis({
-      host: process.env.REDIS_HOST || "139.59.30.129",
+      host: process.env.REDIS_HOST || "5.189.167.55",
       port: process.env.REDIS_PORT || 6379,
       password: process.env.REDIS_PASSWORD || undefined,
       lazyConnect: false,

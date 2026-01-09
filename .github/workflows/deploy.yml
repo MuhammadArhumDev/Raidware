@@ -1,4 +1,4 @@
-name: Deploy to DigitalOcean
+name: Deploy to VPS
 
 on:
   push:
@@ -15,6 +15,7 @@ jobs:
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
+          password: ${{ secrets.DO_PASSWORD }}
           key: ${{ secrets.DO_SSH_KEY }}
           port: ${{ secrets.DO_PORT }}
           envs: GIT_TOKEN

@@ -8,7 +8,7 @@ To enable the deployment workflow, you must add the following secrets to your Gi
 **1. DO_HOST**
 
 ```text
-139.59.30.129
+5.189.167.55
 ```
 
 **2. DO_USERNAME**
