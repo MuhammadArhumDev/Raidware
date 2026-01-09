@@ -7,7 +7,7 @@ const char* SECRET_SSID = "botnet";
 const char* SECRET_PASS = "123456789";
 
 const char* SECRET_HOST = "5.189.167.55";
-const uint16_t SECRET_PORT = 5000;
+const uint16_t SECRET_PORT = 3334;
 
 
 const char* DEVICE_SHARED_SECRET = "super-secret-key-123";

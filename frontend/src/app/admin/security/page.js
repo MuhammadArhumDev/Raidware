@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3334";
 
 export default function SecurityPage() {
   const [securityData, setSecurityData] = useState({
