@@ -5,7 +5,7 @@ import AdminLayout from "@/components/Dashboard/AdminLayout";
 import { Building2, Network, Shield, Search, Cpu } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:6667";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
 
 export default function OrganizationsPage() {
   const [searchTerm, setSearchTerm] = useState("");

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:6667";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
 
 export default function MonitoringPage() {
   const [monitoringData, setMonitoringData] = useState({

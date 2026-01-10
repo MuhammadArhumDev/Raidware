@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { io } from "socket.io-client";
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:6667";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
 
 const useDeviceStore = create((set, get) => ({
   socket: null,

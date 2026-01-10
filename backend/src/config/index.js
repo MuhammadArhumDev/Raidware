@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const config = {
-  port: process.env.PORT || 6667,
+  port: process.env.PORT || 9631,
   mongoUri:
     process.env.MONGO_URI ||
     "mongodb://127.0.0.1:27017/multitenant_receptionist",
@@ -17,7 +17,7 @@ const config = {
     refreshTokenName: process.env.REFRESH_COOKIE_NAME || "refresh_token",
     secure: process.env.COOKIE_SECURE === "true",
   },
-  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:6666",
+  corsOrigin: process.env.CORS_ORIGIN || "http://localhost:9630",
 };
 
 export default config;
