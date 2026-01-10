@@ -9,7 +9,7 @@ import { Building2, Network, Shield, Activity, Cpu } from "lucide-react";
 import { io } from "socket.io-client";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3334";
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:6667";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
