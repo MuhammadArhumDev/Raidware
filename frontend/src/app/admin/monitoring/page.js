@@ -8,11 +8,10 @@ import {
   Database,
   TrendingUp,
   Clock,
+  Wifi,
 } from "lucide-react";
 import { SkeletonGrid } from "@/components/Skeleton";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
+import authFetch from "@/lib/authFetch";
 
 export default function MonitoringPage() {
   const [monitoringData, setMonitoringData] = useState({
@@ -28,9 +27,7 @@ export default function MonitoringPage() {
 
   const fetchMonitoringData = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/monitoring`, {
-        credentials: "include",
-      });
+      const response = await authFetch("/api/admin/monitoring");
       if (response.ok) {
         const data = await response.json();
         setMonitoringData(data);

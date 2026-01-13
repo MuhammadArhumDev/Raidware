@@ -8,6 +8,7 @@ import RealTimeChart from "@/components/Dashboard/RealTimeChart";
 import { SkeletonGrid } from "@/components/Skeleton";
 import { Building2, Network, Shield, Activity, Cpu } from "lucide-react";
 import { io } from "socket.io-client";
+import authFetch from "@/lib/authFetch";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
@@ -33,9 +34,7 @@ export default function AdminDashboardPage() {
   // Fetch stats from API
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
-        credentials: "include",
-      });
+      const response = await authFetch("/api/admin/stats");
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -48,11 +47,8 @@ export default function AdminDashboardPage() {
   // Fetch growth analytics
   const fetchGrowthAnalytics = useCallback(async () => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/analytics/growth?days=7`,
-        {
-          credentials: "include",
-        }
+      const response = await authFetch(
+        "/api/admin/analytics/growth?days=7"
       );
       if (response.ok) {
         const data = await response.json();
@@ -85,11 +81,8 @@ export default function AdminDashboardPage() {
   // Fetch device activity
   const fetchDeviceActivity = useCallback(async () => {
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/devices/activity`,
-        {
-          credentials: "include",
-        }
+      const response = await authFetch(
+        "/api/admin/devices/activity"
       );
       if (response.ok) {
         const data = await response.json();

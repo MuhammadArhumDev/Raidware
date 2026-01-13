@@ -10,9 +10,7 @@ import {
   Lock,
 } from "lucide-react";
 import { SkeletonGrid } from "@/components/Skeleton";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
+import authFetch from "@/lib/authFetch";
 
 export default function SecurityPage() {
   const [securityData, setSecurityData] = useState({
@@ -30,9 +28,7 @@ export default function SecurityPage() {
   const fetchSecurityData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/admin/security`, {
-        credentials: "include",
-      });
+      const response = await authFetch("/api/admin/security");
       if (response.ok) {
         const data = await response.json();
         setSecurityData(data);

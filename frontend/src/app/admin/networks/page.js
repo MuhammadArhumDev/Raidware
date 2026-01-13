@@ -4,9 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import AdminLayout from "@/components/Dashboard/AdminLayout";
 import { Network, Building2, Shield, Search, Filter, Cpu } from "lucide-react";
 import { SkeletonTable } from "@/components/Skeleton";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
+import authFetch from "@/lib/authFetch";
 
 export default function NetworksPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,9 +16,7 @@ export default function NetworksPage() {
   const fetchNetworks = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/admin/networks`, {
-        credentials: "include",
-      });
+      const response = await authFetch("/api/admin/networks");
       if (response.ok) {
         const data = await response.json();
         setNetworks(data);

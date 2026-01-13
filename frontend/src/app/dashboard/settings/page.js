@@ -3,6 +3,7 @@
 import DashboardLayout from "@/components/Dashboard/DashboardLayout";
 import useAuthStore from "@/store/useAuthStore";
 import { User, Bell, Shield, Database, Lock } from "lucide-react";
+import authFetch from "@/lib/authFetch";
 
 export default function SettingsPage() {
   const user = useAuthStore((state) => state.user);
@@ -147,17 +148,10 @@ export default function SettingsPage() {
               const secret = e.target.secret.value;
               if (!secret) return;
               try {
-                const res = await fetch(
-                  `${
-                    process.env.NEXT_PUBLIC_BACKEND_URL ||
-                    "http://localhost:9631"
-                  }/api/admin/settings/keys`,
+                const res = await authFetch(
+                  "/api/admin/settings/keys",
                   {
                     method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      // Add auth token header if needed
-                    },
                     body: JSON.stringify({ sharedSecret: secret }),
                   }
                 );
