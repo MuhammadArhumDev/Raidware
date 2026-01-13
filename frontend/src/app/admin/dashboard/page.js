@@ -5,6 +5,7 @@ import AdminLayout from "@/components/Dashboard/AdminLayout";
 import StatsCard from "@/components/Dashboard/StatsCard";
 import MetricChart from "@/components/Dashboard/MetricChart";
 import RealTimeChart from "@/components/Dashboard/RealTimeChart";
+import { SkeletonGrid } from "@/components/Skeleton";
 import { Building2, Network, Shield, Activity, Cpu } from "lucide-react";
 import { io } from "socket.io-client";
 
@@ -174,14 +175,25 @@ export default function AdminDashboardPage() {
     return () => clearInterval(interval);
   }, [fetchStats, fetchDeviceActivity]);
 
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="space-y-6">
+          <SkeletonGrid count={4} />
+          <SkeletonGrid count={2} />
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-gray-900  mb-2">
             Admin Dashboard
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 ">
             Monitor and manage all organizations and their IoT infrastructure
             security
           </p>
@@ -255,34 +267,34 @@ export default function AdminDashboardPage() {
           />
 
           {/* Device Status Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+            <h3 className="text-lg font-semibold text-gray-900  mb-4">
               IoT Device Status
             </h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg text-center">
-                <Cpu className="w-8 h-8 text-green-600 dark:text-green-400 mx-auto mb-2" />
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+              <div className="p-4 bg-green-50  rounded-none text-center">
+                <Cpu className="w-8 h-8 text-green-600  mx-auto mb-2" />
+                <p className="text-3xl font-bold text-green-600 ">
                   {deviceActivity.online || 0}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-600 ">
                   Online Devices
                 </p>
               </div>
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-center">
-                <Cpu className="w-8 h-8 text-red-600 dark:text-red-400 mx-auto mb-2" />
-                <p className="text-3xl font-bold text-red-600 dark:text-red-400">
+              <div className="p-4 bg-red-50  rounded-none text-center">
+                <Cpu className="w-8 h-8 text-red-600  mx-auto mb-2" />
+                <p className="text-3xl font-bold text-red-600 ">
                   {deviceActivity.offline || 0}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-600 ">
                   Offline Devices
                 </p>
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="mt-4 pt-4 border-t-[1.5px] border-gray-200 ">
+              <p className="text-sm text-gray-600 ">
                 Total Devices:{" "}
-                <span className="font-semibold text-gray-900 dark:text-white">
+                <span className="font-semibold text-gray-900 ">
                   {deviceActivity.total || 0}
                 </span>
               </p>
@@ -324,41 +336,41 @@ export default function AdminDashboardPage() {
         />
 
         {/* Quick Actions */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+          <h2 className="text-xl font-semibold text-gray-900  mb-4">
             Quick Actions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <a
               href="/admin/organizations"
-              className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+              className="p-4 rounded-none border-[1.5px] border-gray-200  hover:border-indigo-500 hover:bg-indigo-50  transition-colors"
             >
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+              <h3 className="font-semibold text-gray-900  mb-1">
                 Manage Organizations
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600 ">
                 View and manage all registered organizations
               </p>
             </a>
             <a
               href="/admin/security"
-              className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+              className="p-4 rounded-none border-[1.5px] border-gray-200  hover:border-indigo-500 hover:bg-indigo-50  transition-colors"
             >
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+              <h3 className="font-semibold text-gray-900  mb-1">
                 Security Overview
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600 ">
                 Monitor security status across all networks
               </p>
             </a>
             <a
               href="/admin/monitoring"
-              className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+              className="p-4 rounded-none border-[1.5px] border-gray-200  hover:border-indigo-500 hover:bg-indigo-50  transition-colors"
             >
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
+              <h3 className="font-semibold text-gray-900  mb-1">
                 System Monitoring
               </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
+              <p className="text-sm text-gray-600 ">
                 Check system health and service status
               </p>
             </a>
@@ -366,51 +378,51 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* System Status */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+          <h2 className="text-xl font-semibold text-gray-900  mb-4">
             System Status
           </h2>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <span className="text-gray-900 dark:text-white">
+            <div className="flex items-center justify-between p-3 bg-green-50  rounded-none">
+              <span className="text-gray-900 ">
                 Platform Status
               </span>
-              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 bg-green-100  text-green-800  rounded-none text-sm font-medium">
                 Operational
               </span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <span className="text-gray-900 dark:text-white">
+            <div className="flex items-center justify-between p-3 bg-green-50  rounded-none">
+              <span className="text-gray-900 ">
                 Kyber-768 Encryption
               </span>
-              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 bg-green-100  text-green-800  rounded-none text-sm font-medium">
                 Active
               </span>
             </div>
-            <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <span className="text-gray-900 dark:text-white">
+            <div className="flex items-center justify-between p-3 bg-green-50  rounded-none">
+              <span className="text-gray-900 ">
                 Mutual Authentication
               </span>
-              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 bg-green-100  text-green-800  rounded-none text-sm font-medium">
                 Enabled
               </span>
             </div>
             <div
               className={`flex items-center justify-between p-3 ${
                 stats.activeThreats > 0
-                  ? "bg-yellow-50 dark:bg-yellow-900/20"
-                  : "bg-green-50 dark:bg-green-900/20"
-              } rounded-lg`}
+                  ? "bg-yellow-50 "
+                  : "bg-green-50 "
+              } rounded-none`}
             >
-              <span className="text-gray-900 dark:text-white">
+              <span className="text-gray-900 ">
                 Active Threats
               </span>
               <span
                 className={`px-3 py-1 ${
                   stats.activeThreats > 0
-                    ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300"
-                    : "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300"
-                } rounded-full text-sm font-medium`}
+                    ? "bg-yellow-100  text-yellow-800 "
+                    : "bg-green-100  text-green-800 "
+                } rounded-none text-sm font-medium`}
               >
                 {stats.activeThreats} Detected
               </span>

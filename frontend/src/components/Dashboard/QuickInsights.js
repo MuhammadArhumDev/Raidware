@@ -33,36 +33,36 @@ export default function QuickInsights({ insights = [] }) {
     switch (type) {
       case 'success':
         return {
-          bg: 'bg-green-50 dark:bg-green-900/20',
-          border: 'border-green-200 dark:border-green-800',
-          icon: 'text-green-600 dark:text-green-400',
+          bg: 'bg-green-50 ',
+          border: 'border-green-200 ',
+          icon: 'text-green-600 ',
         };
       case 'warning':
         return {
-          bg: 'bg-yellow-50 dark:bg-yellow-900/20',
-          border: 'border-yellow-200 dark:border-yellow-800',
-          icon: 'text-yellow-600 dark:text-yellow-400',
+          bg: 'bg-yellow-50 ',
+          border: 'border-yellow-200 ',
+          icon: 'text-yellow-600 ',
         };
       case 'error':
         return {
-          bg: 'bg-red-50 dark:bg-red-900/20',
-          border: 'border-red-200 dark:border-red-800',
-          icon: 'text-red-600 dark:text-red-400',
+          bg: 'bg-red-50 ',
+          border: 'border-red-200 ',
+          icon: 'text-red-600 ',
         };
       default:
         return {
-          bg: 'bg-blue-50 dark:bg-blue-900/20',
-          border: 'border-blue-200 dark:border-blue-800',
-          icon: 'text-blue-600 dark:text-blue-400',
+          bg: 'bg-blue-50 ',
+          border: 'border-blue-200 ',
+          icon: 'text-black ',
         };
     }
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+    <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
       <div className="flex items-center gap-3 mb-6">
-        <Lightbulb className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+        <Lightbulb className="w-6 h-6 text-indigo-600 " />
+        <h2 className="text-xl font-semibold text-gray-900 ">
           Quick Insights
         </h2>
       </div>
@@ -73,15 +73,15 @@ export default function QuickInsights({ insights = [] }) {
           return (
             <div
               key={insight.id}
-              className={`p-4 rounded-lg border ${styles.bg} ${styles.border}`}
+              className={`p-4 rounded-none border ${styles.bg} ${styles.border}`}
             >
               <div className="flex items-start gap-3">
                 <Icon className={`w-5 h-5 mt-0.5 ${styles.icon}`} />
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                  <h3 className="text-sm font-semibold text-gray-900  mb-1">
                     {insight.title}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600 ">
                     {insight.message}
                   </p>
                 </div>

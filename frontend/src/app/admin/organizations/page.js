@@ -56,17 +56,17 @@ export default function OrganizationsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl font-bold text-gray-900  mb-2">
               Organizations
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600 ">
               Manage and monitor all registered organizations
             </p>
           </div>
         </div>
 
         {/* Search */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white  rounded-none shadow-sm p-4 border-[1.5px] border-gray-200 ">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -74,7 +74,7 @@ export default function OrganizationsPage() {
               placeholder="Search organizations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full pl-10 pr-4 py-2 border-[1.5px] border-gray-300  rounded-none bg-white  text-gray-900 "
             />
           </div>
         </div>
@@ -82,17 +82,17 @@ export default function OrganizationsPage() {
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-none h-8 w-8 border-b-2 border-indigo-600"></div>
           </div>
         )}
 
         {/* Error State */}
         {error && !loading && (
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-6 text-center">
-            <p className="text-red-600 dark:text-red-400">{error}</p>
+          <div className="bg-red-50  rounded-none p-6 text-center">
+            <p className="text-red-600 ">{error}</p>
             <button
               onClick={fetchOrganizations}
-              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+              className="mt-4 px-4 py-2 bg-black text-white hover:bg-gray-800 border border-transparent text-white rounded-none"
             >
               Retry
             </button>
@@ -105,27 +105,27 @@ export default function OrganizationsPage() {
             {filteredOrgs.map((org) => (
               <div
                 key={org.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700 hover:border-indigo-300 transition-colors"
+                className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200  hover:border-indigo-300 transition-colors"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
-                      <Building2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                    <div className="p-3 bg-indigo-50  rounded-none">
+                      <Building2 className="w-6 h-6 text-indigo-600 " />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      <h3 className="text-lg font-semibold text-gray-900 ">
                         {org.name}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 ">
                         {org.email}
                       </p>
                     </div>
                   </div>
                   <span
-                    className={`px-2 py-1 text-xs font-semibold rounded ${
+                    className={`px-2 py-1 text-xs font-semibold rounded-none ${
                       org.status === "active"
-                        ? "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"
+                        ? "bg-green-100  text-green-800 "
+                        : "bg-gray-100  text-gray-800 "
                     }`}
                   >
                     {org.status}
@@ -135,22 +135,22 @@ export default function OrganizationsPage() {
                 <div className="space-y-3">
                   {/* Network Info */}
                   <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-gray-600 ">
                       <Network className="w-4 h-4" />
                       <span>Network</span>
                     </div>
                     <div className="text-right">
-                      <span className="font-medium text-gray-900 dark:text-white">
+                      <span className="font-medium text-gray-900 ">
                         {org.network?.name || "No Network"}
                       </span>
                       {org.network && (
                         <span
-                          className={`ml-2 px-1.5 py-0.5 text-xs rounded ${
+                          className={`ml-2 px-1.5 py-0.5 text-xs rounded-none ${
                             org.network.status === "online"
-                              ? "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300"
+                              ? "bg-green-100  text-green-800 "
                               : org.network.status === "degraded"
-                              ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300"
-                              : "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300"
+                              ? "bg-yellow-100  text-yellow-800 "
+                              : "bg-red-100  text-red-800 "
                           }`}
                         >
                           {org.network.status}
@@ -161,26 +161,26 @@ export default function OrganizationsPage() {
 
                   {/* Devices */}
                   <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-gray-600 ">
                       <Cpu className="w-4 h-4" />
                       <span>Active Devices</span>
                     </div>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-medium text-gray-900 ">
                       {org.devices}
                     </span>
                   </div>
 
                   {/* Threats */}
                   <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-gray-600 ">
                       <Shield className="w-4 h-4" />
                       <span>Active Threats</span>
                     </div>
                     <span
                       className={`font-medium ${
                         org.threats > 0
-                          ? "text-red-600 dark:text-red-400"
-                          : "text-green-600 dark:text-green-400"
+                          ? "text-red-600 "
+                          : "text-green-600 "
                       }`}
                     >
                       {org.threats}
@@ -188,8 +188,8 @@ export default function OrganizationsPage() {
                   </div>
 
                   {/* Joined Date */}
-                  <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                  <div className="pt-3 border-t-[1.5px] border-gray-200 ">
+                    <p className="text-xs text-gray-500 ">
                       Joined: {formatDate(org.joinedDate)}
                     </p>
                   </div>
@@ -200,9 +200,9 @@ export default function OrganizationsPage() {
         )}
 
         {!loading && !error && filteredOrgs.length === 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-12 text-center border border-gray-200 dark:border-gray-700">
+          <div className="bg-white  rounded-none shadow-sm p-12 text-center border-[1.5px] border-gray-200 ">
             <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600 ">
               {searchTerm
                 ? "No organizations found matching your search"
                 : "No organizations found"}

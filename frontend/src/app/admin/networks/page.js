@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import AdminLayout from "@/components/Dashboard/AdminLayout";
 import { Network, Building2, Shield, Search, Filter, Cpu } from "lucide-react";
+import { SkeletonTable } from "@/components/Skeleton";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
@@ -49,20 +50,20 @@ export default function NetworksPage() {
   const getStatusColor = (status) => {
     switch (status) {
       case "online":
-        return "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300";
+        return "bg-green-100  text-green-800 ";
       case "degraded":
-        return "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300";
+        return "bg-yellow-100  text-yellow-800 ";
       case "offline":
-        return "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300";
+        return "bg-red-100  text-red-800 ";
       default:
-        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300";
+        return "bg-gray-100  text-gray-800 ";
     }
   };
 
   const getSecurityScoreColor = (score) => {
-    if (score >= 90) return "text-green-600 dark:text-green-400";
-    if (score >= 75) return "text-yellow-600 dark:text-yellow-400";
-    return "text-red-600 dark:text-red-400";
+    if (score >= 90) return "text-green-600 ";
+    if (score >= 75) return "text-yellow-600 ";
+    return "text-red-600 ";
   };
 
   const getSecurityBarColor = (score) => {
@@ -76,17 +77,17 @@ export default function NetworksPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl font-bold text-gray-900  mb-2">
               All Networks
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600 ">
               Monitor and manage all IoT networks across organizations
             </p>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white  rounded-none shadow-sm p-4 border-[1.5px] border-gray-200 ">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -95,7 +96,7 @@ export default function NetworksPage() {
                 placeholder="Search networks..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full pl-10 pr-4 py-2 border-[1.5px] border-gray-300  rounded-none bg-white  text-gray-900 "
               />
             </div>
             <div className="flex items-center gap-2">
@@ -103,7 +104,7 @@ export default function NetworksPage() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="px-4 py-2 border-[1.5px] border-gray-300  rounded-none bg-white  text-gray-900 "
               >
                 <option value="all">All Status</option>
                 <option value="online">Online</option>
@@ -116,18 +117,16 @@ export default function NetworksPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-          </div>
+          <SkeletonTable rows={5} cols={6} />
         )}
 
         {/* Error State */}
         {error && !loading && (
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-6 text-center">
-            <p className="text-red-600 dark:text-red-400">{error}</p>
+          <div className="bg-red-50  rounded-none p-6 text-center">
+            <p className="text-red-600 ">{error}</p>
             <button
               onClick={fetchNetworks}
-              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+              className="mt-4 px-4 py-2 bg-black text-white hover:bg-gray-800 border border-transparent text-white rounded-none"
             >
               Retry
             </button>
@@ -136,45 +135,45 @@ export default function NetworksPage() {
 
         {/* Networks Table */}
         {!loading && !error && filteredNetworks.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white  rounded-none shadow-sm border-[1.5px] border-gray-200  overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-900/50">
+                <thead className="bg-gray-50 ">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500  uppercase tracking-wider">
                       Network
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500  uppercase tracking-wider">
                       Organization
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500  uppercase tracking-wider">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500  uppercase tracking-wider">
                       Devices
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500  uppercase tracking-wider">
                       Security
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500  uppercase tracking-wider">
                       Threats
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="bg-white  divide-y divide-gray-200 ">
                   {filteredNetworks.map((network) => (
                     <tr
                       key={network.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                      className="hover:bg-gray-50 "
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <Network className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mr-3" />
+                          <Network className="w-5 h-5 text-indigo-600  mr-3" />
                           <div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            <div className="text-sm font-medium text-gray-900 ">
                               {network.name}
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-gray-500 ">
                               Kyber-768 • Mutual Auth
                             </div>
                           </div>
@@ -183,14 +182,14 @@ export default function NetworksPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-900 dark:text-white">
+                          <span className="text-sm text-gray-900 ">
                             {network.organization}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                          className={`px-2 py-1 text-xs font-semibold rounded-none ${getStatusColor(
                             network.status
                           )}`}
                         >
@@ -200,7 +199,7 @@ export default function NetworksPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <Cpu className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-900 dark:text-white">
+                          <span className="text-sm text-gray-900 ">
                             {network.nodes} nodes
                           </span>
                         </div>
@@ -214,9 +213,9 @@ export default function NetworksPage() {
                           >
                             {network.securityScore}%
                           </span>
-                          <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className="w-16 bg-gray-200  rounded-none h-2">
                             <div
-                              className={`h-2 rounded-full ${getSecurityBarColor(
+                              className={`h-2 rounded-none ${getSecurityBarColor(
                                 network.securityScore
                               )}`}
                               style={{ width: `${network.securityScore}%` }}
@@ -228,8 +227,8 @@ export default function NetworksPage() {
                         <span
                           className={`text-sm font-medium ${
                             network.threats > 0
-                              ? "text-red-600 dark:text-red-400"
-                              : "text-green-600 dark:text-green-400"
+                              ? "text-red-600 "
+                              : "text-green-600 "
                           }`}
                         >
                           {network.threats}
@@ -244,9 +243,9 @@ export default function NetworksPage() {
         )}
 
         {!loading && !error && filteredNetworks.length === 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-12 text-center border border-gray-200 dark:border-gray-700">
+          <div className="bg-white  rounded-none shadow-sm p-12 text-center border-[1.5px] border-gray-200 ">
             <Network className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600 ">
               {searchTerm || filterStatus !== "all"
                 ? "No networks found matching your criteria"
                 : "No networks found"}

@@ -41,19 +41,19 @@ export default function WarehouseMap() {
 
   if (loading) {
     return (
-      <div className="h-[600px] bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center">
-        <div className="text-gray-500 dark:text-gray-400">Loading map...</div>
+      <div className="h-[600px] bg-white  rounded-none flex items-center justify-center">
+        <div className="text-gray-500 ">Loading map...</div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+      <div className="bg-white  rounded-none shadow-sm p-6">
+        <h2 className="text-2xl font-bold text-gray-900  mb-4">
           Warehouse Map
         </h2>
-        <div className="h-[600px] rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+        <div className="h-[600px] rounded-none overflow-hidden border-[1.5px] border-gray-200 ">
           <MapContainer
             center={warehouseCenter}
             zoom={15}
@@ -115,8 +115,8 @@ export default function WarehouseMap() {
 
       {/* Container List */}
       {containers.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white  rounded-none shadow-sm p-6">
+          <h3 className="text-xl font-semibold text-gray-900  mb-4">
             Active Containers ({containers.length})
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -124,24 +124,24 @@ export default function WarehouseMap() {
               <div
                 key={container.id}
                 onClick={() => setSelectedContainer(container)}
-                className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                className={`p-4 rounded-none border cursor-pointer transition-colors ${
                   selectedContainer?.id === container.id
-                    ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
-                    : "border-gray-200 dark:border-gray-700 hover:border-indigo-300"
+                    ? "border-indigo-500 bg-indigo-50 "
+                    : "border-gray-200  hover:border-indigo-300"
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">
+                  <h4 className="font-semibold text-gray-900 ">
                     Container {container.id}
                   </h4>
                   <Package className="w-5 h-5 text-indigo-600" />
                 </div>
                 {container.rfid && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  <p className="text-sm text-gray-600  mb-1">
                     RFID: {container.rfid}
                   </p>
                 )}
-                <div className="flex gap-4 mt-2 text-xs text-gray-500 dark:text-gray-500">
+                <div className="flex gap-4 mt-2 text-xs text-gray-500 ">
                   {container.temperature !== undefined && (
                     <span>🌡️ {container.temperature}°C</span>
                   )}

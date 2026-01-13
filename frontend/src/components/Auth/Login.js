@@ -57,29 +57,29 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 px-4">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen flex items-center justify-center bg-white   px-4">
+      <div className="max-w-md w-full bg-white border-[1.5px] border-gray-200 rounded-none shadow-xl p-8">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-gray-900  mb-2">
             Raidware
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 ">
             Cloud IoT Security Platform
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" />
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <div className="bg-red-50  border border-red-200  rounded-none p-4 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600  shrink-0" />
+              <p className="text-sm text-red-600 ">{error}</p>
             </div>
           )}
 
           {successMsg && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
-              <p className="text-sm text-green-600 dark:text-green-400">
+            <div className="bg-green-50  border border-green-200  rounded-none p-4 flex items-center gap-3">
+              <CheckCircle className="w-5 h-5 text-green-600  shrink-0" />
+              <p className="text-sm text-green-600 ">
                 {successMsg}
               </p>
             </div>
@@ -88,7 +88,7 @@ export default function Login() {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              className="block text-sm font-medium text-gray-700  mb-2"
             >
               Email Address
             </label>
@@ -100,7 +100,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full pl-10 pr-4 py-3 border-[1.5px] border-gray-300  rounded-none focus:ring-0 focus:border-black bg-white  text-gray-900 "
                 placeholder="admin@warehouse.com"
               />
             </div>
@@ -109,7 +109,7 @@ export default function Login() {
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              className="block text-sm font-medium text-gray-700  mb-2"
             >
               Password
             </label>
@@ -121,7 +121,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full pl-10 pr-4 py-3 border-[1.5px] border-gray-300  rounded-none focus:ring-0 focus:border-black bg-white  text-gray-900 "
                 placeholder="••••••••"
               />
             </div>
@@ -130,7 +130,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-black text-white hover:bg-gray-800 border border-transparent text-white font-semibold py-3 px-4 rounded-none transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
@@ -144,11 +144,11 @@ export default function Login() {
         </form>
 
         <div className="mt-6 text-center space-y-2">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-600 ">
             Don't have an account?{" "}
             <a
               href="/signup"
-              className="text-indigo-600 dark:text-indigo-400 hover:underline font-medium"
+              className="text-indigo-600  hover:underline font-medium"
             >
               Sign up
             </a>

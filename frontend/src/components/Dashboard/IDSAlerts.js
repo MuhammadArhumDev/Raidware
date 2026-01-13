@@ -18,30 +18,30 @@ const severityConfig = {
   critical: {
     icon: XCircle,
     color: "red",
-    bgColor: "bg-red-50 dark:bg-red-900/20",
-    borderColor: "border-red-200 dark:border-red-800",
-    textColor: "text-red-600 dark:text-red-400",
+    bgColor: "bg-red-50 ",
+    borderColor: "border-red-200 ",
+    textColor: "text-red-600 ",
   },
   high: {
     icon: AlertTriangle,
     color: "orange",
-    bgColor: "bg-orange-50 dark:bg-orange-900/20",
-    borderColor: "border-orange-200 dark:border-orange-800",
-    textColor: "text-orange-600 dark:text-orange-400",
+    bgColor: "bg-orange-50 ",
+    borderColor: "border-orange-200 ",
+    textColor: "text-orange-600 ",
   },
   medium: {
     icon: Info,
     color: "yellow",
-    bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
-    borderColor: "border-yellow-200 dark:border-yellow-800",
-    textColor: "text-yellow-600 dark:text-yellow-400",
+    bgColor: "bg-yellow-50 ",
+    borderColor: "border-yellow-200 ",
+    textColor: "text-yellow-600 ",
   },
   low: {
     icon: CheckCircle,
     color: "blue",
-    bgColor: "bg-blue-50 dark:bg-blue-900/20",
-    borderColor: "border-blue-200 dark:border-blue-800",
-    textColor: "text-blue-600 dark:text-blue-400",
+    bgColor: "bg-blue-50 ",
+    borderColor: "border-blue-200 ",
+    textColor: "text-black ",
   },
 };
 
@@ -147,8 +147,8 @@ export default function IDSAlerts() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-        <div className="text-gray-500 dark:text-gray-400">
+      <div className="bg-white  rounded-none shadow-sm p-6">
+        <div className="text-gray-500 ">
           Loading IDS alerts...
         </div>
       </div>
@@ -158,14 +158,14 @@ export default function IDSAlerts() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
         <div className="flex items-center gap-3 mb-4">
-          <Shield className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+          <Shield className="w-8 h-8 text-indigo-600 " />
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-2xl font-bold text-gray-900 ">
               Intrusion Detection System (IDS)
             </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600 ">
               Real-time monitoring of network attacks and security threats
             </p>
           </div>
@@ -173,9 +173,9 @@ export default function IDSAlerts() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
         <div className="mb-4">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <p className="text-sm font-medium text-gray-700  mb-2">
             Filter by Severity
           </p>
           <div className="flex flex-wrap gap-2">
@@ -184,11 +184,11 @@ export default function IDSAlerts() {
                 key={key}
                 onClick={() => setFilter(key)}
                 className={`
-                  px-4 py-2 rounded-lg font-medium transition-colors text-sm
+                  px-4 py-2 rounded-none font-medium transition-colors text-sm
                   ${
                     filter === key
                       ? "bg-indigo-600 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      : "bg-gray-100  text-gray-700  hover:bg-gray-200 "
                   }
                 `}
               >
@@ -199,7 +199,7 @@ export default function IDSAlerts() {
         </div>
 
         <div>
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <p className="text-sm font-medium text-gray-700  mb-2">
             Filter by Attack Type
           </p>
           <div className="flex flex-wrap gap-2">
@@ -210,11 +210,11 @@ export default function IDSAlerts() {
                     key={key}
                     onClick={() => setAttackTypeFilter(key)}
                     className={`
-                      px-4 py-2 rounded-lg font-medium transition-colors text-sm
+                      px-4 py-2 rounded-none font-medium transition-colors text-sm
                       ${
                         attackTypeFilter === key
                           ? "bg-indigo-600 text-white"
-                          : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                          : "bg-gray-100  text-gray-700  hover:bg-gray-200 "
                       }
                     `}
                   >
@@ -229,11 +229,11 @@ export default function IDSAlerts() {
                   key={key}
                   onClick={() => setAttackTypeFilter(key)}
                   className={`
-                    px-4 py-2 rounded-lg font-medium transition-colors text-sm flex items-center gap-2
+                    px-4 py-2 rounded-none font-medium transition-colors text-sm flex items-center gap-2
                     ${
                       attackTypeFilter === key
                         ? "bg-indigo-600 text-white"
-                        : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                        : "bg-gray-100  text-gray-700  hover:bg-gray-200 "
                     }
                   `}
                 >
@@ -249,16 +249,16 @@ export default function IDSAlerts() {
       {/* Alerts List */}
       <div className="space-y-4">
         {alerts.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-12 text-center border border-gray-200 dark:border-gray-700">
+          <div className="bg-white  rounded-none shadow-sm p-12 text-center border-[1.5px] border-gray-200 ">
             <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600 ">
               No{" "}
               {filter !== "all" || attackTypeFilter !== "all"
                 ? "matching "
                 : ""}
               IDS alerts at this time
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+            <p className="text-sm text-gray-500  mt-2">
               Your network is secure
             </p>
           </div>
@@ -276,21 +276,21 @@ export default function IDSAlerts() {
               <div
                 key={alert.id}
                 className={`
-                  bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border-2
+                  bg-white  rounded-none shadow-sm p-6 border-2
                   ${config.borderColor}
                   ${alert.dismissed ? "opacity-60" : ""}
                 `}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4 flex-1">
-                    <div className={`p-3 rounded-lg ${config.bgColor}`}>
+                    <div className={`p-3 rounded-none ${config.bgColor}`}>
                       <Icon className={`w-6 h-6 ${config.textColor}`} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="flex items-center gap-2">
-                          <AttackIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          <AttackIcon className="w-5 h-5 text-gray-600 " />
+                          <h3 className="text-lg font-semibold text-gray-900 ">
                             {alert.title || attackInfo.label}
                           </h3>
                         </div>
@@ -303,17 +303,17 @@ export default function IDSAlerts() {
                           {alert.severity?.toUpperCase()}
                         </span>
                         {alert.dismissed && (
-                          <span className="px-2 py-1 text-xs font-semibold rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-none bg-gray-100  text-gray-600 ">
                             DISMISSED
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-600 dark:text-gray-400 mb-3">
+                      <p className="text-gray-600  mb-3">
                         {alert.message ||
                           alert.description ||
                           "Network security threat detected"}
                       </p>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-500">
+                      <div className="flex items-center gap-4 text-sm text-gray-500 ">
                         <span>
                           {format(
                             new Date(alert.timestamp),
@@ -323,7 +323,7 @@ export default function IDSAlerts() {
                         {alert.source && <span>• Source: {alert.source}</span>}
                         {alert.nodeId && <span>• Node: {alert.nodeId}</span>}
                         {alert.attackType && alert.attackType !== "unknown" && (
-                          <span className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded text-xs">
+                          <span className="px-2 py-1 bg-indigo-100  text-indigo-700  rounded-none text-xs">
                             {attackInfo.label}
                           </span>
                         )}
@@ -333,7 +333,7 @@ export default function IDSAlerts() {
                   {!alert.dismissed && (
                     <button
                       onClick={() => dismissAlert(alert.id)}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                      className="p-2 hover:bg-gray-100  rounded-none transition-colors"
                       title="Dismiss alert"
                     >
                       <X className="w-5 h-5 text-gray-400" />

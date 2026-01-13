@@ -94,8 +94,8 @@ export default function TopologyView({ nodes }) {
   }, [nodes]);
 
   return (
-    <div className="w-full bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 border border-gray-200 dark:border-gray-700">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+    <div className="w-full bg-white  rounded-none shadow-sm p-4 border-[1.5px] border-gray-200 ">
+      <h3 className="text-lg font-semibold text-gray-900  mb-4">
         Network Topology
       </h3>
       <div className="w-full relative">

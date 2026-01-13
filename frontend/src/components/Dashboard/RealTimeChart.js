@@ -167,9 +167,9 @@ export default function RealTimeChart({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+    <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
       {title && (
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 className="text-lg font-semibold text-gray-900  mb-4">
           {title}
         </h3>
       )}

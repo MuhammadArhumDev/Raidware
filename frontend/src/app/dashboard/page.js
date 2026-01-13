@@ -144,10 +144,10 @@ export default function DashboardPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-gray-900  mb-2">
             Dashboard Overview
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600 ">
             Cloud platform for secure IoT network management with CCTV, sensors,
             and IDS protection
           </p>
@@ -215,80 +215,80 @@ export default function DashboardPage() {
 
         {/* System Status & Network Info */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+            <h2 className="text-xl font-semibold text-gray-900  mb-4">
               System Status
             </h2>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100   rounded-none border border-green-200 ">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-600 rounded-lg">
+                  <div className="p-2 bg-green-600 rounded-none">
                     <Wifi className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-gray-900 ">
                       Mesh Network
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-gray-600 ">
                       All nodes connected
                     </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded-full text-sm font-medium">
+                <span className="px-3 py-1 bg-green-100  text-green-800  rounded-none text-sm font-medium">
                   Operational
                 </span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 rounded-lg border border-green-200 dark:border-green-800">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100   rounded-none border border-green-200 ">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-600 rounded-lg">
+                  <div className="p-2 bg-green-600 rounded-none">
                     <Server className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-gray-900 ">
                       Gateway Connection
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-gray-600 ">
                       Raspberry Pi gateway
                     </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 rounded-full text-sm font-medium">
+                <span className="px-3 py-1 bg-green-100  text-green-800  rounded-none text-sm font-medium">
                   Connected
                 </span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-linear-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-blue-50 to-blue-100   rounded-none border border-blue-200 ">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-600 rounded-lg">
+                  <div className="p-2 bg-blue-600 rounded-none">
                     <Activity className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-gray-900 ">
                       Data Sync
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-gray-600 ">
                       Real-time updates
                     </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-full text-sm font-medium">
+                <span className="px-3 py-1 bg-blue-100  text-blue-800  rounded-none text-sm font-medium">
                   Active
                 </span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-linear-to-r from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-900/10 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-yellow-50 to-yellow-100   rounded-none border border-yellow-200 ">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-yellow-600 rounded-lg">
+                  <div className="p-2 bg-yellow-600 rounded-none">
                     <Shield className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-white">
+                    <p className="font-medium text-gray-900 ">
                       Intrusion Detection
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-gray-600 ">
                       IDS monitoring active
                     </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-full text-sm font-medium">
+                <span className="px-3 py-1 bg-yellow-100  text-yellow-800  rounded-none text-sm font-medium">
                   Monitoring
                 </span>
               </div>
@@ -296,33 +296,33 @@ export default function DashboardPage() {
           </div>
 
           {/* Network Security Status (Dynamic) */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+          <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+            <h2 className="text-xl font-semibold text-gray-900  mb-4">
               Security Status
             </h2>
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-medium text-gray-700 ">
                     Encryption (Kyber-768)
                   </span>
-                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                  <span className="text-sm font-semibold text-green-600 ">
                     Active
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-gray-200  rounded-none h-2">
                   <div
-                    className="bg-green-600 h-2 rounded-full"
+                    className="bg-green-600 h-2 rounded-none"
                     style={{ width: "100%" }}
                   />
                 </div>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-medium text-gray-700 ">
                     Online Devices
                   </span>
-                  <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                  <span className="text-sm font-semibold text-indigo-600 ">
                     {
                       Object.values(nodes).filter((n) => n.status === "online")
                         .length
@@ -330,9 +330,9 @@ export default function DashboardPage() {
                     / {Object.keys(nodes).length}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="w-full bg-gray-200  rounded-none h-2">
                   <div
-                    className="bg-indigo-600 h-2 rounded-full"
+                    className="bg-indigo-600 h-2 rounded-none"
                     style={{
                       width: `${
                         (Object.values(nodes).filter(
@@ -345,12 +345,12 @@ export default function DashboardPage() {
                   />
                 </div>
               </div>
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="pt-4 border-t-[1.5px] border-gray-200 ">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-medium text-gray-700 ">
                     Encryption Status
                   </span>
-                  <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  <span className="text-2xl font-bold text-green-600 ">
                     SECURE
                   </span>
                 </div>

@@ -7,9 +7,9 @@ import {
   Server,
   Database,
   TrendingUp,
-  Wifi,
   Clock,
 } from "lucide-react";
+import { SkeletonGrid } from "@/components/Skeleton";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
@@ -57,39 +57,39 @@ export default function MonitoringPage() {
   const getStatusColor = (status) => {
     switch (status) {
       case "healthy":
-        return "bg-green-50 dark:bg-green-900/20";
+        return "bg-green-50 ";
       case "degraded":
-        return "bg-yellow-50 dark:bg-yellow-900/20";
+        return "bg-yellow-50 ";
       case "unhealthy":
-        return "bg-red-50 dark:bg-red-900/20";
+        return "bg-red-50 ";
       default:
-        return "bg-gray-50 dark:bg-gray-700/20";
+        return "bg-gray-50 ";
     }
   };
 
   const getStatusBadgeColor = (status) => {
     switch (status) {
       case "healthy":
-        return "bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300";
+        return "bg-green-100  text-green-800 ";
       case "degraded":
-        return "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300";
+        return "bg-yellow-100  text-yellow-800 ";
       case "unhealthy":
-        return "bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-300";
+        return "bg-red-100  text-red-800 ";
       default:
-        return "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300";
+        return "bg-gray-100  text-gray-800 ";
     }
   };
 
   const getStatusIconColor = (status) => {
     switch (status) {
       case "healthy":
-        return "text-green-600 dark:text-green-400";
+        return "text-green-600 ";
       case "degraded":
-        return "text-yellow-600 dark:text-yellow-400";
+        return "text-yellow-600 ";
       case "unhealthy":
-        return "text-red-600 dark:text-red-400";
+        return "text-red-600 ";
       default:
-        return "text-gray-600 dark:text-gray-400";
+        return "text-gray-600 ";
     }
   };
 
@@ -98,15 +98,15 @@ export default function MonitoringPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            <h1 className="text-3xl font-bold text-gray-900  mb-2">
               System Monitoring
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600 ">
               Real-time monitoring of platform infrastructure and services
             </p>
           </div>
           {lastChecked && (
-            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2 text-sm text-gray-500 ">
               <Clock className="w-4 h-4" />
               Last updated: {lastChecked.toLocaleTimeString()}
             </div>
@@ -115,18 +115,19 @@ export default function MonitoringPage() {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <div className="space-y-6">
+            <SkeletonGrid count={2} />
+            <SkeletonGrid count={3} />
           </div>
         )}
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-6 text-center">
-            <p className="text-red-600 dark:text-red-400">{error}</p>
+          <div className="bg-red-50  rounded-none p-6 text-center">
+            <p className="text-red-600 ">{error}</p>
             <button
               onClick={fetchMonitoringData}
-              className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+              className="mt-4 px-4 py-2 bg-black text-white hover:bg-gray-800 border border-transparent text-white rounded-none"
             >
               Retry
             </button>
@@ -137,46 +138,46 @@ export default function MonitoringPage() {
           <>
             {/* Performance Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+                <h2 className="text-xl font-semibold text-gray-900  mb-4">
                   Active Connections
                 </h2>
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    <p className="text-3xl font-bold text-gray-900  mb-2">
                       {monitoringData.activeConnections.toLocaleString()}
                     </p>
-                    <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <div className="flex items-center gap-2 text-sm text-green-600 ">
                       <Wifi className="w-4 h-4" />
                       <span>IoT Devices Connected</span>
                     </div>
                   </div>
-                  <Server className="w-12 h-12 text-indigo-600 dark:text-indigo-400 opacity-20" />
+                  <Server className="w-12 h-12 text-indigo-600  opacity-20" />
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+                <h2 className="text-xl font-semibold text-gray-900  mb-4">
                   Server Uptime
                 </h2>
                 <div className="flex items-end gap-2">
                   <div className="flex-1">
-                    <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    <p className="text-3xl font-bold text-gray-900  mb-2">
                       {monitoringData.apiServer.uptime}
                     </p>
-                    <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <div className="flex items-center gap-2 text-sm text-green-600 ">
                       <TrendingUp className="w-4 h-4" />
                       <span>Continuous Operation</span>
                     </div>
                   </div>
-                  <Activity className="w-12 h-12 text-indigo-600 dark:text-indigo-400 opacity-20" />
+                  <Activity className="w-12 h-12 text-indigo-600  opacity-20" />
                 </div>
               </div>
             </div>
 
             {/* System Health Status */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+              <h2 className="text-xl font-semibold text-gray-900  mb-4">
                 System Health Status
               </h2>
               <div className="space-y-3">
@@ -184,11 +185,11 @@ export default function MonitoringPage() {
                 <div
                   className={`flex items-center justify-between p-4 ${getStatusColor(
                     monitoringData.apiServer.status
-                  )} rounded-lg`}
+                  )} rounded-none`}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm`}
+                      className={`p-2 bg-white  rounded-none shadow-sm`}
                     >
                       <Server
                         className={`w-5 h-5 ${getStatusIconColor(
@@ -197,10 +198,10 @@ export default function MonitoringPage() {
                       />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="font-medium text-gray-900 ">
                         API Server
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 ">
                         All endpoints operational • Uptime:{" "}
                         {monitoringData.apiServer.uptime}
                       </p>
@@ -209,7 +210,7 @@ export default function MonitoringPage() {
                   <span
                     className={`px-3 py-1 ${getStatusBadgeColor(
                       monitoringData.apiServer.status
-                    )} rounded-full text-sm font-medium capitalize`}
+                    )} rounded-none text-sm font-medium capitalize`}
                   >
                     {monitoringData.apiServer.status}
                   </span>
@@ -219,11 +220,11 @@ export default function MonitoringPage() {
                 <div
                   className={`flex items-center justify-between p-4 ${getStatusColor(
                     monitoringData.database.status
-                  )} rounded-lg`}
+                  )} rounded-none`}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm`}
+                      className={`p-2 bg-white  rounded-none shadow-sm`}
                     >
                       <Database
                         className={`w-5 h-5 ${getStatusIconColor(
@@ -232,10 +233,10 @@ export default function MonitoringPage() {
                       />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="font-medium text-gray-900 ">
                         Database ({monitoringData.database.type})
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 ">
                         {monitoringData.database.status === "healthy"
                           ? "Connected and responsive"
                           : "Connection issues detected"}
@@ -245,7 +246,7 @@ export default function MonitoringPage() {
                   <span
                     className={`px-3 py-1 ${getStatusBadgeColor(
                       monitoringData.database.status
-                    )} rounded-full text-sm font-medium capitalize`}
+                    )} rounded-none text-sm font-medium capitalize`}
                   >
                     {monitoringData.database.status}
                   </span>
@@ -255,11 +256,11 @@ export default function MonitoringPage() {
                 <div
                   className={`flex items-center justify-between p-4 ${getStatusColor(
                     monitoringData.redis.status
-                  )} rounded-lg`}
+                  )} rounded-none`}
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className={`p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm`}
+                      className={`p-2 bg-white  rounded-none shadow-sm`}
                     >
                       <Activity
                         className={`w-5 h-5 ${getStatusIconColor(
@@ -268,10 +269,10 @@ export default function MonitoringPage() {
                       />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white">
+                      <p className="font-medium text-gray-900 ">
                         Cache Store ({monitoringData.redis.type})
                       </p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 ">
                         {monitoringData.redis.status === "healthy"
                           ? "Session and device state management"
                           : "Cache unavailable"}
@@ -281,7 +282,7 @@ export default function MonitoringPage() {
                   <span
                     className={`px-3 py-1 ${getStatusBadgeColor(
                       monitoringData.redis.status
-                    )} rounded-full text-sm font-medium capitalize`}
+                    )} rounded-none text-sm font-medium capitalize`}
                   >
                     {monitoringData.redis.status}
                   </span>
@@ -290,58 +291,58 @@ export default function MonitoringPage() {
             </div>
 
             {/* Security Services */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+              <h2 className="text-xl font-semibold text-gray-900  mb-4">
                 Security Services
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div className="p-4 bg-green-50  rounded-none">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-green-100 dark:bg-green-900/40 rounded-lg">
-                      <Server className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <div className="p-2 bg-green-100  rounded-none">
+                      <Server className="w-5 h-5 text-green-600 " />
                     </div>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-medium text-gray-900 ">
                       Kyber-768 PQC
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600 ">
                     Post-quantum key exchange active
                   </p>
-                  <span className="inline-block mt-2 px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs font-medium rounded">
+                  <span className="inline-block mt-2 px-2 py-1 bg-green-100  text-green-800  text-xs font-medium rounded-none">
                     Operational
                   </span>
                 </div>
 
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div className="p-4 bg-green-50  rounded-none">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-green-100 dark:bg-green-900/40 rounded-lg">
-                      <Activity className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <div className="p-2 bg-green-100  rounded-none">
+                      <Activity className="w-5 h-5 text-green-600 " />
                     </div>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-medium text-gray-900 ">
                       AES-256-GCM
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600 ">
                     Symmetric encryption active
                   </p>
-                  <span className="inline-block mt-2 px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs font-medium rounded">
+                  <span className="inline-block mt-2 px-2 py-1 bg-green-100  text-green-800  text-xs font-medium rounded-none">
                     Operational
                   </span>
                 </div>
 
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <div className="p-4 bg-green-50  rounded-none">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-green-100 dark:bg-green-900/40 rounded-lg">
-                      <Database className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <div className="p-2 bg-green-100  rounded-none">
+                      <Database className="w-5 h-5 text-green-600 " />
                     </div>
-                    <span className="font-medium text-gray-900 dark:text-white">
+                    <span className="font-medium text-gray-900 ">
                       Mutual Auth
                     </span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600 ">
                     HMAC-SHA256 challenge-response
                   </p>
-                  <span className="inline-block mt-2 px-2 py-1 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 text-xs font-medium rounded">
+                  <span className="inline-block mt-2 px-2 py-1 bg-green-100  text-green-800  text-xs font-medium rounded-none">
                     Operational
                   </span>
                 </div>

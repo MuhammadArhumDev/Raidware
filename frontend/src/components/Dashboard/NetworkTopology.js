@@ -43,8 +43,8 @@ export default function NetworkTopology() {
 
   if (loading) {
     return (
-      <div className="h-[600px] bg-white dark:bg-gray-800 rounded-xl flex items-center justify-center">
-        <div className="text-gray-500 dark:text-gray-400">
+      <div className="h-[600px] bg-white  rounded-none flex items-center justify-center">
+        <div className="text-gray-500 ">
           Loading network topology...
         </div>
       </div>
@@ -54,33 +54,33 @@ export default function NetworkTopology() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+      <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-2xl font-bold text-gray-900  mb-2">
               Network Topology
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600 ">
               Visual representation of your IoT mesh network infrastructure
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setViewMode("topology")}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-4 py-2 rounded-none font-medium transition-colors ${
                 viewMode === "topology"
                   ? "bg-indigo-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  : "bg-gray-100  text-gray-700  hover:bg-gray-200 "
               }`}
             >
               Topology View
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-4 py-2 rounded-none font-medium transition-colors ${
                 viewMode === "list"
                   ? "bg-indigo-600 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  : "bg-gray-100  text-gray-700  hover:bg-gray-200 "
               }`}
             >
               List View
@@ -90,47 +90,47 @@ export default function NetworkTopology() {
 
         {/* Network Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+          <div className="p-4 bg-indigo-50  rounded-none">
             <div className="flex items-center gap-2 mb-2">
-              <Network className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Network className="w-5 h-5 text-indigo-600 " />
+              <span className="text-sm font-medium text-gray-700 ">
                 Total Nodes
               </span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl font-bold text-gray-900 ">
               {nodesList.length}
             </p>
           </div>
-          <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+          <div className="p-4 bg-green-50  rounded-none">
             <div className="flex items-center gap-2 mb-2">
-              <Activity className="w-5 h-5 text-green-600 dark:text-green-400" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Activity className="w-5 h-5 text-green-600 " />
+              <span className="text-sm font-medium text-gray-700 ">
                 Online
               </span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl font-bold text-gray-900 ">
               {nodesList.filter((n) => n.status === "online").length}
             </p>
           </div>
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <div className="p-4 bg-blue-50  rounded-none">
             <div className="flex items-center gap-2 mb-2">
-              <Wifi className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Wifi className="w-5 h-5 text-black " />
+              <span className="text-sm font-medium text-gray-700 ">
                 Connections
               </span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl font-bold text-gray-900 ">
               {connections.length}
             </p>
           </div>
-          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+          <div className="p-4 bg-purple-50  rounded-none">
             <div className="flex items-center gap-2 mb-2">
-              <Server className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Server className="w-5 h-5 text-purple-600 " />
+              <span className="text-sm font-medium text-gray-700 ">
                 Server
               </span>
             </div>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+            <p className="text-2xl font-bold text-gray-900 ">
               Online
             </p>
           </div>
@@ -139,22 +139,22 @@ export default function NetworkTopology() {
 
       {/* Topology Visualization */}
       {viewMode === "topology" ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+        <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+          <h3 className="text-xl font-semibold text-gray-900  mb-6">
             Network Infrastructure
           </h3>
-          <div className="relative min-h-[500px] bg-gray-50 dark:bg-gray-900/50 rounded-lg p-8">
+          <div className="relative min-h-[500px] bg-gray-50  rounded-none p-8">
             {/* Cloud Backend (Center) */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <div className="relative">
-                <div className="p-6 bg-indigo-600 rounded-full shadow-lg border-4 border-white dark:border-gray-800">
+                <div className="p-6 bg-indigo-600 rounded-none shadow-lg border-4 border-white ">
                   <Server className="w-8 h-8 text-white" />
                 </div>
                 <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                  <p className="text-sm font-semibold text-gray-900 ">
                     Cloud Backend
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-gray-600 ">
                     Raidware Server
                   </p>
                 </div>
@@ -213,15 +213,15 @@ export default function NetworkTopology() {
                     }`}
                   >
                     <div
-                      className={`p-4 ${statusColor} rounded-full shadow-lg border-4 border-white dark:border-gray-800`}
+                      className={`p-4 ${statusColor} rounded-none shadow-lg border-4 border-white `}
                     >
                       <Wifi className="w-6 h-6 text-white" />
                     </div>
                     <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
-                      <p className="text-xs font-semibold text-gray-900 dark:text-white">
+                      <p className="text-xs font-semibold text-gray-900 ">
                         {node.id}
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-gray-600 ">
                         {node.status}
                       </p>
                     </div>
@@ -233,55 +233,55 @@ export default function NetworkTopology() {
 
           {/* Node Details Panel */}
           {selectedNode && (
-            <div className="mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+            <div className="mt-6 p-4 bg-indigo-50  rounded-none border border-indigo-200 ">
               <div className="flex items-start justify-between mb-4">
                 <div>
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                  <h4 className="text-lg font-semibold text-gray-900  mb-1">
                     {selectedNode.id}
                   </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600 ">
                     Mesh Network Node
                   </p>
                 </div>
                 <button
                   onClick={() => setSelectedNode(null)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  className="text-gray-400 hover:text-gray-600 "
                 >
                   ×
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">
+                  <p className="text-gray-600  mb-1">
                     Status
                   </p>
-                  <p className="font-semibold text-gray-900 dark:text-white capitalize">
+                  <p className="font-semibold text-gray-900  capitalize">
                     {selectedNode.status}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">
+                  <p className="text-gray-600  mb-1">
                     Last Seen
                   </p>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                  <p className="font-semibold text-gray-900 ">
                     {selectedNode.lastSeen
                       ? new Date(selectedNode.lastSeen).toLocaleTimeString()
                       : "N/A"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">
+                  <p className="text-gray-600  mb-1">
                     Node Type
                   </p>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                  <p className="font-semibold text-gray-900 ">
                     ESP32 Mesh
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-1">
+                  <p className="text-gray-600  mb-1">
                     Encryption
                   </p>
-                  <p className="font-semibold text-gray-900 dark:text-white">
+                  <p className="font-semibold text-gray-900 ">
                     AES-256
                   </p>
                 </div>
@@ -291,8 +291,8 @@ export default function NetworkTopology() {
         </div>
       ) : (
         /* List View */
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+          <h3 className="text-xl font-semibold text-gray-900  mb-4">
             Network Nodes
           </h3>
           <div className="space-y-3">
@@ -304,18 +304,18 @@ export default function NetworkTopology() {
                   onClick={() =>
                     setSelectedNode(selectedNode?.id === node.id ? null : node)
                   }
-                  className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                  className={`p-4 border rounded-none cursor-pointer transition-colors ${
                     selectedNode?.id === node.id
-                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
-                      : "border-gray-200 dark:border-gray-700 hover:border-indigo-300"
+                      ? "border-indigo-500 bg-indigo-50 "
+                      : "border-gray-200  hover:border-indigo-300"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div
-                        className={`p-3 rounded-lg ${statusColor
+                        className={`p-3 rounded-none ${statusColor
                           .replace("bg-", "bg-")
-                          .replace("-500", "-100")} dark:${statusColor
+                          .replace("-500", "-100")} 
                           .replace("bg-", "bg-")
                           .replace("-500", "-900/40")}`}
                       >
@@ -327,20 +327,20 @@ export default function NetworkTopology() {
                         />
                       </div>
                       <div>
-                        <h4 className="font-semibold text-gray-900 dark:text-white">
+                        <h4 className="font-semibold text-gray-900 ">
                           {node.id}
                         </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-gray-600 ">
                           Status:{" "}
                           <span className="capitalize">{node.status}</span>
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <p className="text-sm text-gray-600 ">
                         Last Seen
                       </p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      <p className="text-sm font-medium text-gray-900 ">
                         {node.lastSeen
                           ? new Date(node.lastSeen).toLocaleTimeString()
                           : "N/A"}

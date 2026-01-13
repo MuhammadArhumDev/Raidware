@@ -113,8 +113,8 @@ export default function SensorCharts() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">
-        <div className="text-gray-500 dark:text-gray-400">
+      <div className="bg-white  rounded-none shadow-sm p-6">
+        <div className="text-gray-500 ">
           Loading sensor data...
         </div>
       </div>
@@ -125,49 +125,49 @@ export default function SensorCharts() {
     <div className="space-y-6">
       {/* Current Readings */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-red-50 dark:bg-red-900/30 rounded-lg">
-              <Thermometer className="w-6 h-6 text-red-600 dark:text-red-400" />
+            <div className="p-3 bg-red-50  rounded-none">
+              <Thermometer className="w-6 h-6 text-red-600 " />
             </div>
           </div>
-          <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <h3 className="text-3xl font-bold text-gray-900  mb-1">
             {currentReading.temperature?.toFixed(1) || "N/A"}°C
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-gray-600 ">
             Temperature
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-              <Droplets className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="p-3 bg-blue-50  rounded-none">
+              <Droplets className="w-6 h-6 text-black " />
             </div>
           </div>
-          <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <h3 className="text-3xl font-bold text-gray-900  mb-1">
             {currentReading.humidity?.toFixed(1) || "N/A"}%
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Humidity</p>
+          <p className="text-sm text-gray-600 ">Humidity</p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+        <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
-              <Gauge className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <div className="p-3 bg-green-50  rounded-none">
+              <Gauge className="w-6 h-6 text-green-600 " />
             </div>
           </div>
-          <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+          <h3 className="text-3xl font-bold text-gray-900  mb-1">
             {currentReading.pressure?.toFixed(1) || "N/A"} hPa
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Pressure</p>
+          <p className="text-sm text-gray-600 ">Pressure</p>
         </div>
       </div>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+          <h3 className="text-xl font-semibold text-gray-900  mb-4">
             Temperature Trend
           </h3>
           <div className="h-64">
@@ -175,8 +175,8 @@ export default function SensorCharts() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
+          <h3 className="text-xl font-semibold text-gray-900  mb-4">
             Humidity Trend
           </h3>
           <div className="h-64">
@@ -184,8 +184,8 @@ export default function SensorCharts() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700 lg:col-span-2">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200  lg:col-span-2">
+          <h3 className="text-xl font-semibold text-gray-900  mb-4">
             Pressure Trend
           </h3>
           <div className="h-64">
