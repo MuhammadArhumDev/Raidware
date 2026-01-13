@@ -6,17 +6,17 @@ export default function StatsCard({ title, value, change, icon: Icon, trend = 'u
   const colorClasses = {
     indigo: {
       iconBg: 'bg-indigo-50 ',
-      icon: 'text-indigo-600 ',
+      icon: 'text-black ',
       gradient: 'from-indigo-50 to-indigo-100  ',
     },
     green: {
       iconBg: 'bg-green-50 ',
-      icon: 'text-green-600 ',
+      icon: 'text-black ',
       gradient: 'from-green-50 to-green-100  ',
     },
     red: {
       iconBg: 'bg-red-50 ',
-      icon: 'text-red-600 ',
+      icon: 'text-black ',
       gradient: 'from-red-50 to-red-100  ',
     },
     blue: {

@@ -112,9 +112,7 @@ export default function NetworksPage() {
         </div>
 
         {/* Loading State */}
-        {loading && (
-          <SkeletonTable rows={5} cols={6} />
-        )}
+        {loading && <SkeletonTable rows={5} cols={6} />}
 
         {/* Error State */}
         {error && !loading && (
@@ -158,10 +156,7 @@ export default function NetworksPage() {
                 </thead>
                 <tbody className="bg-white  divide-y divide-gray-200 ">
                   {filteredNetworks.map((network) => (
-                    <tr
-                      key={network.id}
-                      className="hover:bg-gray-50 "
-                    >
+                    <tr key={network.id} className="hover:bg-gray-50 ">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <Network className="w-5 h-5 text-indigo-600  mr-3" />
@@ -186,7 +181,7 @@ export default function NetworksPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 py-1 text-xs font-semibold rounded-none ${getStatusColor(
-                            network.status
+                            network.status,
                           )}`}
                         >
                           {network.status}
@@ -204,7 +199,7 @@ export default function NetworksPage() {
                         <div className="flex items-center gap-2">
                           <span
                             className={`text-sm font-semibold ${getSecurityScoreColor(
-                              network.securityScore
+                              network.securityScore,
                             )}`}
                           >
                             {network.securityScore}%
@@ -212,7 +207,7 @@ export default function NetworksPage() {
                           <div className="w-16 bg-gray-200  rounded-none h-2">
                             <div
                               className={`h-2 rounded-none ${getSecurityBarColor(
-                                network.securityScore
+                                network.securityScore,
                               )}`}
                               style={{ width: `${network.securityScore}%` }}
                             />

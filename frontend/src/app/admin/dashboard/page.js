@@ -107,29 +107,41 @@ export default function AdminDashboardPage() {
     loadData();
   }, [fetchStats, fetchGrowthAnalytics, fetchDeviceActivity]);
 
-  // Real-time updates for system health
+  // Real-time updates for system health from monitoring endpoint
   useEffect(() => {
-    const updateSystemHealth = () => {
-      const now = Date.now();
-      setSystemHealthHistory((prev) => {
-        const newHistory = [
-          ...prev,
-          {
-            timestamp: now,
-            value: Math.min(
-              100,
-              Math.max(90, stats.systemHealth + (Math.random() - 0.5) * 2)
-            ),
-          },
-        ];
-        return newHistory.slice(-30);
-      });
+    const fetchSystemHealth = async () => {
+      try {
+        const response = await authFetch("/api/admin/monitoring");
+        if (response.ok) {
+          const data = await response.json();
+          const now = Date.now();
+
+          // Calculate a real health score from service statuses
+          let score = 0;
+          const services = [data.apiServer, data.database, data.redis];
+          services.forEach((svc) => {
+            if (svc?.status === "healthy") score += 33.33;
+            else if (svc?.status === "degraded") score += 16.67;
+          });
+          score = Math.min(100, Math.round(score * 100) / 100);
+
+          setSystemHealthHistory((prev) => {
+            const newHistory = [
+              ...prev,
+              { timestamp: now, value: score },
+            ];
+            return newHistory.slice(-30);
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching system health:", error);
+      }
     };
 
-    updateSystemHealth();
-    const interval = setInterval(updateSystemHealth, 5000);
+    fetchSystemHealth();
+    const interval = setInterval(fetchSystemHealth, 10000);
     return () => clearInterval(interval);
-  }, [stats.systemHealth]);
+  }, []);
 
   // Socket.IO for real-time device updates
   useEffect(() => {
@@ -266,8 +278,8 @@ export default function AdminDashboardPage() {
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-green-50  rounded-none text-center">
-                <Cpu className="w-8 h-8 text-green-600  mx-auto mb-2" />
-                <p className="text-3xl font-bold text-green-600 ">
+                <Cpu className="w-8 h-8 text-black mx-auto mb-2" />
+                <p className="text-3xl font-bold text-black">
                   {deviceActivity.online || 0}
                 </p>
                 <p className="text-sm text-gray-600 ">
@@ -275,8 +287,8 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
               <div className="p-4 bg-red-50  rounded-none text-center">
-                <Cpu className="w-8 h-8 text-red-600  mx-auto mb-2" />
-                <p className="text-3xl font-bold text-red-600 ">
+                <Cpu className="w-8 h-8 text-black mx-auto mb-2" />
+                <p className="text-3xl font-bold text-black">
                   {deviceActivity.offline || 0}
                 </p>
                 <p className="text-sm text-gray-600 ">

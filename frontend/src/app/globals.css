@@ -28,3 +28,7 @@ input, button, select, textarea {
   outline: none !important;
 }
 
+button, a, select, [role="button"], label[for], input[type="checkbox"], input[type="radio"], input[type="submit"] {
+  cursor: pointer;
+}
+
