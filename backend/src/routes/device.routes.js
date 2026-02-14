@@ -6,6 +6,7 @@ import {
   revokeDeviceAuth,
 } from "../services/deviceAuth.service.js";
 import { getTopologyForOrg } from "../services/socket.service.js";
+import { provisionDevice } from "../services/provisionDevice.service.js";
 import { verifyToken } from "../middleware/auth.middleware.js";
 import Device from "../models/Device.js";
 import redis from "../config/redis.js";
@@ -197,6 +198,29 @@ router.post("/revoke", verifyToken, async (req, res) => {
 
     res.status(200).json({ success: true, revoked: true, macAddress });
   } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ──────────────────────────────────────────────
+// PROVISIONING ROUTE
+// ──────────────────────────────────────────────
+
+// Provision a new device
+router.post("/provision", verifyToken, async (req, res) => {
+  try {
+    const { macAddress, orgId, deviceName } = req.body;
+
+    if (!macAddress || !orgId) {
+      return res.status(400).json({ success: false, error: 'macAddress and orgId are required' });
+    }
+
+    const bundle = await provisionDevice(macAddress, orgId, deviceName);
+    res.status(201).json({ success: true, data: bundle });
+  } catch (error) {
+    if (error.message === 'Device already provisioned') {
+      return res.status(409).json({ success: false, error: 'Device already provisioned' });
+    }
     res.status(500).json({ success: false, error: error.message });
   }
 });
