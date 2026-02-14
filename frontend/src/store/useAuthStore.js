@@ -1,8 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
 const useAuthStore = create(
   persist(

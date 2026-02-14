@@ -1,7 +1,6 @@
 import useAuthStore from "@/store/useAuthStore";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
 /**
  * Authenticated fetch wrapper.

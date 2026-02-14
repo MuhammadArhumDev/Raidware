@@ -10,8 +10,8 @@ import { Building2, Network, Shield, Activity, Cpu } from "lucide-react";
 import { io } from "socket.io-client";
 import authFetch from "@/lib/authFetch";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
+const SOCKET_URL = "http://5.189.167.55:9631";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -145,7 +145,7 @@ export default function AdminDashboardPage() {
 
   // Socket.IO for real-time device updates
   useEffect(() => {
-    const socket = io(`${API_BASE_URL}/frontend`, {
+    const socket = io(`${SOCKET_URL}/frontend`, {
       transports: ["websocket"],
     });
 

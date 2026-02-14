@@ -1,8 +1,7 @@
 import { create } from "zustand";
 import { io } from "socket.io-client";
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:9631";
+const SOCKET_URL = "http://5.189.167.55:9631";
 
 const useDeviceStore = create((set, get) => ({
   socket: null,
@@ -15,7 +14,7 @@ const useDeviceStore = create((set, get) => ({
     const existingSocket = get().socket;
     if (existingSocket) return;
 
-    const newSocket = io(`${BACKEND_URL}/frontend`, {
+    const newSocket = io(`${SOCKET_URL}/frontend`, {
       transports: ["websocket"],
     });
 

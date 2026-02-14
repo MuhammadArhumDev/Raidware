@@ -124,7 +124,7 @@ export default function MonitoringPage() {
             <p className="text-red-600 ">{error}</p>
             <button
               onClick={fetchMonitoringData}
-              className="mt-4 px-4 py-2 bg-black text-white hover:bg-gray-800 border border-transparent text-white rounded-none"
+              className="mt-4 px-4 py-2 bg-black text-white hover:bg-gray-800 border border-transparent rounded-none"
             >
               Retry
             </button>
@@ -181,23 +181,19 @@ export default function MonitoringPage() {
                 {/* API Server */}
                 <div
                   className={`flex items-center justify-between p-4 ${getStatusColor(
-                    monitoringData.apiServer.status
+                    monitoringData.apiServer.status,
                   )} rounded-none`}
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`p-2 bg-white  rounded-none shadow-sm`}
-                    >
+                    <div className={`p-2 bg-white  rounded-none shadow-sm`}>
                       <Server
                         className={`w-5 h-5 ${getStatusIconColor(
-                          monitoringData.apiServer.status
+                          monitoringData.apiServer.status,
                         )}`}
                       />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 ">
-                        API Server
-                      </p>
+                      <p className="font-medium text-gray-900 ">API Server</p>
                       <p className="text-sm text-gray-600 ">
                         All endpoints operational • Uptime:{" "}
                         {monitoringData.apiServer.uptime}
@@ -206,7 +202,7 @@ export default function MonitoringPage() {
                   </div>
                   <span
                     className={`px-3 py-1 ${getStatusBadgeColor(
-                      monitoringData.apiServer.status
+                      monitoringData.apiServer.status,
                     )} rounded-none text-sm font-medium capitalize`}
                   >
                     {monitoringData.apiServer.status}
@@ -216,16 +212,14 @@ export default function MonitoringPage() {
                 {/* Database */}
                 <div
                   className={`flex items-center justify-between p-4 ${getStatusColor(
-                    monitoringData.database.status
+                    monitoringData.database.status,
                   )} rounded-none`}
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`p-2 bg-white  rounded-none shadow-sm`}
-                    >
+                    <div className={`p-2 bg-white  rounded-none shadow-sm`}>
                       <Database
                         className={`w-5 h-5 ${getStatusIconColor(
-                          monitoringData.database.status
+                          monitoringData.database.status,
                         )}`}
                       />
                     </div>
@@ -242,7 +236,7 @@ export default function MonitoringPage() {
                   </div>
                   <span
                     className={`px-3 py-1 ${getStatusBadgeColor(
-                      monitoringData.database.status
+                      monitoringData.database.status,
                     )} rounded-none text-sm font-medium capitalize`}
                   >
                     {monitoringData.database.status}
@@ -252,16 +246,14 @@ export default function MonitoringPage() {
                 {/* Redis */}
                 <div
                   className={`flex items-center justify-between p-4 ${getStatusColor(
-                    monitoringData.redis.status
+                    monitoringData.redis.status,
                   )} rounded-none`}
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className={`p-2 bg-white  rounded-none shadow-sm`}
-                    >
+                    <div className={`p-2 bg-white  rounded-none shadow-sm`}>
                       <Activity
                         className={`w-5 h-5 ${getStatusIconColor(
-                          monitoringData.redis.status
+                          monitoringData.redis.status,
                         )}`}
                       />
                     </div>
@@ -278,7 +270,7 @@ export default function MonitoringPage() {
                   </div>
                   <span
                     className={`px-3 py-1 ${getStatusBadgeColor(
-                      monitoringData.redis.status
+                      monitoringData.redis.status,
                     )} rounded-none text-sm font-medium capitalize`}
                   >
                     {monitoringData.redis.status}
