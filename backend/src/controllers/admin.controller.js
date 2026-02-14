@@ -49,18 +49,9 @@ export const getOrganizations = async (req, res) => {
           status: "active",
         });
 
-        let deviceCount = 0;
-        if (network) {
-          try {
-            const deviceKeys = await redis.keys("device:*:status");
-            for (const key of deviceKeys) {
-              const status = await redis.hget(key, "online");
-              if (status === "true") deviceCount++;
-            }
-          } catch (e) {
-            console.error("Redis error in getOrganizations:", e);
-          }
-        }
+        // Use MongoDB for device count — the old Redis key pattern (device:*:status)
+        // is no longer written by the current socket service.
+        const deviceCount = await Device.countDocuments({ organizationId: org._id });
 
         return {
           id: org._id,
@@ -79,10 +70,11 @@ export const getOrganizations = async (req, res) => {
 
     res.json(orgsWithMetrics);
   } catch (error) {
-    console.error("Error getting organizations:", error);
-    res.status(500).json({ error: "Failed to get organizations", details: error.message, stack: String(error.stack) });
+    console.error("[Admin] Get organizations error:", error);
+    res.status(500).json({ error: "Failed to get organizations", details: error.message });
   }
 };
+
 
 export const getNetworks = async (req, res) => {
   try {
@@ -99,13 +91,14 @@ export const getNetworks = async (req, res) => {
 
         let deviceCount = 0;
         try {
-          const deviceKeys = await redis.keys("device:*:status");
-          for (const key of deviceKeys) {
-            const status = await redis.hget(key, "online");
-            if (status === "true") deviceCount++;
+          if (net.organizationId) {
+            deviceCount = await Device.countDocuments({
+              organizationId: net.organizationId._id || net.organizationId,
+              status: "online",
+            });
           }
         } catch (e) {
-          console.error("Redis error in getNetworks:", e);
+          console.error("Error counting network devices:", e);
         }
 
         let securityScore = 100;
@@ -208,11 +201,7 @@ export const getSystemMonitoring = async (req, res) => {
 
     let activeConnections = 0;
     try {
-      const deviceKeys = await redis.keys("device:*:status");
-      for (const key of deviceKeys) {
-        const status = await redis.hget(key, "online");
-        if (status === "true") activeConnections++;
-      }
+      activeConnections = await Device.countDocuments({ status: "online" });
     } catch (e) {
       console.error("Error getting active connections:", e);
     }
@@ -334,19 +323,12 @@ export const getGrowthAnalytics = async (req, res) => {
 
 export const getDeviceActivity = async (req, res) => {
   try {
-    const deviceKeys = await redis.keys("device:*:status");
-    const devices = [];
-
-    for (const key of deviceKeys) {
-      const statusData = await redis.hgetall(key);
-      if (statusData && statusData.rawMac) {
-        devices.push({
-          macAddress: statusData.rawMac,
-          status: statusData.online === "true" ? "online" : "offline",
-          lastSeen: parseInt(statusData.lastSeen) || Date.now(),
-        });
-      }
-    }
+    const dbDevices = await Device.find({}, "macAddress status lastSeen");
+    const devices = dbDevices.map(d => ({
+      macAddress: d.macAddress,
+      status: d.status,
+      lastSeen: new Date(d.lastSeen).getTime()
+    }));
 
     const onlineDevices = devices.filter((d) => d.status === "online").length;
     const offlineDevices = devices.filter((d) => d.status === "offline").length;
