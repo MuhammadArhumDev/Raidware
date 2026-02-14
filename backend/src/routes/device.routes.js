@@ -132,56 +132,62 @@ router.delete("/auth/revoke", async (req, res, next) => {
 // ──────────────────────────────────────────────
 
 // Get mesh topology for a specific organization
-router.get("/topology/:orgId", verifyToken, async (req, res, next) => {
+router.get("/topology/:orgId", verifyToken, async (req, res) => {
   try {
     const { orgId } = req.params;
-    const devices = await getTopologyForOrg(orgId);
+    const devices = await Device.find({ organizationId: orgId });
+    
+    const mappedDevices = devices.map(device => ({
+      id: device._id,
+      mac: device.macAddress,
+      name: device.name,
+      status: device.status,
+      lastSeen: device.lastSeen,
+      meshRole: device.meshRole,
+      rssi: device.rssi,
+      parentMac: device.parentMac,
+      ipAddress: device.ipAddress
+    }));
+
     res.status(200).json({
       success: true,
-      devices,
-      count: devices.length,
+      devices: mappedDevices,
+      count: mappedDevices.length
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Get all devices for an organization (admin dashboard device list)
-router.get("/org/:orgId", verifyToken, async (req, res, next) => {
+router.get("/org/:orgId", verifyToken, async (req, res) => {
   try {
     const { orgId } = req.params;
     const devices = await Device.find({ organizationId: orgId })
-      .select("macAddress name status lastSeen meshRole ipAddress firmwareVersion rssi parentMac")
+      .select("macAddress name status lastSeen meshRole organizationId")
       .sort({ lastSeen: -1 });
 
     res.status(200).json({
       success: true,
       devices,
-      count: devices.length,
+      count: devices.length
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Revoke a device — delete Redis auth key + set offline in MongoDB
-router.post("/revoke", verifyToken, async (req, res, next) => {
+router.post("/revoke", verifyToken, async (req, res) => {
   try {
     const { macAddress } = req.body;
 
     if (!macAddress) {
-      return res.status(400).json({ error: "Missing macAddress" });
+      return res.status(400).json({ success: false, error: 'macAddress is required' });
     }
 
     // Delete Redis auth key
     await redis.del(`device:${macAddress}:auth`);
-    await redis.del(`device:${macAddress}:session`);
-    await redis.del(`device:${macAddress}:heartbeat`);
-
-    // Also clean up MAC hash-based keys
-    const macHash = crypto.createHash("sha256").update(macAddress).digest("hex");
-    await redis.del(`device:${macHash}:status`);
-    await redis.del(`session:key:${macHash}`);
 
     // Set device offline in MongoDB
     await Device.findOneAndUpdate(
@@ -189,10 +195,9 @@ router.post("/revoke", verifyToken, async (req, res, next) => {
       { status: "offline", lastSeen: new Date() }
     );
 
-    console.log(`[Revoke] Device ${macAddress} revoked and set offline`);
     res.status(200).json({ success: true, revoked: true, macAddress });
   } catch (error) {
-    next(error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

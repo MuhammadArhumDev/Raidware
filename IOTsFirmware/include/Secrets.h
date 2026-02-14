@@ -9,9 +9,10 @@ const char* SECRET_PASS = "123456789";
 const char* SECRET_HOST = "5.189.167.55";
 const uint16_t SECRET_PORT = 9631;
 
+// --- Device Identity (filled at provisioning or left empty for runtime MAC read) ---
 const char* DEVICE_SHARED_SECRET = "super-secret-key-123";
 const char* DEVICE_MAC = "";        // Filled by provisioning — or left empty (firmware reads real MAC via WiFi.macAddress())
-const char* DEVICE_ORG_ID = "";     // Filled by provisioning — REQUIRED
+const char* DEVICE_ORG_ID = "";     // Filled at provisioning time — REQUIRED
 
 const char* root_ca = \
 "-----BEGIN CERTIFICATE-----\n" \

@@ -239,11 +239,9 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 isAuthenticated = false;
             }
             else if (event == "device:config") {
-                // Server can push config updates to device
-                String newSSID = doc[1]["ssid"] | "";
                 String configVersion = doc[1]["version"] | "";
-                Serial.println("[Config] Received config v" + configVersion);
-                // For now just log — future: update WiFi, restart, etc.
+                Serial.println("[Config] Received config update v" + configVersion);
+                // Future: apply WiFi/server config changes and restart if needed
             }
             else if (event == "message") {
                 String enc;
@@ -290,7 +288,7 @@ void loop() {
     if (isAuthenticated && millis() - lastPulse > 5000 && hasSharedSecret) {
         lastPulse = millis();
 
-        DynamicJsonDocument doc(256);
+        DynamicJsonDocument doc(512);
         doc["status"] = "online";
         doc["ts"] = millis();
         doc["rssi"] = WiFi.RSSI();

@@ -84,11 +84,34 @@ const useAuthStore = create(
 
         set({ isLoading: true });
         try {
-          const res = await fetch(`${BACKEND_URL}/api/auth/me`, {
+          let res = await fetch(`${BACKEND_URL}/api/auth/me`, {
             method: "GET",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
           });
+          
+          if (res.status === 401) {
+             console.log("[checkAuth] 401 received. Attempting to refresh token...");
+             const refreshRes = await fetch(`${BACKEND_URL}/api/auth/refresh-token`, {
+               method: "POST",
+               credentials: "include",
+             });
+             
+             if (refreshRes.ok) {
+               const refreshData = await refreshRes.json();
+               set({ token: refreshData.data.accessToken });
+               // Retry the /me endpoint
+               res = await fetch(`${BACKEND_URL}/api/auth/me`, {
+                 method: "GET",
+                 headers: { 
+                   "Content-Type": "application/json",
+                   "Authorization": `Bearer ${refreshData.data.accessToken}`
+                 },
+                 credentials: "include",
+               });
+             }
+          }
+
           const data = await res.json();
           if (!res.ok) throw new Error("Session invalid");
 
@@ -100,6 +123,14 @@ const useAuthStore = create(
           });
           return data.data.user;
         } catch (err) {
+          // If all fails, logout to clear cookies so we don't get stuck
+          try {
+            await fetch(`${BACKEND_URL}/api/auth/logout`, {
+              method: "POST",
+              credentials: "include",
+            });
+          } catch(e) {}
+          
           set({
             user: null,
             token: null,
@@ -129,8 +160,18 @@ const useAuthStore = create(
     }),
     {
       name: "auth-storage",
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        isAuthenticated: state.isAuthenticated,
+      }),
       onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
+        // Guarantee checkAuth runs on first mount by clearing transient state
+        if (state) {
+          state.isInitialized = false;
+          state.isLoading = false;
+          state.setHasHydrated(true);
+        }
       },
     }
   )

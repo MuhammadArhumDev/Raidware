@@ -71,14 +71,14 @@ export async function login(req, res, next) {
         httpOnly: true,
         secure: config.cookie.secure,
         sameSite: "lax",
-        maxAge: 1000 * 60 * 15,
+        maxAge: 1000 * 60 * 60 * 24 * 7,
       });
     } else {
       res.cookie("organization_token", accessToken, {
         httpOnly: true,
         secure: config.cookie.secure,
         sameSite: "lax",
-        maxAge: 1000 * 60 * 15,
+        maxAge: 1000 * 60 * 60 * 24 * 7,
       });
     }
 
