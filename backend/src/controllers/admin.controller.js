@@ -1,9 +1,11 @@
+import crypto from "crypto";
 import Organization from "../models/Organization.js";
 import Network from "../models/Network.js";
 import Threat from "../models/Threat.js";
 import Device from "../models/Device.js";
 import redis from "../config/redis.js";
 import mongoose from "mongoose";
+import { hashDeviceID } from "../services/deviceAuth.service.js";
 
 // Server start time for uptime calculation
 const serverStartTime = Date.now();
@@ -380,5 +382,107 @@ export const updateOrgKeys = async (req, res) => {
   } catch (error) {
     console.error("Error updating organization keys:", error);
     res.status(500).json({ error: "Failed to update keys" });
+  }
+};
+
+// ── Device Flash Provisioning ────────────────────────────
+export const provisionDevice = async (req, res) => {
+  try {
+    const { organizationId, macAddress, deviceName, meshRole, wifiSSID, wifiPassword } = req.body;
+
+    // Validate all required fields
+    if (!organizationId || !macAddress || !deviceName || !meshRole || !wifiSSID || !wifiPassword) {
+      return res.status(400).json({ error: "All fields are required: organizationId, macAddress, deviceName, meshRole, wifiSSID, wifiPassword" });
+    }
+
+    // Check organization exists
+    const org = await Organization.findById(organizationId);
+    if (!org) {
+      return res.status(404).json({ error: "Organization not found" });
+    }
+
+    // Check device does not already exist
+    const existingDevice = await Device.findOne({ macAddress });
+    if (existingDevice) {
+      return res.status(409).json({ error: "Device with this MAC address already exists" });
+    }
+
+    // Generate cryptographic shared secret
+    const sharedSecret = crypto.randomBytes(32).toString("hex");
+    const hashedId = hashDeviceID(macAddress);
+
+    // Create device in MongoDB
+    const device = new Device({
+      macAddress,
+      hashedId,
+      sharedSecret,
+      name: deviceName,
+      organizationId,
+      meshRole,
+      status: "offline",
+    });
+    await device.save();
+
+    // Cache in Redis immediately (same pattern as syncDeviceHashes)
+    const redisKey = `device:${macAddress}:auth`;
+    await redis.hset(redisKey, { hashedId, sharedSecret });
+    await redis.expire(redisKey, 60 * 60 * 4); // 4 hour TTL
+
+    // Build Secrets.h content
+    const serverHost = process.env.SERVER_HOST || "5.189.167.55";
+    const serverPort = process.env.SERVER_PORT || "9631";
+    const rootCaCert = process.env.ROOT_CA_CERT || "PLACEHOLDER_ROOT_CA";
+    const now = new Date().toISOString();
+
+    // Format root CA cert into 64-char PEM lines
+    const certLines = rootCaCert.replace(/\\n/g, "\n").split("\n")
+      .filter(line => line.trim().length > 0)
+      .map(line => `"${line}\\n" \\`)
+      .join("\n");
+
+    const secretsH = `#ifndef SECRETS_H
+#define SECRETS_H
+
+#include <stdint.h>
+
+// Auto-provisioned by Raidware Admin Panel
+// Organization: ${org.name}
+// Device: ${deviceName}
+// Provisioned: ${now}
+
+const char* SECRET_SSID = "${wifiSSID}";
+const char* SECRET_PASS = "${wifiPassword}";
+
+const char* SECRET_HOST = "${serverHost}";
+const uint16_t SECRET_PORT = ${serverPort};
+
+const char* DEVICE_SHARED_SECRET = "${sharedSecret}";
+const char* DEVICE_MAC = "${macAddress}";
+const char* DEVICE_ORG_ID = "${organizationId}";
+
+const char* root_ca = \\
+${certLines}
+
+const char* client_cert = \\
+"-----BEGIN CERTIFICATE-----\\n" \\
+"PLACEHOLDER_REPLACE_WITH_DEVICE_CERT\\n" \\
+"-----END CERTIFICATE-----\\n";
+
+const char* client_key = \\
+"-----BEGIN RSA PRIVATE KEY-----\\n" \\
+"PLACEHOLDER_REPLACE_WITH_DEVICE_KEY\\n" \\
+"-----END RSA PRIVATE KEY-----\\n";
+
+#endif
+`;
+
+    console.log(`[Provision] Device ${macAddress} provisioned for org ${org.name}`);
+
+    res.setHeader("Content-Type", "text/plain");
+    res.setHeader("Content-Disposition", 'attachment; filename="Secrets.h"');
+    res.status(200).send(secretsH);
+  } catch (error) {
+    console.error("Error provisioning device:", error);
+    res.status(500).json({ error: "Failed to provision device", details: error.message });
   }
 };

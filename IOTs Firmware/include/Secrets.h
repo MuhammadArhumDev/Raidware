@@ -9,9 +9,9 @@ const char* SECRET_PASS = "123456789";
 const char* SECRET_HOST = "5.189.167.55";
 const uint16_t SECRET_PORT = 9631;
 
-
 const char* DEVICE_SHARED_SECRET = "super-secret-key-123";
-
+const char* DEVICE_MAC = "";        // Filled by provisioning — or left empty (firmware reads real MAC via WiFi.macAddress())
+const char* DEVICE_ORG_ID = "";     // Filled by provisioning — REQUIRED
 
 const char* root_ca = \
 "-----BEGIN CERTIFICATE-----\n" \
@@ -35,16 +35,14 @@ const char* root_ca = \
 "rqXRfboQnoZsG4q5WTP468SQvvG5\n" \
 "-----END CERTIFICATE-----\n";
 
-
 const char* client_cert = \
 "-----BEGIN CERTIFICATE-----\n" \
-"MIIDWjCCAkKgAwIBAgIVAJM5...\n" \
+"PLACEHOLDER\n" \
 "-----END CERTIFICATE-----\n";
-
 
 const char* client_key = \
 "-----BEGIN RSA PRIVATE KEY-----\n" \
-"MIIEpAIBAAKCAQEA...\n" \
+"PLACEHOLDER\n" \
 "-----END RSA PRIVATE KEY-----\n";
 
 #endif

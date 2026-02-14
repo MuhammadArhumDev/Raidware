@@ -33,6 +33,39 @@ const deviceSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    // ── New fields for multi-tenant mesh support ──
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+    ipAddress: {
+      type: String,
+      default: null,
+    },
+    firmwareVersion: {
+      type: String,
+      default: "1.0.0",
+    },
+    meshRole: {
+      type: String,
+      enum: ["root", "node", "leaf"],
+      default: "node",
+    },
+    rssi: {
+      type: Number,
+      default: null,
+    },
+    parentMac: {
+      type: String,
+      default: null, // MAC of parent node in mesh — null if root
+    },
+    metadata: {
+      type: Map,
+      of: String,
+      default: {},
+    },
   },
   { timestamps: true }
 );

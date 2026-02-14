@@ -9,6 +9,7 @@ import {
   getGrowthAnalytics,
   getDeviceActivity,
   updateOrgKeys,
+  provisionDevice,
 } from "../controllers/admin.controller.js";
 
 const router = express.Router();
@@ -30,5 +31,7 @@ router.get("/analytics/growth", getGrowthAnalytics);
 router.get("/devices/activity", getDeviceActivity);
 
 router.post("/settings/keys", updateOrgKeys);
+
+router.post("/devices/provision", provisionDevice);
 
 export default router;

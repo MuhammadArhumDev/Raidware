@@ -1,7 +1,21 @@
 import express from "express";
 import * as deviceService from "../services/device.service.js";
+import {
+  cacheDeviceAuth,
+  checkDeviceAuth,
+  revokeDeviceAuth,
+} from "../services/deviceAuth.service.js";
+import { getTopologyForOrg } from "../services/socket.service.js";
+import { verifyToken } from "../middleware/auth.middleware.js";
+import Device from "../models/Device.js";
+import redis from "../config/redis.js";
+import crypto from "crypto";
 
 const router = express.Router();
+
+// ──────────────────────────────────────────────
+// EXISTING ROUTES
+// ──────────────────────────────────────────────
 
 // Register a device
 router.post("/register", async (req, res, next) => {
@@ -40,7 +54,6 @@ router.post("/auth", async (req, res, next) => {
 router.post("/heartbeat", async (req, res, next) => {
   try {
     const { deviceId, payload } = req.body;
-    // In a real app, you'd verify a session token here
     if (!deviceId) {
       return res.status(400).json({ error: "Missing deviceId" });
     }
@@ -56,6 +69,128 @@ router.get("/", async (req, res, next) => {
   try {
     const devices = await deviceService.getAllDevices();
     res.status(200).json(devices);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ──────────────────────────────────────────────
+// REDIS DEVICE AUTH HASH CACHE ROUTES
+// ──────────────────────────────────────────────
+
+// Cache a device auth hash after successful mTLS authentication
+router.post("/auth/cache", async (req, res, next) => {
+  try {
+    const { macAddress, deviceId } = req.body;
+
+    if (!macAddress || !deviceId) {
+      return res
+        .status(400)
+        .json({ error: "Missing macAddress or deviceId" });
+    }
+
+    const hash = await cacheDeviceAuth(macAddress, deviceId);
+    res.status(200).json({
+      success: true,
+      hash,
+      message: "Device auth cached",
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Check if a device's auth hash exists in Redis
+router.get("/auth/check/:macAddress", async (req, res, next) => {
+  try {
+    const macAddress = decodeURIComponent(req.params.macAddress);
+    const result = await checkDeviceAuth(macAddress);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Revoke a device's auth hash (instant lockout)
+router.delete("/auth/revoke", async (req, res, next) => {
+  try {
+    const { macAddress } = req.body;
+
+    if (!macAddress) {
+      return res.status(400).json({ error: "Missing macAddress" });
+    }
+
+    const result = await revokeDeviceAuth(macAddress);
+    res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ──────────────────────────────────────────────
+// TOPOLOGY & ORG DEVICE ROUTES
+// ──────────────────────────────────────────────
+
+// Get mesh topology for a specific organization
+router.get("/topology/:orgId", verifyToken, async (req, res, next) => {
+  try {
+    const { orgId } = req.params;
+    const devices = await getTopologyForOrg(orgId);
+    res.status(200).json({
+      success: true,
+      devices,
+      count: devices.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get all devices for an organization (admin dashboard device list)
+router.get("/org/:orgId", verifyToken, async (req, res, next) => {
+  try {
+    const { orgId } = req.params;
+    const devices = await Device.find({ organizationId: orgId })
+      .select("macAddress name status lastSeen meshRole ipAddress firmwareVersion rssi parentMac")
+      .sort({ lastSeen: -1 });
+
+    res.status(200).json({
+      success: true,
+      devices,
+      count: devices.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Revoke a device — delete Redis auth key + set offline in MongoDB
+router.post("/revoke", verifyToken, async (req, res, next) => {
+  try {
+    const { macAddress } = req.body;
+
+    if (!macAddress) {
+      return res.status(400).json({ error: "Missing macAddress" });
+    }
+
+    // Delete Redis auth key
+    await redis.del(`device:${macAddress}:auth`);
+    await redis.del(`device:${macAddress}:session`);
+    await redis.del(`device:${macAddress}:heartbeat`);
+
+    // Also clean up MAC hash-based keys
+    const macHash = crypto.createHash("sha256").update(macAddress).digest("hex");
+    await redis.del(`device:${macHash}:status`);
+    await redis.del(`session:key:${macHash}`);
+
+    // Set device offline in MongoDB
+    await Device.findOneAndUpdate(
+      { macAddress },
+      { status: "offline", lastSeen: new Date() }
+    );
+
+    console.log(`[Revoke] Device ${macAddress} revoked and set offline`);
+    res.status(200).json({ success: true, revoked: true, macAddress });
   } catch (error) {
     next(error);
   }

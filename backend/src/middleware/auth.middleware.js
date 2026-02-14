@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import config from "../config/index.js";
+import { checkDeviceAuth } from "../services/deviceAuth.service.js";
 
 export async function protect(req, res, next) {
   try {
@@ -80,4 +81,35 @@ export function requireAdmin(req, res, next) {
   next();
 }
 
-export default { protect, authorizeRoles, verifyToken, requireAdmin };
+/**
+ * Middleware: check Redis cache for device auth hash.
+ * Enriches req.cachedDevice with cached data if found.
+ * Never blocks — only enriches the request object.
+ */
+export async function checkDeviceCache(req, res, next) {
+  const macAddress = req.headers["x-device-mac"];
+
+  if (!macAddress) {
+    // No MAC header present — skip cache check, continue normally
+    req.cachedDevice = null;
+    return next();
+  }
+
+  try {
+    const result = await checkDeviceAuth(macAddress);
+
+    if (result.authenticated) {
+      req.cachedDevice = result;
+    } else {
+      req.cachedDevice = null;
+    }
+  } catch (err) {
+    console.error("[checkDeviceCache] Redis lookup error:", err.message);
+    req.cachedDevice = null;
+  }
+
+  next();
+}
+
+export default { protect, authorizeRoles, verifyToken, requireAdmin, checkDeviceCache };
+

@@ -173,6 +173,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
             Serial.printf("[WSc] Connected to %s\n", payload);
             DynamicJsonDocument doc(256);
             doc["macAddress"] = macAddress;
+            doc["orgId"] = DEVICE_ORG_ID;
             sendSocketEvent("auth:init", doc);
             break;
         }
@@ -237,6 +238,13 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 Serial.println("[Auth] FAILED");
                 isAuthenticated = false;
             }
+            else if (event == "device:config") {
+                // Server can push config updates to device
+                String newSSID = doc[1]["ssid"] | "";
+                String configVersion = doc[1]["version"] | "";
+                Serial.println("[Config] Received config v" + configVersion);
+                // For now just log — future: update WiFi, restart, etc.
+            }
             else if (event == "message") {
                 String enc;
                 serializeJson(doc[1], enc);
@@ -282,9 +290,12 @@ void loop() {
     if (isAuthenticated && millis() - lastPulse > 5000 && hasSharedSecret) {
         lastPulse = millis();
 
-        DynamicJsonDocument doc(128);
+        DynamicJsonDocument doc(256);
         doc["status"] = "online";
         doc["ts"] = millis();
+        doc["rssi"] = WiFi.RSSI();
+        doc["ip"] = WiFi.localIP().toString();
+        doc["freeHeap"] = ESP.getFreeHeap();
 
         String plain;
         serializeJson(doc, plain);
