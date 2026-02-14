@@ -15,7 +15,8 @@ import deviceRoutes from "./routes/device.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import { globalLimiter } from "./middleware/rateLimit.middleware.js";
-import { initSocket } from "./services/socket.service.js";
+import { initSocketService } from "./services/socket.service.js";
+import { Server } from "socket.io";
 import { syncDeviceHashes } from "./services/deviceAuth.service.js";
 import "./config/redis.js";
 
@@ -64,7 +65,10 @@ const start = async () => {
   console.log("Starting server initialization...");
   try {
     await connectDB();
-    initSocket(httpServer);
+    const io = new Server(httpServer, {
+      cors: { origin: "*", methods: ["GET", "POST"] },
+    });
+    initSocketService(io);
 
     await syncDeviceHashes();
 

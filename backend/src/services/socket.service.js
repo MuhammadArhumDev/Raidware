@@ -18,7 +18,10 @@ export const getTopologyForOrg = async (orgId) => {
   }));
 };
 
+let _io = null;
+
 export const initSocketService = (io) => {
+  _io = io;
   io.on('connection', socket => {
     socket.isAuthenticated = false;
 
@@ -148,4 +151,12 @@ export const initSocketService = (io) => {
       }
     });
   });
+};
+
+export const emitDeviceUpdate = (event, data) => {
+  if (!_io) {
+    console.warn("emitDeviceUpdate called before socket service initialized");
+    return;
+  }
+  _io.emit(event, data);
 };

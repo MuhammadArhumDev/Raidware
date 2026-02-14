@@ -23,7 +23,7 @@ export async function authFetch(endpoint, options = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const url = endpoint.startsWith("http")
+  const url = endpoint.startsWith("http") ? endpoint : API_BASE_URL + endpoint;
   let response = await fetch(url, {
     ...options,
     headers,
