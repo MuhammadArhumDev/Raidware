@@ -8,7 +8,7 @@ export async function connectDB() {
       // add a short selection timeout so failures show up quickly during dev
       serverSelectionTimeoutMS: 5000,
     });
-    console.log("MongoDB connected");
+    console.log("Successfully connected to MongoDB.");
   } catch (err) {
     // print full error to help debugging (includes errno, address, stack)
     console.error("MongoDB connection error:", err);

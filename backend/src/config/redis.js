@@ -5,7 +5,7 @@ const connectionUrl = process.env.REDIS_CONNECTION_URL || process.env.REDIS_URL;
 
 const redis = connectionUrl
   ? new Redis(connectionUrl, {
-      lazyConnect: true,
+      lazyConnect: false,
     })
   : new Redis({
       host: process.env.REDIS_HOST || "5.189.167.55",
@@ -15,7 +15,7 @@ const redis = connectionUrl
     });
 
 redis.on("connect", () => {
-  console.log("Redis client connected");
+  console.log("Successfully connected to Redis.");
 });
 
 redis.on("error", (err) => {

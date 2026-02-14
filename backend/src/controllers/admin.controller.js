@@ -47,11 +47,16 @@ export const getOrganizations = async (req, res) => {
           status: "active",
         });
 
+        let deviceCount = 0;
         if (network) {
-          const deviceKeys = await redis.keys("device:*:status");
-          for (const key of deviceKeys) {
-            const status = await redis.hget(key, "online");
-            if (status === "true") deviceCount++;
+          try {
+            const deviceKeys = await redis.keys("device:*:status");
+            for (const key of deviceKeys) {
+              const status = await redis.hget(key, "online");
+              if (status === "true") deviceCount++;
+            }
+          } catch (e) {
+            console.error("Redis error in getOrganizations:", e);
           }
         }
 
@@ -73,7 +78,7 @@ export const getOrganizations = async (req, res) => {
     res.json(orgsWithMetrics);
   } catch (error) {
     console.error("Error getting organizations:", error);
-    res.status(500).json({ error: "Failed to get organizations" });
+    res.status(500).json({ error: "Failed to get organizations", details: error.message, stack: String(error.stack) });
   }
 };
 
@@ -91,10 +96,14 @@ export const getNetworks = async (req, res) => {
         });
 
         let deviceCount = 0;
-        const deviceKeys = await redis.keys("device:*:status");
-        for (const key of deviceKeys) {
-          const status = await redis.hget(key, "online");
-          if (status === "true") deviceCount++;
+        try {
+          const deviceKeys = await redis.keys("device:*:status");
+          for (const key of deviceKeys) {
+            const status = await redis.hget(key, "online");
+            if (status === "true") deviceCount++;
+          }
+        } catch (e) {
+          console.error("Redis error in getNetworks:", e);
         }
 
         let securityScore = 100;
@@ -120,7 +129,7 @@ export const getNetworks = async (req, res) => {
     res.json(networksWithMetrics);
   } catch (error) {
     console.error("Error getting networks:", error);
-    res.status(500).json({ error: "Failed to get networks" });
+    res.status(500).json({ error: "Failed to get networks", details: error.message, stack: String(error.stack) });
   }
 };
 
