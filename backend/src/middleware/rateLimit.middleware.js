@@ -13,10 +13,11 @@ export const globalLimiter = rateLimit({
 });
 
 // Generous limiter for IoT device endpoints (heartbeat, network-log, authenticate)
-// 600 requests per 15 minutes ≈ 1 request every 1.5 seconds
+// At 3s intervals: ~20 req/min/endpoint × 2 endpoints = 40 req/min = 600 per 15 min
+// Set to 2000 for headroom (re-auth retries, multiple devices, etc.)
 export const deviceLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 600,
+  max: 2000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

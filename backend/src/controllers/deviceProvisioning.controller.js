@@ -168,12 +168,12 @@ export async function authenticateDevice(req, res) {
     }
     await device.save();
 
-    // Set Redis heartbeat key (60s TTL) immediately on auth
+    // Set Redis heartbeat key (90s TTL) immediately on auth
     await redis.set(
       `device:${device.macAddress}:heartbeat`,
       new Date().toISOString(),
       'EX',
-      60
+      90
     );
 
     // Broadcast topology update immediately so dashboard sees device online
@@ -320,12 +320,12 @@ export async function deviceHeartbeat(req, res) {
       return res.status(404).json({ success: false, error: 'Device not found' });
     }
 
-    // Set Redis heartbeat key (60s TTL) so startup watchdog knows device is alive
+    // Set Redis heartbeat key (90s TTL) so startup watchdog knows device is alive
     await redis.set(
       `device:${device.macAddress}:heartbeat`,
       new Date().toISOString(),
       'EX',
-      60
+      90
     );
 
     // Broadcast topology update to org dashboard via WebSocket

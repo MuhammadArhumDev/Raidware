@@ -20,10 +20,10 @@ unsigned long lastAuthTime = 0;
 unsigned long lastHeartbeatTime = 0;
 unsigned long lastNetworkLogTime = 0;
 
-// Heartbeat interval (15 seconds)
-const unsigned long HEARTBEAT_INTERVAL = 15000;
-// Network log interval (5 seconds) — fast enough for live dashboard, slow enough for rate limiter
-const unsigned long NETWORK_LOG_INTERVAL = 5000;
+// Heartbeat interval (3 seconds)
+const unsigned long HEARTBEAT_INTERVAL = 3000;
+// Network log interval (3 seconds)
+const unsigned long NETWORK_LOG_INTERVAL = 3000;
 
 /**
  * Generate HMAC-SHA256 signature

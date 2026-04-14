@@ -185,12 +185,12 @@ export const initSocketService = (io) => {
 
       console.log(`[Socket] Device ${socket.macAddress} disconnected. Reason: ${reason}`);
 
-      // Grace period: wait 35 seconds before marking offline.
+      // Grace period: wait 60 seconds before marking offline.
       // If the device reconnects and re-authenticates within that window,
       // the grace timer is cancelled and the device stays online.
-      // 35s is slightly longer than the 15s heartbeat interval so a single
-      // missed heartbeat does NOT trigger an offline event.
-      const graceMs = 35_000;
+      // 60s is much longer than the 3s heartbeat interval so missed
+      // heartbeats do NOT trigger an offline event.
+      const graceMs = 60_000;
       const mac = socket.macAddress;
       const orgId = socket.orgId;
 
