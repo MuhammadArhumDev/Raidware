@@ -6,14 +6,14 @@
 // or pre-loaded via Arduino IDE → Tools → Serial Monitor
 
 // Unique device identifier (UUID format)
-#define DEVICE_ID "5581b55f-b9fb-4934-b059-419c98fb69d2"
+#define DEVICE_ID "0627af0c-3614-4e61-9f41-f95276b93c97"
 
 // Shared secret for HMAC authentication (64 hex chars = 32 bytes)
-#define SHARED_SECRET "7a821f93ff9801427892fa3652682aa782f66ce1055e15004131510dbcec2017"
+#define SHARED_SECRET "e9018678ee0448e19dcdbff546d368b8668f6cf7e2c02bd137e993e8f21728b6"
 
 // Server's public key (Ed25519, PEM format)
 #define SERVER_PUBLIC_KEY "-----BEGIN PUBLIC KEY-----\n" \
-"MCowBQYDK2VwAyEAHM/bVV00G59yoMhpEM3EsAvHqe2b91ovt6ExFAZw7FI=\n" \
+"MCowBQYDK2VwAyEAqanL2k/dix4t4X0ZQz/hOGGTxbrwYZ7i3yD5o+GNol4=\n" \
 "-----END PUBLIC KEY-----\n"
 
 
