@@ -142,12 +142,18 @@ router.delete("/auth/revoke", async (req, res, next) => {
 // TOPOLOGY & ORG DEVICE ROUTES
 // ──────────────────────────────────────────────
 
-// Get mesh topology for a specific organization
+// Get live topology for a specific organization (online devices only)
+// Offline devices remain in MongoDB — use GET /api/devices/org/:orgId for full list
 router.get("/topology/:orgId", verifyToken, async (req, res) => {
   try {
     const { orgId } = req.params;
-    const devices = await Device.find({ organizationId: orgId });
-    
+
+    // Only show online devices on the live dashboard
+    const devices = await Device.find({
+      organizationId: orgId,
+      status: 'online'
+    });
+
     const mappedDevices = devices.map(device => ({
       id: device._id,
       mac: device.macAddress,

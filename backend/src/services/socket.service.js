@@ -7,6 +7,44 @@ import { saveAndAnalyzeLog } from './networkLog.service.js';
 // Persists across multiple socket connection/disconnection cycles.
 const graceTimers = new Map();
 
+// ── Background heartbeat monitor ───────────────────────────────────────────
+// Every 30 seconds: find devices that are marked 'online' in MongoDB but have
+// no heartbeat key in Redis → they missed 65s of pulses → mark offline.
+let _monitorInterval = null;
+
+function startHeartbeatMonitor(io) {
+  if (_monitorInterval) clearInterval(_monitorInterval);
+
+  _monitorInterval = setInterval(async () => {
+    try {
+      const cutoff = new Date(Date.now() - 60_000); // 60-second grace
+      const staleDevices = await Device.find({
+        status: 'online',
+        lastSeen: { $lt: cutoff }
+      }).select('macAddress organizationId');
+
+      for (const device of staleDevices) {
+        const heartbeat = await redis.get(`device:${device.macAddress}:heartbeat`);
+        if (!heartbeat) {
+          await Device.findOneAndUpdate(
+            { macAddress: device.macAddress },
+            { status: 'offline', lastSeen: new Date() }
+          );
+          console.log(`[Monitor] Device ${device.macAddress} marked offline (no heartbeat for 60s)`);
+
+          // Broadcast updated topology to org room
+          if (device.organizationId) {
+            const topology = await getTopologyForOrg(device.organizationId.toString());
+            io.to(`org:${device.organizationId}`).emit('topology:update', { devices: topology });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Monitor] Error checking stale devices:', err.message);
+    }
+  }, 30_000); // check every 30 seconds
+}
+
 export const getTopologyForOrg = async (orgId) => {
   const devices = await Device.find({ organizationId: orgId });
   
@@ -63,12 +101,12 @@ export const initSocketService = (io) => {
             { status: 'online', lastSeen: new Date() }
           );
           
-          // Extend heartbeat TTL on reconnect
+          // Extend heartbeat TTL on reconnect — 65s sliding window
           await redis.set(
             `device:${macAddress}:heartbeat`,
             new Date().toISOString(),
             'EX',
-            60
+            65
           );
 
           socket.emit('auth:success');
@@ -122,12 +160,12 @@ export const initSocketService = (io) => {
           { upsert: true, new: true }
         );
 
-        // Set heartbeat key with 60s TTL
+        // Set heartbeat key — 65s TTL (sliding window)
         await redis.set(
           `device:${socket.macAddress}:heartbeat`,
           new Date().toISOString(),
           'EX',
-          60
+          65
         );
 
         socket.emit('auth:success');
@@ -151,29 +189,50 @@ export const initSocketService = (io) => {
           return;
         }
 
-        const { status, rssi, ip, freeHeap } = decrypted;
+        const { status, rssi, ip } = decrypted;
         const lastSeen = new Date();
 
-        await Device.findOneAndUpdate(
-          { macAddress: socket.macAddress },
-          {
-            status: status || 'online',
-            lastSeen,
-            rssi,
-            ipAddress: ip
-          }
-        );
+        // Sliding window: only write MongoDB if last heartbeat was >30s ago
+        const lastHeartbeat = await redis.get(`device:${socket.macAddress}:heartbeat`);
+        const secondsSinceLast = lastHeartbeat
+          ? (lastSeen - new Date(lastHeartbeat)) / 1000
+          : Infinity;
 
-        // Extend heartbeat TTL to 60 seconds
+        // Extend heartbeat TTL — 65s sliding window (always refresh)
         await redis.set(
           `device:${socket.macAddress}:heartbeat`,
           lastSeen.toISOString(),
           'EX',
-          60
+          65
         );
 
-        const topology = await getTopologyForOrg(socket.orgId);
-        io.to(`org:${socket.orgId}`).emit('topology:update', { devices: topology });
+        if (secondsSinceLast < 30) {
+          // Skip MongoDB write — device already online, pulse too recent
+          return;
+        }
+
+        // Check if device was previously offline → bring it back online
+        const device = await Device.findOne({ macAddress: socket.macAddress }).select('status');
+        if (device && device.status !== 'online') {
+          await Device.findOneAndUpdate(
+            { macAddress: socket.macAddress },
+            { status: 'online', lastSeen, rssi, ipAddress: ip }
+          );
+          console.log(`[Socket] Device ${socket.macAddress} came back online`);
+
+          // Broadcast immediate topology update
+          const topology = await getTopologyForOrg(socket.orgId);
+          _io.to(`org:${socket.orgId}`).emit('topology:update', { devices: topology });
+        } else {
+          // Already online — just update lastSeen and stats
+          await Device.findOneAndUpdate(
+            { macAddress: socket.macAddress },
+            { status: status || 'online', lastSeen, rssi, ipAddress: ip }
+          );
+
+          const topology = await getTopologyForOrg(socket.orgId);
+          io.to(`org:${socket.orgId}`).emit('topology:update', { devices: topology });
+        }
       } catch (err) {
         console.error(`[Socket] pulse error:`, err);
       }
@@ -305,6 +364,10 @@ export const initSocketService = (io) => {
       console.error('[Socket] Startup cleanup error:', err.message);
     }
   })();
+
+  // Start background heartbeat monitor (marks stale devices offline every 30s)
+  startHeartbeatMonitor(io);
+  console.log('[Socket] Heartbeat monitor started — checks every 30s for 60s offline grace');
 };
 
 export const emitDeviceUpdate = (event, data) => {

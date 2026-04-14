@@ -65,21 +65,23 @@ const useDeviceStore = create((set, get) => ({
           }).then((r) => (r.ok ? r.json() : { logs: [] }))
         )
       );
-      const merged = results.flatMap((r) => r.logs || []);
-      // Sort newest first, deduplicate by id
-      const seen = new Set();
-      const deduped = merged
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-        .filter((l) => {
-          const key = l.id || l.timestamp;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        })
-        .slice(0, 200);
-      set((state) => ({
-        logs: deduped.length > 0 ? deduped : state.logs,
-      }));
+      const redisLogs = results.flatMap((r) => r.logs || []);
+
+      // Merge Redis logs with current MongoDB logs, dedup by normalized id
+      set((state) => {
+        const seen = new Set();
+        const merged = [...redisLogs, ...state.logs]
+          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+          .filter((l) => {
+            // Normalize: Redis uses `id`, MongoDB uses `_id` — both are the same ObjectId string
+            const key = String(l.id || l._id || `${l.timestamp}-${l.srcIp}`);
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          })
+          .slice(0, 200);
+        return { logs: merged };
+      });
     } catch (err) {
       console.error("[DeviceStore] Failed to fetch Redis logs:", err);
     }

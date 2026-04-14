@@ -175,7 +175,7 @@ export default function DashboardPage() {
 
                     return (
                       <tr
-                        key={log.id || log._id || idx}
+                        key={`${log.id || log._id || ""}-${idx}-${log.timestamp || ""}`}
                         className={`${rowClass} border-b border-gray-100 hover:bg-gray-50`}
                       >
                         <td className="px-4 py-3 whitespace-nowrap text-gray-500">
