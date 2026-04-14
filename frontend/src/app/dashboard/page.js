@@ -28,10 +28,11 @@ export default function DashboardPage() {
     return () => stopRealtime();
   }, [orgId, token, startRealtime, stopRealtime]);
 
-  // Compute stats
+  // Derive online from lastSeen — device is online if heartbeat within 45 seconds
+  const ONLINE_THRESHOLD = 45_000;
   const nodeCount = Object.keys(nodes).length;
   const onlineNodes = Object.values(nodes).filter(
-    (node) => node.status === "online",
+    (node) => node.lastSeen && (Date.now() - new Date(node.lastSeen).getTime()) < ONLINE_THRESHOLD
   ).length;
 
   useEffect(() => {

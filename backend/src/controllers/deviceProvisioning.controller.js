@@ -388,29 +388,75 @@ export async function deviceNetworkLog(req, res) {
 
     const savedLog = await saveAndAnalyzeLog(logData);
 
-    if (savedLog && device.organizationId) {
-      // Broadcast log to org dashboard
-      emitDeviceUpdate('network:log:new', {
-        log: {
-          id: savedLog._id,
-          macAddress: savedLog.macAddress,
-          deviceName: savedLog.deviceName,
-          srcIp: savedLog.srcIp,
-          dstIp: savedLog.dstIp,
-          protocol: savedLog.protocol,
-          srcPort: savedLog.srcPort,
-          dstPort: savedLog.dstPort,
-          prediction: savedLog.prediction,
-          confidence: savedLog.confidence,
-          action: savedLog.action,
-          timestamp: savedLog.timestamp
-        }
+    if (savedLog) {
+      // ── Redis network-log buffer ──────────────────────────────────────────
+      // Retain last 200 log entries per device for 30 minutes.
+      // Key: device:{mac}:netlogs  Type: Redis List (newest at head)
+      const redisKey = `device:${logData.macAddress}:netlogs`;
+      const logEntry = JSON.stringify({
+        id:         savedLog._id,
+        macAddress: savedLog.macAddress,
+        deviceName: savedLog.deviceName,
+        srcIp:      savedLog.srcIp,
+        dstIp:      savedLog.dstIp,
+        protocol:   savedLog.protocol,
+        srcPort:    savedLog.srcPort,
+        dstPort:    savedLog.dstPort,
+        prediction: savedLog.prediction,
+        confidence: savedLog.confidence,
+        action:     savedLog.action,
+        timestamp:  savedLog.timestamp,
       });
+      // Push to head, keep only newest 200, refresh 30-min TTL
+      // ioredis uses lowercase commands (not camelCase like the 'redis' npm package)
+      await redis.lpush(redisKey, logEntry);
+      await redis.ltrim(redisKey, 0, 199);
+      await redis.expire(redisKey, 1800); // 30 minutes
+
+      if (device.organizationId) {
+        // Broadcast log to org dashboard
+        emitDeviceUpdate('network:log:new', {
+          log: {
+            id:         savedLog._id,
+            macAddress: savedLog.macAddress,
+            deviceName: savedLog.deviceName,
+            srcIp:      savedLog.srcIp,
+            dstIp:      savedLog.dstIp,
+            protocol:   savedLog.protocol,
+            srcPort:    savedLog.srcPort,
+            dstPort:    savedLog.dstPort,
+            prediction: savedLog.prediction,
+            confidence: savedLog.confidence,
+            action:     savedLog.action,
+            timestamp:  savedLog.timestamp,
+          }
+        });
+      }
     }
 
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error('deviceNetworkLog error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * GET /api/devices/device-provisioning/netlogs/:mac
+ * 
+ * Returns the last N network log entries for a device from Redis (30-min buffer).
+ * Query param: ?limit=50 (default 50, max 200)
+ */
+export async function getDeviceNetlogs(req, res) {
+  try {
+    const { mac } = req.params;
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const redisKey = `device:${mac}:netlogs`;
+    const raw = await redis.lrange(redisKey, 0, limit - 1);
+    const logs = raw.map(entry => JSON.parse(entry));
+    return res.status(200).json({ success: true, logs });
+  } catch (error) {
+    console.error('getDeviceNetlogs error:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 }

@@ -36,13 +36,12 @@ const useDeviceStore = create((set, get) => ({
     }
   },
 
-  // Fetch network logs from REST API
-  fetchLogs: async (orgId, token, alertsOnly = false) => {
+  // Fetch network logs — first from Redis buffer (fast, 30min), then MongoDB fallback
+  fetchLogs: async (orgId, token) => {
     if (!orgId || !token) return;
     try {
-      const url = alertsOnly
-        ? `${BACKEND_URL}/api/devices/logs/${orgId}/alerts?limit=50`
-        : `${BACKEND_URL}/api/devices/logs/${orgId}?limit=50`;
+      // 1. Try MongoDB org-wide logs for historical breadth
+      const url = `${BACKEND_URL}/api/devices/logs/${orgId}?limit=100`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -55,6 +54,37 @@ const useDeviceStore = create((set, get) => ({
     }
   },
 
+  // Load Redis per-device log buffer for all provisioned devices
+  fetchRedisLogs: async (macs, token) => {
+    if (!macs || !macs.length || !token) return;
+    try {
+      const results = await Promise.all(
+        macs.map((mac) =>
+          fetch(`${BACKEND_URL}/api/devices/device-provisioning/netlogs/${mac}?limit=50`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }).then((r) => (r.ok ? r.json() : { logs: [] }))
+        )
+      );
+      const merged = results.flatMap((r) => r.logs || []);
+      // Sort newest first, deduplicate by id
+      const seen = new Set();
+      const deduped = merged
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .filter((l) => {
+          const key = l.id || l.timestamp;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .slice(0, 200);
+      set((state) => ({
+        logs: deduped.length > 0 ? deduped : state.logs,
+      }));
+    } catch (err) {
+      console.error("[DeviceStore] Failed to fetch Redis logs:", err);
+    }
+  },
+
   // Start polling + socket connection for real-time updates
   startRealtime: (orgId, token) => {
     const store = get();
@@ -63,15 +93,24 @@ const useDeviceStore = create((set, get) => ({
     store.fetchDevices(orgId, token);
     store.fetchLogs(orgId, token);
 
+    // After devices load, load Redis log buffer for each device
+    setTimeout(() => {
+      const macs = Object.keys(get().nodes);
+      if (macs.length > 0) get().fetchRedisLogs(macs, token);
+    }, 2000);
+
     // Connect socket for real-time push
     store.connectSocket();
 
-    // Also poll every 10 seconds as fallback
+    // Poll devices every 15s as fallback — logs come via WebSocket
     if (store._pollInterval) clearInterval(store._pollInterval);
     const interval = setInterval(() => {
+      const { nodes } = get();
       get().fetchDevices(orgId, token);
-      get().fetchLogs(orgId, token);
-    }, 10000);
+      // Refresh Redis log buffer periodically
+      const macs = Object.keys(nodes);
+      if (macs.length > 0) get().fetchRedisLogs(macs, token);
+    }, 15000);
     set({ _pollInterval: interval });
   },
 
