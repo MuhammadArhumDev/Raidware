@@ -3,9 +3,44 @@
 import { create } from "zustand";
 import { io } from "socket.io-client";
 
-// Use the same backend URL for both REST and Socket.IO
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000";
 
+// ── Client-side per-device liveness timers ───────────────────────────────────
+// Kept OUTSIDE Zustand so they are never serialized or reset by store updates.
+// Logic: every time we see a device online (socket OR REST), we reset its 60s
+// timer. If 60s pass with no heartbeat, we mark the device offline in the UI.
+const _livenessTimers = new Map(); // mac → timeoutId
+
+function resetLivenessTimer(mac, setState) {
+  // Cancel any existing countdown for this device
+  if (_livenessTimers.has(mac)) {
+    clearTimeout(_livenessTimers.get(mac));
+  }
+
+  // Start a fresh 60-second countdown
+  const id = setTimeout(() => {
+    _livenessTimers.delete(mac);
+    console.log(`[DeviceStore] Liveness timer expired for ${mac} — no heartbeat in 60s, marking offline`);
+    setState((state) => {
+      if (!state.nodes[mac]) return {}; // device already removed
+      return {
+        nodes: {
+          ...state.nodes,
+          [mac]: { ...state.nodes[mac], status: "offline" },
+        },
+      };
+    });
+  }, 60_000);
+
+  _livenessTimers.set(mac, id);
+}
+
+function clearAllLivenessTimers() {
+  _livenessTimers.forEach((id) => clearTimeout(id));
+  _livenessTimers.clear();
+}
+
+// ── Store ────────────────────────────────────────────────────────────────────
 const useDeviceStore = create((set, get) => ({
   socket: null,
   nodes: {},
@@ -14,11 +49,12 @@ const useDeviceStore = create((set, get) => ({
   logs: [],
   loading: true,
   _pollInterval: null,
-  _lastSocketTopologyAt: 0, // timestamp of last topology:update received via socket
+  _lastSocketTopologyAt: 0,
 
   // Fetch devices from REST API — used as fallback/initial load.
-  // Does NOT overwrite existing socket-populated nodes with an empty response
-  // to prevent the race: REST starts before device online, completes after socket update.
+  // Also resets liveness timers for every online device returned.
+  // Devices with an active liveness timer are kept as online even if the REST
+  // response doesn't include them (they're still live within the 60s window).
   fetchDevices: async (orgId, token) => {
     if (!orgId || !token) return;
     try {
@@ -28,20 +64,23 @@ const useDeviceStore = create((set, get) => ({
       if (res.ok) {
         const data = await res.json();
         const newDevices = data.devices || [];
-        set((state) => {
-          // Guard: don't let a stale empty REST response wipe out live socket data.
-          // The socket topology:update is the real-time source of truth for going offline.
-          const hasExistingNodes = Object.keys(state.nodes).length > 0;
-          const socketIsRecent = Date.now() - state._lastSocketTopologyAt < 15_000;
-          if (newDevices.length === 0 && hasExistingNodes && socketIsRecent) {
-            console.log('[DeviceStore] REST returned 0 devices but socket recently showed nodes — keeping socket data');
-            return { loading: false };
+
+        // Reset liveness timers for every online device the REST confirms
+        newDevices.forEach((device) => {
+          const mac = device.mac || device.id;
+          if (device.status === "online") {
+            resetLivenessTimer(mac, set);
           }
-          const nodesMap = {};
+        });
+
+        set((state) => {
+          // MERGE — never replace the whole map.
+          // Devices with active liveness timers stay visible even if REST omits them.
+          const merged = { ...state.nodes };
           newDevices.forEach((device) => {
-            nodesMap[device.mac || device.id] = device;
+            merged[device.mac || device.id] = device;
           });
-          return { nodes: nodesMap, loading: false };
+          return { nodes: merged, loading: false };
         });
       }
     } catch (err) {
@@ -54,7 +93,6 @@ const useDeviceStore = create((set, get) => ({
   fetchLogs: async (orgId, token) => {
     if (!orgId || !token) return;
     try {
-      // 1. Try MongoDB org-wide logs for historical breadth
       const url = `${BACKEND_URL}/api/devices/logs/${orgId}?limit=100`;
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
@@ -68,7 +106,6 @@ const useDeviceStore = create((set, get) => ({
     }
   },
 
-  // Load Redis per-device log buffer for all provisioned devices
   fetchRedisLogs: async (macs, token) => {
     if (!macs || !macs.length || !token) return;
     try {
@@ -81,13 +118,11 @@ const useDeviceStore = create((set, get) => ({
       );
       const redisLogs = results.flatMap((r) => r.logs || []);
 
-      // Merge Redis logs with current MongoDB logs, dedup by normalized id
       set((state) => {
         const seen = new Set();
         const merged = [...redisLogs, ...state.logs]
           .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
           .filter((l) => {
-            // Normalize: Redis uses `id`, MongoDB uses `_id` — both are the same ObjectId string
             const key = String(l.id || l._id || `${l.timestamp}-${l.srcIp}`);
             if (seen.has(key)) return false;
             seen.add(key);
@@ -101,29 +136,23 @@ const useDeviceStore = create((set, get) => ({
     }
   },
 
-  // Start polling + socket connection for real-time updates
   startRealtime: (orgId, token) => {
     const store = get();
 
-    // Fetch initial data immediately
     store.fetchDevices(orgId, token);
     store.fetchLogs(orgId, token);
 
-    // After devices load, load Redis log buffer for each device
     setTimeout(() => {
       const macs = Object.keys(get().nodes);
       if (macs.length > 0) get().fetchRedisLogs(macs, token);
     }, 2000);
 
-    // Connect socket for real-time push — pass orgId so it joins the org room
     store.connectSocket(orgId);
 
-    // Poll devices every 15s as fallback — logs come via WebSocket
     if (store._pollInterval) clearInterval(store._pollInterval);
     const interval = setInterval(() => {
       const { nodes } = get();
       get().fetchDevices(orgId, token);
-      // Refresh Redis log buffer periodically
       const macs = Object.keys(nodes);
       if (macs.length > 0) get().fetchRedisLogs(macs, token);
     }, 15000);
@@ -132,6 +161,8 @@ const useDeviceStore = create((set, get) => ({
 
   stopRealtime: () => {
     const store = get();
+    // Clear all per-device liveness timers
+    clearAllLivenessTimers();
     if (store._pollInterval) {
       clearInterval(store._pollInterval);
       set({ _pollInterval: null });
@@ -143,7 +174,6 @@ const useDeviceStore = create((set, get) => ({
     const existingSocket = get().socket;
     if (existingSocket) return;
 
-    // Connect to the SAME backend for Socket.IO
     const newSocket = io(BACKEND_URL, {
       transports: ["websocket", "polling"],
       reconnection: true,
@@ -154,14 +184,12 @@ const useDeviceStore = create((set, get) => ({
 
     newSocket.on("connect", () => {
       console.log("[DeviceStore] Socket connected to", BACKEND_URL);
-      // Join the org room so we receive org-scoped topology:update events
       if (orgId) {
         newSocket.emit("join:org", orgId);
         console.log("[DeviceStore] Joined org room:", orgId);
       }
     });
 
-    // Re-join after reconnect (covers disconnects / server restarts)
     newSocket.on("reconnect", () => {
       if (orgId) newSocket.emit("join:org", orgId);
     });
@@ -170,14 +198,28 @@ const useDeviceStore = create((set, get) => ({
       console.warn("[DeviceStore] Socket connection error:", err.message);
     });
 
-    // Real-time topology updates (from heartbeats)
+    // ── topology:update ───────────────────────────────────────────────────────
+    // MERGE strategy: online devices are added/updated and their 60s timers are
+    // reset. Devices NOT in this payload are left untouched — the liveness timer
+    // is the SOLE authority for marking a device offline. This prevents spurious
+    // empty topology broadcasts from wiping live devices off the dashboard.
     newSocket.on("topology:update", (data) => {
       if (data && data.devices) {
-        const nodesMap = {};
         data.devices.forEach((device) => {
-          nodesMap[device.mac || device.id] = device;
+          const mac = device.mac || device.id;
+          if (device.status === "online") {
+            resetLivenessTimer(mac, set);
+          }
         });
-        set({ nodes: nodesMap, loading: false, _lastSocketTopologyAt: Date.now() });
+
+        set((state) => {
+          // Merge: update/add devices from payload, keep everything else
+          const merged = { ...state.nodes };
+          data.devices.forEach((device) => {
+            merged[device.mac || device.id] = device;
+          });
+          return { nodes: merged, loading: false, _lastSocketTopologyAt: Date.now() };
+        });
       }
     });
 
