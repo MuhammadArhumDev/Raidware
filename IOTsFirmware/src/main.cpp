@@ -21,7 +21,7 @@ unsigned long lastHeartbeatTime = 0;
 unsigned long lastNetworkLogTime = 0;
 
 // Heartbeat interval (3 seconds)
-const unsigned long HEARTBEAT_INTERVAL = 3000;
+const unsigned long HEARTBEAT_INTERVAL = 1000;
 // Network log interval (3 seconds)
 const unsigned long NETWORK_LOG_INTERVAL = 3000;
 
