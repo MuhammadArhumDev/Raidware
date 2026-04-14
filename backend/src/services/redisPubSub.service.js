@@ -72,21 +72,33 @@ export async function initRedisPubSub(io) {
     // ── Keyspace expiration: device went offline ────────────────────────────
     if (channel === '__keyevent@0__:expired' && payload.startsWith('device:heartbeat:')) {
       const macAddress = payload.replace('device:heartbeat:', '');
-      console.log(`[RedisPubSub] Heartbeat expired for device: ${macAddress}`);
 
       try {
         const device = await Device.findOne({ macAddress });
-        if (device && device.status === 'online') {
-          await Device.findOneAndUpdate(
-            { macAddress },
-            { status: 'offline', lastSeen: new Date() }
-          );
-          console.log(`[RedisPubSub] Device ${macAddress} marked OFFLINE (heartbeat expired)`);
+        if (!device || device.status !== 'online') return;
 
-          if (io) {
-            const topology = await getOnlineDevicesForOrg(device.organizationId);
-            io.emit('topology:update', { devices: topology });
-          }
+        // Guard: ignore expiration of a stale key from a previous server run.
+        // If lastSeen is within 65s the device already refreshed the key with a
+        // new heartbeat — this expiry is from the OLD key, not the current one.
+        const secondsSinceLastSeen = device.lastSeen
+          ? (Date.now() - new Date(device.lastSeen).getTime()) / 1000
+          : Infinity;
+
+        if (secondsSinceLastSeen < 65) {
+          console.log(`[RedisPubSub] Ignoring stale key expiry for ${macAddress} — last seen ${secondsSinceLastSeen.toFixed(0)}s ago (< 65s grace)`);
+          return;
+        }
+
+        // Genuinely offline — no heartbeat for 65+ seconds
+        await Device.findOneAndUpdate(
+          { macAddress },
+          { status: 'offline', lastSeen: new Date() }
+        );
+        console.log(`[RedisPubSub] Device ${macAddress} marked OFFLINE (last seen ${secondsSinceLastSeen.toFixed(0)}s ago)`);
+
+        if (io) {
+          const topology = await getOnlineDevicesForOrg(device.organizationId);
+          io.emit('topology:update', { devices: topology });
         }
       } catch (err) {
         console.error('[RedisPubSub] Error handling expiration for', macAddress, err.message);

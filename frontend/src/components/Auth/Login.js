@@ -44,14 +44,14 @@ export default function Login() {
     if (user) {
       setSuccessMsg("Login successful! Redirecting...");
 
-      // Short delay to show success message
+      // Use full navigation so Next.js middleware reads the fresh cookie
       setTimeout(() => {
         if (user.role === "admin") {
-          router.push("/admin/dashboard");
+          window.location.href = "/admin/dashboard";
         } else {
-          router.push("/dashboard");
+          window.location.href = "/dashboard";
         }
-      }, 1000);
+      }, 800);
     } else {
       setError(authError || "Failed to login. Please check your credentials.");
       setLoading(false);

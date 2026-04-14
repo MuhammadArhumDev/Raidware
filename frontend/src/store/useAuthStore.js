@@ -3,13 +3,30 @@ import { persist } from "zustand/middleware";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
+// ── Cookie helpers (client-side only) ───────────────────────────────────────
+// We set cookies from the frontend so Next.js middleware can read them.
+// Backend cookies are set on the backend origin and won't be forwarded to
+// the Next.js server when frontend and backend are on different ports/domains.
+
+function setAuthCookie(role, token) {
+  if (typeof document === "undefined") return;
+  const name = role === "admin" ? "admin_token" : "organization_token";
+  const maxAge = 7 * 24 * 60 * 60; // 7 days in seconds
+  document.cookie = `${name}=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
+}
+
+function clearAuthCookies() {
+  if (typeof document === "undefined") return;
+  document.cookie = "admin_token=; path=/; max-age=0; SameSite=Lax";
+  document.cookie = "organization_token=; path=/; max-age=0; SameSite=Lax";
+}
+
 const isTokenExpired = (token) => {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    // exp is in seconds, Date.now() is in milliseconds
+    const payload = JSON.parse(atob(token.split(".")[1]));
     return payload.exp * 1000 < Date.now();
   } catch {
-    return true; // treat malformed token as expired
+    return true;
   }
 };
 
@@ -20,7 +37,7 @@ const useAuthStore = create(
       token: null,
       isAuthenticated: false,
       isLoading: false,
-      isInitialized: false, // true after first checkAuth completes
+      isInitialized: false,
       error: null,
       _hasHydrated: false,
 
@@ -40,14 +57,21 @@ const useAuthStore = create(
           const data = await res.json();
           if (!res.ok) throw new Error(data.message || "Login failed");
 
+          const user = data.data.user;
+          const token = data.data.accessToken;
+
+          // Set client-side cookie so Next.js middleware can route correctly
+          setAuthCookie(user.role, token);
+
           set({
-            user: data.data.user,
-            token: data.data.accessToken,
+            user,
+            token,
             isAuthenticated: true,
             isLoading: false,
             isInitialized: true,
+            _hasHydrated: true,
           });
-          return data.data.user; // Return user object
+          return user;
         } catch (err) {
           set({ error: err.message, isLoading: false });
           return null;
@@ -66,14 +90,21 @@ const useAuthStore = create(
           const data = await res.json();
           if (!res.ok) throw new Error(data.message || "Signup failed");
 
+          const user = data.data.user;
+          const token = data.data.accessToken;
+
+          // Set client-side cookie so Next.js middleware can route correctly
+          setAuthCookie(user.role, token);
+
           set({
-            user: data.data.user,
-            token: data.data.accessToken,
+            user,
+            token,
             isAuthenticated: true,
             isLoading: false,
             isInitialized: true,
+            _hasHydrated: true,
           });
-          return data.data.user; // Return user object
+          return user;
         } catch (err) {
           set({ error: err.message, isLoading: false });
           return null;
@@ -85,47 +116,45 @@ const useAuthStore = create(
         const token = state.token;
         const user = state.user;
 
-        // No token — not authenticated, clear and return
         if (!token) {
           set({ isLoading: false, isInitialized: true, isAuthenticated: false });
           return null;
         }
 
-        // Token expired — clear auth and return
         if (isTokenExpired(token)) {
-          console.log('[checkAuth] Token expired, logging out');
+          console.log("[checkAuth] Token expired, logging out");
           get().logout();
           return null;
         }
 
-        // Token valid and user exists in store — restore session without
-        // calling the backend. This is the key fix for Docker/VPS reload.
+        // Valid token + user in store — restore without a network round-trip
         if (token && user) {
-          console.log('[checkAuth] Valid token + user found, restoring session');
-          set({ 
-            isLoading: false, 
-            isInitialized: true, 
+          console.log("[checkAuth] Valid token + user — restoring session");
+          // Re-set the cookie in case it was cleared (e.g. browser cookie expiry)
+          setAuthCookie(user.role, token);
+          set({
+            isLoading: false,
+            isInitialized: true,
             isAuthenticated: true,
-            _hasHydrated: true
+            _hasHydrated: true,
           });
           return user;
         }
 
-        // Token exists but no user in store — need to fetch from backend
-        // This only happens on first login, not on reload
+        // Token exists but no user — fetch from backend
         set({ isLoading: true });
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
 
         try {
           const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
-            method: 'GET',
+            method: "GET",
             signal: controller.signal,
             headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
             },
-            credentials: 'include'
+            credentials: "include",
           });
           clearTimeout(timeout);
 
@@ -135,21 +164,23 @@ const useAuthStore = create(
           }
 
           const data = await response.json();
+          const fetchedUser = data.data.user;
+
+          // Set cookie for the fetched user
+          setAuthCookie(fetchedUser.role, token);
+
           set({
-            user: data.data.user,
+            user: fetchedUser,
             isAuthenticated: true,
             isLoading: false,
             isInitialized: true,
-            _hasHydrated: true
+            _hasHydrated: true,
           });
-          return data.data.user;
-
+          return fetchedUser;
         } catch (err) {
           clearTimeout(timeout);
-          if (err.name === 'AbortError') {
-            console.error('[checkAuth] Backend unreachable, using cached session');
-            // Backend unreachable but token is valid — restore from token
-            // instead of logging out. Better UX than forcing re-login.
+          if (err.name === "AbortError") {
+            console.error("[checkAuth] Backend unreachable, using cached session");
             if (token && !isTokenExpired(token)) {
               set({ isLoading: false, isInitialized: true });
               return state.user;
@@ -171,6 +202,9 @@ const useAuthStore = create(
           console.error("Failed to clear backend cookies during logout", err);
         }
 
+        // Clear both client-side routing cookies
+        clearAuthCookies();
+
         set({
           user: null,
           token: null,
@@ -179,9 +213,9 @@ const useAuthStore = create(
           isInitialized: true,
           _hasHydrated: true,
         });
-        
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
+
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
         }
       },
     }),
@@ -198,6 +232,19 @@ const useAuthStore = create(
           state._hasHydrated = true;
           state.isInitialized = true;
           state.isLoading = false;
+
+          // Re-set the routing cookie from stored token so middleware keeps
+          // working after a page refresh (cookie may have been cleared by TTL
+          // while localStorage still holds a valid JWT).
+          if (state.token && state.user && !isTokenExpired(state.token)) {
+            setAuthCookie(state.user.role, state.token);
+          } else if (state.token && isTokenExpired(state.token)) {
+            // Expired token in storage — clear everything
+            clearAuthCookies();
+            state.user = null;
+            state.token = null;
+            state.isAuthenticated = false;
+          }
         }
       },
     }
@@ -205,4 +252,3 @@ const useAuthStore = create(
 );
 
 export default useAuthStore;
-
