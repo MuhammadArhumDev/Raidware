@@ -12,12 +12,17 @@
 #define SHARED_SECRET "7a821f93ff9801427892fa3652682aa782f66ce1055e15004131510dbcec2017"
 
 // Server's public key (Ed25519, PEM format)
-#define SERVER_PUBLIC_KEY R"(-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAHM/bVV00G59yoMhpEM3EsAvHqe2b91ovt6ExFAZw7FI=
------END PUBLIC KEY-----)"
+#define SERVER_PUBLIC_KEY "-----BEGIN PUBLIC KEY-----\n" \
+"MCowBQYDK2VwAyEAHM/bVV00G59yoMhpEM3EsAvHqe2b91ovt6ExFAZw7FI=\n" \
+"-----END PUBLIC KEY-----\n"
 
 
+#ifndef SERVER_URL
 #define SERVER_URL "https://raidware.example.com"
+#endif
+
+#ifndef AUTH_ENDPOINT
 #define AUTH_ENDPOINT "/api/devices/device-provisioning/authenticate"
+#endif
 
 #endif // SECRETS_H

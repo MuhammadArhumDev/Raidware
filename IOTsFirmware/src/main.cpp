@@ -238,7 +238,7 @@ void setup() {
   // Connect to WiFi using WiFiMulti
   Serial.println("\n[SETUP] Initializing WiFi...");
   WiFi.mode(WIFI_STA);
-  wifiMulti.addAP(SSID, PASSWORD);
+  wifiMulti.addAP(WIFI_SSID, WIFI_PASSWORD);
   
   // Initialize device authentication (direct to server)
   delay(2000);
