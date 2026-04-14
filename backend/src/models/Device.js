@@ -8,17 +8,11 @@ const deviceSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
-    // The secure hashed ID (derived from eFuse) provided during registration
-    hashedId: {
-      type: String,
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
       required: true,
-      unique: true,
-    },
-    // Shared secret for HMAC challenge-response
-    sharedSecret: {
-      type: String,
-      required: true,
-      select: false, // Do not return by default
+      index: true,
     },
     name: {
       type: String,
@@ -26,19 +20,12 @@ const deviceSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["online", "offline"],
-      default: "offline",
+      enum: ["online", "offline", "pending"],
+      default: "pending",
     },
     lastSeen: {
       type: Date,
-      default: Date.now,
-    },
-    // ── New fields for multi-tenant mesh support ──
-    organizationId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Organization",
-      required: true,
-      index: true,
+      default: null,
     },
     ipAddress: {
       type: String,
@@ -50,8 +37,8 @@ const deviceSchema = new mongoose.Schema(
     },
     meshRole: {
       type: String,
-      enum: ["root", "node", "leaf"],
-      default: "node",
+      enum: ["standalone", "root", "node", "leaf", "coordinator", "router", "end_device"],
+      default: "standalone",
     },
     rssi: {
       type: Number,
@@ -59,16 +46,68 @@ const deviceSchema = new mongoose.Schema(
     },
     parentMac: {
       type: String,
-      default: null, // MAC of parent node in mesh — null if root
+      required: false,
+      default: null,
+      sparse: true,
+    },
+    connectionType: { 
+      type: String, 
+      enum: ['direct', 'mesh'], 
+      default: 'direct'
     },
     metadata: {
       type: Map,
       of: String,
       default: {},
     },
+    // ADD THESE NEW FIELDS FOR HMAC AUTH
+    deviceId: { type: String, unique: true, sparse: true },
+    sharedSecret: { 
+      type: String, 
+      required: false,
+      default: null 
+    },
+    hashedId: { 
+      type: String, 
+      required: false,
+      default: null 
+    },
+    serverPublicKey: { 
+      type: String, 
+      required: false,
+      default: null 
+    },
+    serverPrivateKey: { 
+      type: String, 
+      required: false,
+      default: null 
+    },
+    devicePublicKey: { 
+      type: String, 
+      required: false,
+      default: null 
+    },
+    provisioned: { 
+      type: Boolean, 
+      default: false
+    },
+    provisioningToken: { 
+      type: String, 
+      required: false,
+      default: null 
+    },
+    provisioningTokenExpiry: { 
+      type: Date, 
+      required: false, 
+      default: null 
+    }
   },
   { timestamps: true }
 );
+
+deviceSchema.index({ organizationId: 1, connectionType: 1 });
+deviceSchema.index({ deviceId: 1 });
+deviceSchema.index({ macAddress: 1 });
 
 const Device = mongoose.model("Device", deviceSchema);
 

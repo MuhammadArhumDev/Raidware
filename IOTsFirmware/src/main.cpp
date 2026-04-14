@@ -1,331 +1,286 @@
 #include <Arduino.h>
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
-#include <WebSocketsClient.h>
-#include <ArduinoJson.h>
 #include <WiFiMulti.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include <mbedtls/md.h>  // For HMAC-SHA256
 #include <Adafruit_NeoPixel.h>
+#include "../include/Secrets.h"
 
+// Hardware configuration
+#define LED_PIN 48 // Common for ESP32-S3-DevKitC-1 built-in RGB LED
+#define LED_COUNT 1
 
-#include "mbedtls/md.h"
-#include "mbedtls/gcm.h"
-
-
-extern "C" {
-    #include "api.h"
-}
-
-#include "Secrets.h" 
-
-#define LED_PIN 48
-#define NUM_PIXELS 1
-
-Adafruit_NeoPixel pixel(NUM_PIXELS, LED_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
 WiFiMulti wifiMulti;
-WebSocketsClient webSocket;
 
-String macAddress;
-bool isAuthenticated = false;
+// Global state
+String deviceAuthToken = "";
+unsigned long lastAuthTime = 0;
 
-unsigned long lastWifiReconnectAttempt = 0;
-const unsigned long WIFI_RECONNECT_INTERVAL = 5000;
-unsigned long lastLedBlink = 0;
-const unsigned long LED_BLINK_INTERVAL = 500;
-bool ledOn = false;
+/**
+ * Generate HMAC-SHA256 signature
+ * message format: "deviceId|timestamp"
+ */
+String generateHmacSignature(String message, String sharedSecret) {
+  unsigned char result[32];
+  
+  // Convert hex string to bytes
+  unsigned char secretBytes[32];
+  for (int i = 0; i < 32; i++) {
+    String byteStr = sharedSecret.substring(i * 2, i * 2 + 2);
+    secretBytes[i] = (unsigned char)strtol(byteStr.c_str(), NULL, 16);
+  }
 
+  // Compute HMAC-SHA256
+  mbedtls_md_context_t ctx;
+  mbedtls_md_init(&ctx);
+  mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), 1);
+  mbedtls_md_hmac_starts(&ctx, secretBytes, 32);
+  mbedtls_md_hmac_update(&ctx, (unsigned char*)message.c_str(), message.length());
+  mbedtls_md_hmac_finish(&ctx, result);
+  mbedtls_md_free(&ctx);
 
-void hexStringToBytes(String hex, uint8_t* bytes, size_t len);
-String bytesToHexString(const uint8_t* bytes, size_t len);
-void sendNetworkLog(String dstIp, uint16_t dstPort, String protocol, uint16_t srcPort);
+  // Convert to hex string
+  String hexSignature = "";
+  for (int i = 0; i < 32; i++) {
+    char buffer[3];
+    sprintf(buffer, "%02x", result[i]);
+    hexSignature += buffer;
+  }
 
+  return hexSignature;
+}
 
+/**
+ * Authenticate device with server via HMAC-SHA256
+ * Direct HTTP/HTTPS connection (no mesh routing)
+ * Called on boot and periodically (every 1 hour)
+ */
+bool authenticateWithServer() {
+  if (!WiFi.isConnected()) {
+    Serial.println("[AUTH] ❌ WiFi not connected, skipping authentication");
+    return false;
+  }
 
-String hmacSHA256(String key, String payload) {
-    byte hmacResult[32];
-    mbedtls_md_context_t ctx;
-    mbedtls_md_type_t md_type = MBEDTLS_MD_SHA256;
+  HTTPClient http;
+  String url = String(SERVER_URL) + String(AUTH_ENDPOINT);
+  
+  // Generate current timestamp
+  unsigned long timestamp = millis() / 1000;
+  String message = String(DEVICE_ID) + "|" + String(timestamp);
+  
+  // Generate HMAC-SHA256 signature
+  String signature = generateHmacSignature(message, String(SHARED_SECRET));
 
-    mbedtls_md_init(&ctx);
-    mbedtls_md_setup(&ctx, mbedtls_md_info_from_type(md_type), 1);
-    mbedtls_md_hmac_starts(&ctx, (const unsigned char *)key.c_str(), key.length());
-    mbedtls_md_hmac_update(&ctx, (const unsigned char *)payload.c_str(), payload.length());
-    mbedtls_md_hmac_finish(&ctx, hmacResult);
-    mbedtls_md_free(&ctx);
+  // Create JSON payload
+  StaticJsonDocument<512> doc;
+  doc["deviceId"] = DEVICE_ID;
+  doc["macAddress"] = WiFi.macAddress();
+  doc["timestamp"] = timestamp;
+  doc["signature"] = signature;
 
-    String hashStr = "";
-    for (int i = 0; i < 32; i++) {
-        if (hmacResult[i] < 16) hashStr += "0";
-        hashStr += String(hmacResult[i], HEX);
+  String jsonPayload;
+  serializeJson(doc, jsonPayload);
+
+  Serial.println("[AUTH] 🔐 Authenticating with server...");
+  Serial.println("[AUTH]   Device ID: " + String(DEVICE_ID).substring(0, 12) + "...");
+  Serial.println("[AUTH]   Signature: " + signature.substring(0, 16) + "...");
+  Serial.println("[AUTH]   Endpoint: " + url);
+
+  // Make HTTPS request (direct to server)
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+  http.setConnectTimeout(5000);  // 5 second timeout
+  http.setTimeout(10000);         // 10 second total timeout
+  
+  int httpCode = http.POST(jsonPayload);
+
+  if (httpCode == 200) {
+    String response = http.getString();
+    StaticJsonDocument<512> responseDoc;
+    DeserializationError error = deserializeJson(responseDoc, response);
+
+    if (!error) {
+      if (responseDoc["success"]) {
+        // ✅ Authentication successful
+        deviceAuthToken = responseDoc["token"].as<String>();
+        String connectionType = responseDoc["connectionType"].as<String>();
+        
+        lastAuthTime = millis();
+        
+        Serial.println("[AUTH] ✅ Authentication SUCCESS!");
+        Serial.println("[AUTH]   Connection Type: " + connectionType);
+        Serial.println("[AUTH]   Token: " + deviceAuthToken.substring(0, 20) + "...");
+        Serial.println("[AUTH]   Token Expires: " + responseDoc["expiresIn"].as<String>());
+        
+        http.end();
+        return true;
+      } else {
+        // ❌ Server returned error
+        String errorMsg = responseDoc["error"].as<String>();
+        Serial.println("[AUTH] ❌ Server rejected: " + errorMsg);
+        http.end();
+        return false;
+      }
+    } else {
+      Serial.println("[AUTH] ❌ JSON parse error: " + String(error.c_str()));
+      http.end();
+      return false;
     }
-    return hashStr;
+  } else if (httpCode == 404) {
+    Serial.println("[AUTH] ❌ Device not found (404). Check DEVICE_ID in Secrets.h");
+    http.end();
+    return false;
+  } else if (httpCode == 403) {
+    Serial.println("[AUTH] ❌ Signature validation failed (403). Check SHARED_SECRET.");
+    http.end();
+    return false;
+  } else if (httpCode == -1) {
+    Serial.println("[AUTH] ❌ Connection failed. Check WiFi and firewall.");
+    http.end();
+    return false;
+  } else {
+    Serial.println("[AUTH] ❌ HTTP Error: " + String(httpCode) + " - " + http.errorToString(httpCode));
+    http.end();
+    return false;
+  }
 }
 
-uint8_t sharedSecret[32];
-bool hasSharedSecret = false;
+/**
+ * Initialize device authentication (direct connection to server)
+ * Called once on boot
+ */
+void initializeDeviceAuth() {
+  Serial.println("\n===== Device Direct Authentication =====");
+  Serial.println("[DEVICE] Device ID: " + String(DEVICE_ID));
+  Serial.println("[DEVICE] Connection Type: DIRECT (no mesh parent needed)");
+  Serial.println("[DEVICE] Waiting for WiFi...");
 
-String encryptMessage(String plaintext) {
-    if (!hasSharedSecret) return plaintext;
+  // Wait for WiFi
+  while (wifiMulti.run() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
 
-    mbedtls_gcm_context aes;
-    mbedtls_gcm_init(&aes);
-    mbedtls_gcm_setkey(&aes, MBEDTLS_CIPHER_ID_AES, sharedSecret, 256);
-
-    uint8_t iv[12];
-    esp_fill_random(iv, 12);
-    
-    size_t len = plaintext.length();
-    uint8_t* output = new uint8_t[len];
-    uint8_t tag[16];
-
-    mbedtls_gcm_crypt_and_tag(&aes, MBEDTLS_GCM_ENCRYPT, len, iv, 12, NULL, 0, (const unsigned char*)plaintext.c_str(), output, 16, tag);
-    
-    mbedtls_gcm_free(&aes);
-
-    DynamicJsonDocument doc(2048);
-
-    doc["iv"] = bytesToHexString(iv, 12);
-    doc["tag"] = bytesToHexString(tag, 16);
-    doc["data"] = bytesToHexString(output, len);
-    
-    delete[] output;
-    
-    String jsonString;
-    serializeJson(doc, jsonString);
-    return jsonString;
+  Serial.println("\n[DEVICE] ✅ WiFi connected!");
+  Serial.println("[DEVICE] IP Address: " + WiFi.localIP().toString());
+  
+  // Attempt authentication immediately
+  if (authenticateWithServer()) {
+    Serial.println("[DEVICE] ✅ Initial authentication successful!");
+  } else {
+    Serial.println("[DEVICE] ⚠️  Initial auth failed. Will retry in loop.");
+  }
+  
+  Serial.println("======================================\n");
 }
 
-String decryptMessage(String jsonPayload) {
-    if (!hasSharedSecret) return "";
+/**
+ * Check if device is authenticated
+ */
+bool isAuthenticated() {
+  return deviceAuthToken.length() > 0;
+}
 
-    DynamicJsonDocument doc(2048);
-    if (deserializeJson(doc, jsonPayload)) return "";
+/**
+ * Called from main loop() periodically
+ * Re-authenticate if token has expired or auth failed recently
+ * Direct connection (no mesh routing)
+ */
+void checkDeviceAuth() {
+  static unsigned long lastCheck = 0;
+  const unsigned long CHECK_INTERVAL = 10000; // Check every 10 seconds
+  const unsigned long AUTH_RETRY_INTERVAL = 3600000; // Re-auth every 1 hour
 
-    String ivHex = doc["iv"];
-    String tagHex = doc["tag"];
-    String dataHex = doc["data"];
+  if (millis() - lastCheck < CHECK_INTERVAL) {
+    return; // Not time to check yet
+  }
+  lastCheck = millis();
 
-    uint8_t iv[12];
-    uint8_t tag[16];
-    size_t dataLen = dataHex.length() / 2;
-    uint8_t* data = new uint8_t[dataLen];
-    uint8_t* output = new uint8_t[dataLen];
-
-    hexStringToBytes(ivHex, iv, 12);
-    hexStringToBytes(tagHex, tag, 16);
-    hexStringToBytes(dataHex, data, dataLen);
-
-    mbedtls_gcm_context aes;
-    mbedtls_gcm_init(&aes);
-    mbedtls_gcm_setkey(&aes, MBEDTLS_CIPHER_ID_AES, sharedSecret, 256);
-
-    int ret = mbedtls_gcm_auth_decrypt(&aes, dataLen, iv, 12, NULL, 0, tag, 16, data, output);
-    mbedtls_gcm_free(&aes);
-    
-    delete[] data;
-
-    if (ret != 0) {
-        delete[] output;
-        Serial.println("[AES] Decryption/Auth Failed!");
-        return "";
+  if (wifiMulti.run() != WL_CONNECTED) {
+    if (millis() % 60000 == 0) { // Log every minute
+      Serial.println("[AUTH] ⚠️  WiFi disconnected. Waiting for reconnection...");
     }
+    return;
+  }
 
-    String result = "";
-    for(size_t i=0; i<dataLen; i++) result += (char)output[i];
-    delete[] output;
-    
-    return result;
-}
-
-
-
-void hexStringToBytes(String hex, uint8_t* bytes, size_t len) {
-    for (size_t i = 0; i < len; i++) {
-        String byteStr = hex.substring(i * 2, i * 2 + 2);
-        bytes[i] = (uint8_t) strtol(byteStr.c_str(), NULL, 16);
+  // Re-authenticate if token expired or never obtained
+  if (!isAuthenticated() || (millis() - lastAuthTime > AUTH_RETRY_INTERVAL)) {
+    Serial.println("[AUTH] 🔄 Re-authenticating device...");
+    if (!authenticateWithServer()) {
+      Serial.println("[AUTH] ⚠️  Re-authentication failed. Will retry later.");
     }
+  }
 }
 
-String bytesToHexString(const uint8_t* bytes, size_t len) {
-    String hex = "";
-    for (size_t i = 0; i < len; i++) {
-        if (bytes[i] < 16) hex += "0";
-        hex += String(bytes[i], HEX);
-    }
-    return hex;
-}
-
-
-
-void sendSocketEvent(String eventName, DynamicJsonDocument& doc) {
-    String jsonString;
-    serializeJson(doc, jsonString);
-    String output = "42[\"" + eventName + "\"," + jsonString + "]";
-
-    webSocket.sendTXT(output);
-}
-
-void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
-    switch(type) {
-        case WStype_DISCONNECTED:
-            Serial.println("[WSc] Disconnected!");
-            isAuthenticated = false;
-            break;
-
-        case WStype_CONNECTED: {
-            Serial.printf("[WSc] Connected to %s\n", payload);
-            DynamicJsonDocument doc(256);
-            doc["macAddress"] = macAddress;
-            doc["orgId"] = DEVICE_ORG_ID;
-            sendSocketEvent("auth:init", doc);
-            break;
-        }
-
-        case WStype_TEXT: {
-            String text = (char*)payload;
-
-            if (text.startsWith("2")) {
-                Serial.println("[WSc] Received Ping (2), sending Pong (3)");
-                webSocket.sendTXT("3");
-                return;
-            }
-
-            if (text.startsWith("0")) {
-                Serial.printf("[WSc] Session Open: %s\n", payload);
-                return;
-            }
-
-            if (!text.startsWith("42")) break;
-
-            int jsonStart = text.indexOf('[');
-            if (jsonStart < 0) break;
-
-            DynamicJsonDocument doc(2048);
-            if (deserializeJson(doc, text.substring(jsonStart))) break;
-
-            String event = doc[0];
-
-            if (event == "auth:challenge") {
-                String nonce = doc[1]["nonce"];
-                String pkHex = doc[1]["pk"];
-                Serial.println("[Auth] Received Nonce: " + nonce);
-                
-                uint8_t pk[PQCLEAN_MLKEM768_CLEAN_CRYPTO_PUBLICKEYBYTES];
-                uint8_t ss[PQCLEAN_MLKEM768_CLEAN_CRYPTO_BYTES];
-                uint8_t ct[PQCLEAN_MLKEM768_CLEAN_CRYPTO_CIPHERTEXTBYTES];
-                
-                if (pkHex.length() == PQCLEAN_MLKEM768_CLEAN_CRYPTO_PUBLICKEYBYTES * 2) {
-                    hexStringToBytes(pkHex, pk, PQCLEAN_MLKEM768_CLEAN_CRYPTO_PUBLICKEYBYTES);
-                    PQCLEAN_MLKEM768_CLEAN_crypto_kem_enc(ct, ss, pk);
-                    memcpy(sharedSecret, ss, 32);
-                    hasSharedSecret = true;
-                    Serial.println("[Kyber] Shared Secret stored.");
-                } else {
-                    Serial.print("[Kyber] Error: Invalid PK length!");
-                }
-                
-                String payloadForSig = nonce + macAddress;
-                String signature = hmacSHA256(DEVICE_SHARED_SECRET, payloadForSig);
-                
-                DynamicJsonDocument resp(2048);
-                resp["signature"] = signature;
-                resp["ciphertext"] = bytesToHexString(ct, PQCLEAN_MLKEM768_CLEAN_CRYPTO_CIPHERTEXTBYTES);
-                
-                sendSocketEvent("auth:response", resp);
-            } 
-            else if (event == "auth:success") {
-                Serial.println("[Auth] SUCCESS");
-                isAuthenticated = true;
-                sendNetworkLog(SECRET_HOST, SECRET_PORT, "TCP", 0);
-            }
-            else if (event == "auth:failed") {
-                Serial.println("[Auth] FAILED");
-                isAuthenticated = false;
-            }
-            else if (event == "device:config") {
-                String configVersion = doc[1]["version"] | "";
-                Serial.println("[Config] Received config update v" + configVersion);
-                // Future: apply WiFi/server config changes and restart if needed
-            }
-            else if (event == "message") {
-                String enc;
-                serializeJson(doc[1], enc);
-                String dec = decryptMessage(enc);
-                if (dec.length()) {
-                    Serial.println("[MSG] " + dec);
-                }
-            }
-            break;
-        }
-    }
+/**
+ * Get current auth token (use in subsequent API calls)
+ */
+String getAuthToken() {
+  return deviceAuthToken;
 }
 
 void setup() {
-    Serial.begin(115200);
-    pixel.begin();
-    pixel.setBrightness(20);
-
-    macAddress = WiFi.macAddress();
-    macAddress.replace(":", "");
-    Serial.println("MAC: " + macAddress);
-
-    wifiMulti.addAP(SECRET_SSID, SECRET_PASS);
-    
-    Serial.println("Connecting to WiFi...");
-    while(wifiMulti.run() != WL_CONNECTED) {
-        Serial.print(".");
-        delay(500);
-    }
-    Serial.println("\nWiFi Connected");
-
-    webSocket.begin(SECRET_HOST, SECRET_PORT, "/socket.io/?EIO=4&transport=websocket");
-    webSocket.onEvent(webSocketEvent);
-    webSocket.setReconnectInterval(5000);
+  Serial.begin(115200);
+  delay(1000);
+  
+  // Initialize LED
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
+  strip.setBrightness(50);
+  
+  Serial.println("\n\n===== Raidware IoT Device Boot =====");
+  Serial.println("Device Type: Direct Connection (No Mesh)");
+  Serial.println("Firmware Version: 1.0.0");
+  Serial.println("Build: " __DATE__ " " __TIME__);
+  
+  // Connect to WiFi using WiFiMulti
+  Serial.println("\n[SETUP] Initializing WiFi...");
+  WiFi.mode(WIFI_STA);
+  wifiMulti.addAP(SSID, PASSWORD);
+  
+  // Initialize device authentication (direct to server)
+  delay(2000);
+  initializeDeviceAuth();
+  
+  Serial.println("\n[SETUP] Device ready. Running main loop...\n");
 }
-
-void sendNetworkLog(String dstIp, uint16_t dstPort, String protocol, 
-                    uint16_t srcPort) {
-    if (!isAuthenticated || !hasSharedSecret) return;
-
-    DynamicJsonDocument doc(512);
-    doc["deviceName"]   = macAddress;
-    doc["srcIp"]        = WiFi.localIP().toString();
-    doc["dstIp"]        = dstIp;
-    doc["protocol"]     = protocol;
-    doc["srcPort"]      = srcPort;
-    doc["dstPort"]      = dstPort;
-    doc["flowDuration"] = 0;
-    doc["packetCount"]  = 1;
-    doc["byteCount"]    = 0;
-    JsonArray features  = doc.createNestedArray("features");
-
-    sendSocketEvent("network:log", doc);
-    Serial.println("[NetLog] Sent log → " + dstIp + ":" + String(dstPort));
-}
-
-unsigned long lastPulse = 0;
 
 void loop() {
-    wifiMulti.run();
-    webSocket.loop();
-
-    if (isAuthenticated && millis() - lastPulse > 5000 && hasSharedSecret) {
-        lastPulse = millis();
-
-        DynamicJsonDocument doc(512);
-        doc["status"] = "online";
-        doc["ts"] = millis();
-        doc["rssi"] = WiFi.RSSI();
-        doc["ip"] = WiFi.localIP().toString();
-        doc["freeHeap"] = ESP.getFreeHeap();
-
-        String plain;
-        serializeJson(doc, plain);
-
-        String enc = encryptMessage(plain);
-
-        DynamicJsonDocument out(512);
-        deserializeJson(out, enc);
-        sendSocketEvent("pulse", out);
-        sendNetworkLog(SECRET_HOST, SECRET_PORT, "TCP", 0);
+  // Handle LED blinking when connected to WiFi
+  static unsigned long lastLedToggle = 0;
+  static bool ledState = false;
+  
+  if (wifiMulti.run() == WL_CONNECTED) {
+    if (millis() - lastLedToggle > 500) { // Blink every 500ms
+      lastLedToggle = millis();
+      ledState = !ledState;
+      if (ledState) {
+        strip.setPixelColor(0, strip.Color(0, 255, 0)); // Green
+      } else {
+        strip.setPixelColor(0, strip.Color(0, 0, 0));   // Off
+      }
+      strip.show();
     }
+  } else {
+    // If not connected, perhaps show red or off
+    strip.setPixelColor(0, strip.Color(255, 0, 0)); // Solid Red
+    strip.show();
+  }
+
+  // Periodically check and reauthenticate if needed
+  checkDeviceAuth();
+  
+  // Only make authenticated API calls if token exists
+  if (isAuthenticated()) {
+    // Example: Send sensor data with auth token
+    // makeAuthenticatedRequest("/api/sensor-data", sensorPayload);
+  } else {
+    // Device not yet authenticated
+    // Wait for auth or continue trying
+  }
+  
+  // Small delay to prevent watchdog reset
+  delay(50);
 }

@@ -12,6 +12,12 @@ import Device from "../models/Device.js";
 import redis from "../config/redis.js";
 import crypto from "crypto";
 import { getLogsForOrg } from '../services/networkLog.service.js';
+import {
+  generateDeviceKeys,
+  authenticateDevice,
+  getCopyableSecrets,
+  verifyServerSignature
+} from '../controllers/deviceProvisioning.controller.js';
 
 const router = express.Router();
 
@@ -145,10 +151,10 @@ router.get("/topology/:orgId", verifyToken, async (req, res) => {
       name: device.name,
       status: device.status,
       lastSeen: device.lastSeen,
-      meshRole: device.meshRole,
+      connectionType: device.connectionType,
       rssi: device.rssi,
-      parentMac: device.parentMac,
-      ipAddress: device.ipAddress
+      ipAddress: device.ipAddress,
+      authenticated: device.provisioned
     }));
 
     res.status(200).json({
@@ -166,13 +172,15 @@ router.get("/org/:orgId", verifyToken, async (req, res) => {
   try {
     const { orgId } = req.params;
     const devices = await Device.find({ organizationId: orgId })
-      .select("macAddress name status lastSeen meshRole organizationId")
+      .select("macAddress name status lastSeen connectionType provisioned ipAddress")
       .sort({ lastSeen: -1 });
+
+    const activeDevices = devices.filter(d => d.connectionType === 'direct' || d.provisioned);
 
     res.status(200).json({
       success: true,
-      devices,
-      count: devices.length
+      devices: activeDevices,
+      count: activeDevices.length
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -260,5 +268,11 @@ router.get("/logs/:orgId", verifyToken, async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Device Provisioning Routes (HMAC + Key Generation)
+router.post('/device-provisioning/generate-keys/:orgId', verifyToken, generateDeviceKeys);
+router.post('/device-provisioning/authenticate', authenticateDevice); // No auth needed (device doesn't have token yet)
+router.get('/device-provisioning/copy-secrets/:orgId/:macAddress', verifyToken, getCopyableSecrets);
+router.post('/device-provisioning/verify-server-signature', verifyServerSignature);
 
 export default router;
