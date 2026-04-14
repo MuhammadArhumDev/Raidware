@@ -14,8 +14,11 @@ const useDeviceStore = create((set, get) => ({
   logs: [],
   loading: true,
   _pollInterval: null,
+  _lastSocketTopologyAt: 0, // timestamp of last topology:update received via socket
 
-  // Fetch devices from REST API (real data from MongoDB)
+  // Fetch devices from REST API — used as fallback/initial load.
+  // Does NOT overwrite existing socket-populated nodes with an empty response
+  // to prevent the race: REST starts before device online, completes after socket update.
   fetchDevices: async (orgId, token) => {
     if (!orgId || !token) return;
     try {
@@ -24,11 +27,22 @@ const useDeviceStore = create((set, get) => ({
       });
       if (res.ok) {
         const data = await res.json();
-        const nodesMap = {};
-        (data.devices || []).forEach((device) => {
-          nodesMap[device.mac || device.id] = device;
+        const newDevices = data.devices || [];
+        set((state) => {
+          // Guard: don't let a stale empty REST response wipe out live socket data.
+          // The socket topology:update is the real-time source of truth for going offline.
+          const hasExistingNodes = Object.keys(state.nodes).length > 0;
+          const socketIsRecent = Date.now() - state._lastSocketTopologyAt < 15_000;
+          if (newDevices.length === 0 && hasExistingNodes && socketIsRecent) {
+            console.log('[DeviceStore] REST returned 0 devices but socket recently showed nodes — keeping socket data');
+            return { loading: false };
+          }
+          const nodesMap = {};
+          newDevices.forEach((device) => {
+            nodesMap[device.mac || device.id] = device;
+          });
+          return { nodes: nodesMap, loading: false };
         });
-        set({ nodes: nodesMap, loading: false });
       }
     } catch (err) {
       console.error("[DeviceStore] Failed to fetch devices:", err);
@@ -101,8 +115,8 @@ const useDeviceStore = create((set, get) => ({
       if (macs.length > 0) get().fetchRedisLogs(macs, token);
     }, 2000);
 
-    // Connect socket for real-time push
-    store.connectSocket();
+    // Connect socket for real-time push — pass orgId so it joins the org room
+    store.connectSocket(orgId);
 
     // Poll devices every 15s as fallback — logs come via WebSocket
     if (store._pollInterval) clearInterval(store._pollInterval);
@@ -125,7 +139,7 @@ const useDeviceStore = create((set, get) => ({
     store.disconnectSocket();
   },
 
-  connectSocket: () => {
+  connectSocket: (orgId) => {
     const existingSocket = get().socket;
     if (existingSocket) return;
 
@@ -140,6 +154,16 @@ const useDeviceStore = create((set, get) => ({
 
     newSocket.on("connect", () => {
       console.log("[DeviceStore] Socket connected to", BACKEND_URL);
+      // Join the org room so we receive org-scoped topology:update events
+      if (orgId) {
+        newSocket.emit("join:org", orgId);
+        console.log("[DeviceStore] Joined org room:", orgId);
+      }
+    });
+
+    // Re-join after reconnect (covers disconnects / server restarts)
+    newSocket.on("reconnect", () => {
+      if (orgId) newSocket.emit("join:org", orgId);
     });
 
     newSocket.on("connect_error", (err) => {
@@ -153,7 +177,7 @@ const useDeviceStore = create((set, get) => ({
         data.devices.forEach((device) => {
           nodesMap[device.mac || device.id] = device;
         });
-        set({ nodes: nodesMap, loading: false });
+        set({ nodes: nodesMap, loading: false, _lastSocketTopologyAt: Date.now() });
       }
     });
 

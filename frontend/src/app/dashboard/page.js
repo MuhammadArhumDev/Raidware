@@ -28,11 +28,10 @@ export default function DashboardPage() {
     return () => stopRealtime();
   }, [orgId, token, startRealtime, stopRealtime]);
 
-  // Derive online from lastSeen — device is online if heartbeat within 45 seconds
-  const ONLINE_THRESHOLD = 45_000;
+  // Trust the status field sent by backend (topology endpoint only returns online devices)
   const nodeCount = Object.keys(nodes).length;
   const onlineNodes = Object.values(nodes).filter(
-    (node) => node.lastSeen && (Date.now() - new Date(node.lastSeen).getTime()) < ONLINE_THRESHOLD
+    (node) => node.status === 'online'
   ).length;
 
   useEffect(() => {

@@ -12,6 +12,7 @@ import {
 } from '../services/keyGeneration.service.js';
 import { saveAndAnalyzeLog } from '../services/networkLog.service.js';
 import { emitDeviceUpdate } from '../services/socket.service.js';
+import { publishHeartbeat } from '../services/redisPubSub.service.js';
 
 /**
  * POST /api/device-provisioning/generate-keys/:orgId
@@ -168,18 +169,22 @@ export async function authenticateDevice(req, res) {
     }
     await device.save();
 
-    // Set Redis heartbeat key (90s TTL) immediately on auth
+    // Set Redis heartbeat key (65s TTL) immediately on auth
+    // Key format: device:heartbeat:{mac} — watched by Pub/Sub expiration listener
     await redis.set(
-      `device:${device.macAddress}:heartbeat`,
+      `device:heartbeat:${device.macAddress}`,
       new Date().toISOString(),
       'EX',
-      90
+      65
     );
 
     // Broadcast topology update immediately so dashboard sees device online
     if (device.organizationId) {
-      const devices = await Device.find({ organizationId: device.organizationId });
-      const topology = devices.map(d => ({
+      const onlineDevices = await Device.find({
+        organizationId: device.organizationId,
+        status: 'online'
+      });
+      const topology = onlineDevices.map(d => ({
         id: d._id,
         mac: d.macAddress,
         name: d.name,
@@ -190,7 +195,7 @@ export async function authenticateDevice(req, res) {
         ipAddress: d.ipAddress,
         authenticated: d.provisioned
       }));
-      emitDeviceUpdate('topology:update', { devices: topology });
+      emitDeviceUpdate('topology:update', { devices: topology }, device.organizationId.toString());
     }
 
     console.log(`[Auth] Device ${deviceId} authenticated → status: online`);
@@ -299,54 +304,73 @@ export async function deviceHeartbeat(req, res) {
       return res.status(400).json({ success: false, error: 'deviceId is required' });
     }
 
-    // Build atomic $set update — avoids loading doc + metadata.set() crash
-    const updateFields = {
-      status: status || 'online',
-      lastSeen: new Date()
-    };
-    if (rssi != null) updateFields.rssi = rssi;
-    if (ipAddress) updateFields.ipAddress = ipAddress;
-    if (macAddress) updateFields.macAddress = macAddress;
-    if (freeHeap != null) updateFields['metadata.freeHeap'] = String(freeHeap);
-    if (uptime != null) updateFields['metadata.uptime'] = String(uptime);
-
-    const device = await Device.findOneAndUpdate(
-      { deviceId },
-      { $set: updateFields },
-      { new: true }
-    );
-
+    // Find device first — needed for throttle check and org broadcast
+    const device = await Device.findOne({ deviceId });
     if (!device) {
       return res.status(404).json({ success: false, error: 'Device not found' });
     }
 
-    // Set Redis heartbeat key (90s TTL) so startup watchdog knows device is alive
+    const effectiveMac = macAddress || device.macAddress;
+
+    // ── 1. Refresh Redis heartbeat key (65s TTL) ─────────────────────────────
+    // Key format: device:heartbeat:{mac}  — watched by Pub/Sub expiration listener
     await redis.set(
-      `device:${device.macAddress}:heartbeat`,
+      `device:heartbeat:${effectiveMac}`,
       new Date().toISOString(),
       'EX',
-      90
+      65   // 60s grace + 5s buffer
     );
 
-    // Broadcast topology update to org dashboard via WebSocket
-    if (device.organizationId) {
-      const devices = await Device.find({ organizationId: device.organizationId });
-      const topology = devices.map(d => ({
-        id: d._id,
-        mac: d.macAddress,
-        name: d.name,
-        status: d.status,
-        lastSeen: d.lastSeen,
-        connectionType: d.connectionType,
-        rssi: d.rssi,
-        ipAddress: d.ipAddress,
-        authenticated: d.provisioned
-      }));
-      emitDeviceUpdate('topology:update', { devices: topology });
+    // ── 2. Publish heartbeat event for cross-instance broadcast ──────────────
+    await publishHeartbeat(effectiveMac, status || 'online', rssi, ipAddress).catch(() => {});
+
+    // ── 3. Throttle MongoDB writes: update only every 30s OR on status change ─
+    const now = new Date();
+    const lastUpdate = device.lastSeen;
+    const secondsSinceLastUpdate = lastUpdate ? (now - new Date(lastUpdate)) / 1000 : 60;
+    const wasOffline = device.status !== 'online';
+
+    if (wasOffline || secondsSinceLastUpdate >= 30) {
+      const updateFields = {
+        status: 'online',
+        lastSeen: now,
+      };
+      if (rssi      != null) updateFields.rssi      = rssi;
+      if (ipAddress)         updateFields.ipAddress  = ipAddress;
+      if (macAddress)        updateFields.macAddress = macAddress;
+      if (freeHeap  != null) updateFields['metadata.freeHeap'] = String(freeHeap);
+      if (uptime    != null) updateFields['metadata.uptime']    = String(uptime);
+
+      await Device.findOneAndUpdate({ deviceId }, { $set: updateFields });
+
+      if (wasOffline) {
+        console.log(`[Heartbeat] ${deviceId} came back ONLINE`);
+      }
+
+      // ── 4. Broadcast topology on every DB write so frontend stays in sync ──
+      // (Fires at most once per 30s due to throttle — cheap socket emit)
+      if (device.organizationId) {
+        const onlineDevices = await Device.find({
+          organizationId: device.organizationId,
+          status: 'online',
+        });
+        const topology = onlineDevices.map((d) => ({
+          id:            d._id,
+          mac:           d.macAddress,
+          name:          d.name,
+          status:        d.status,
+          lastSeen:      d.lastSeen,
+          connectionType: d.connectionType,
+          rssi:          d.rssi,
+          ipAddress:     d.ipAddress,
+          authenticated: d.provisioned,
+        }));
+        emitDeviceUpdate('topology:update', { devices: topology });
+      }
     }
 
-    console.log(`[Heartbeat] ${deviceId} → status: ${device.status}, lastSeen: ${device.lastSeen}`);
-    return res.status(200).json({ success: true });
+    console.log(`[Heartbeat] ${deviceId} → online (${secondsSinceLastUpdate.toFixed(0)}s since last DB write)`);
+    return res.status(200).json({ success: true, status: 'online', ttl: 65 });
   } catch (error) {
     console.error('deviceHeartbeat error:', error);
     return res.status(500).json({ success: false, error: error.message });

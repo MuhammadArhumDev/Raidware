@@ -71,6 +71,15 @@ export default function NetworkTopology() {
     const socket = io(BACKEND_URL, {
       transports: ["websocket", "polling"],
     });
+
+    // Join the org room to receive org-scoped topology:update events
+    socket.on("connect", () => {
+      if (orgId) socket.emit("join:org", orgId);
+    });
+    socket.on("reconnect", () => {
+      if (orgId) socket.emit("join:org", orgId);
+    });
+
     socket.on("topology:update", (data) => {
       if (data && data.devices) {
         setDevices(data.devices);
@@ -82,7 +91,7 @@ export default function NetworkTopology() {
       clearInterval(interval);
       socket.disconnect();
     };
-  }, [fetchTopology, BACKEND_URL]);
+  }, [fetchTopology, BACKEND_URL, orgId]);
 
   const getNodeColor = (device) => {
     if (device.status === "offline") return "#6b7280";

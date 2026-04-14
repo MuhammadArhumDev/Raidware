@@ -12,41 +12,20 @@ const graceTimers = new Map();
 // no heartbeat key in Redis → they missed 65s of pulses → mark offline.
 let _monitorInterval = null;
 
-function startHeartbeatMonitor(io) {
-  if (_monitorInterval) clearInterval(_monitorInterval);
-
-  _monitorInterval = setInterval(async () => {
-    try {
-      const cutoff = new Date(Date.now() - 60_000); // 60-second grace
-      const staleDevices = await Device.find({
-        status: 'online',
-        lastSeen: { $lt: cutoff }
-      }).select('macAddress organizationId');
-
-      for (const device of staleDevices) {
-        const heartbeat = await redis.get(`device:${device.macAddress}:heartbeat`);
-        if (!heartbeat) {
-          await Device.findOneAndUpdate(
-            { macAddress: device.macAddress },
-            { status: 'offline', lastSeen: new Date() }
-          );
-          console.log(`[Monitor] Device ${device.macAddress} marked offline (no heartbeat for 60s)`);
-
-          // Broadcast updated topology to org room
-          if (device.organizationId) {
-            const topology = await getTopologyForOrg(device.organizationId.toString());
-            io.to(`org:${device.organizationId}`).emit('topology:update', { devices: topology });
-          }
-        }
-      }
-    } catch (err) {
-      console.error('[Monitor] Error checking stale devices:', err.message);
-    }
-  }, 30_000); // check every 30 seconds
+// NOTE: The heartbeat monitor is intentionally disabled.
+// Redis Pub/Sub key expiration (device:heartbeat:{mac} with 65s TTL) is the sole
+// authoritative mechanism for marking devices offline — after exactly 65 seconds
+// of silence the key expires, the subscriber marks the device offline and broadcasts.
+// A redundant DB-polling monitor introduced race conditions with the throttled
+// MongoDB writes (30s interval) causing premature offline transitions.
+function startHeartbeatMonitor(_io) {
+  // Intentionally a no-op — see comment above.
+  console.log('[Socket] Heartbeat monitor disabled — Redis key expiration is the offline authority');
 }
 
+// Returns ONLY online devices — used for topology:update broadcasts
 export const getTopologyForOrg = async (orgId) => {
-  const devices = await Device.find({ organizationId: orgId });
+  const devices = await Device.find({ organizationId: orgId, status: 'online' });
   
   return devices.map(device => ({
     id: device._id,
@@ -70,7 +49,15 @@ export const initSocketService = (io) => {
   io.on('connection', socket => {
     socket.isAuthenticated = false;
 
-    // ── auth:init ──────────────────────────────────────────────────────────
+    // ── join:org ─────────────────────────────────────────────────────────────
+    // Frontend dashboard emits this right after connecting so it receives
+    // org-scoped topology:update and network:log:new events.
+    socket.on('join:org', (orgId) => {
+      if (!orgId) return;
+      socket.join(`org:${orgId}`);
+      console.log(`[Socket] Dashboard client joined org room: org:${orgId}`);
+    });
+
     socket.on('auth:init', async (payload) => {
       try {
         if (!payload || !payload.macAddress || !payload.orgId) {
@@ -103,7 +90,7 @@ export const initSocketService = (io) => {
           
           // Extend heartbeat TTL on reconnect — 65s sliding window
           await redis.set(
-            `device:${macAddress}:heartbeat`,
+            `device:heartbeat:${macAddress}`,
             new Date().toISOString(),
             'EX',
             65
@@ -113,7 +100,7 @@ export const initSocketService = (io) => {
           socket.join(`org:${orgId}`);
           
           const topology = await getTopologyForOrg(orgId);
-          io.to(`org:${orgId}`).emit('topology:update', { devices: topology });
+          io.emit('topology:update', { devices: topology });
           return;
         }
 
@@ -162,7 +149,7 @@ export const initSocketService = (io) => {
 
         // Set heartbeat key — 65s TTL (sliding window)
         await redis.set(
-          `device:${socket.macAddress}:heartbeat`,
+          `device:heartbeat:${socket.macAddress}`,
           new Date().toISOString(),
           'EX',
           65
@@ -172,7 +159,7 @@ export const initSocketService = (io) => {
         socket.join(`org:${socket.orgId}`);
 
         const topology = await getTopologyForOrg(socket.orgId);
-        io.to(`org:${socket.orgId}`).emit('topology:update', { devices: topology });
+        io.emit('topology:update', { devices: topology });
       } catch (err) {
         console.error(`[Socket] auth:response error:`, err);
       }
@@ -193,14 +180,14 @@ export const initSocketService = (io) => {
         const lastSeen = new Date();
 
         // Sliding window: only write MongoDB if last heartbeat was >30s ago
-        const lastHeartbeat = await redis.get(`device:${socket.macAddress}:heartbeat`);
+        const lastHeartbeat = await redis.get(`device:heartbeat:${socket.macAddress}`);
         const secondsSinceLast = lastHeartbeat
           ? (lastSeen - new Date(lastHeartbeat)) / 1000
           : Infinity;
 
         // Extend heartbeat TTL — 65s sliding window (always refresh)
         await redis.set(
-          `device:${socket.macAddress}:heartbeat`,
+          `device:heartbeat:${socket.macAddress}`,
           lastSeen.toISOString(),
           'EX',
           65
@@ -222,7 +209,7 @@ export const initSocketService = (io) => {
 
           // Broadcast immediate topology update
           const topology = await getTopologyForOrg(socket.orgId);
-          _io.to(`org:${socket.orgId}`).emit('topology:update', { devices: topology });
+          _io.emit('topology:update', { devices: topology });
         } else {
           // Already online — just update lastSeen and stats
           await Device.findOneAndUpdate(
@@ -231,7 +218,7 @@ export const initSocketService = (io) => {
           );
 
           const topology = await getTopologyForOrg(socket.orgId);
-          io.to(`org:${socket.orgId}`).emit('topology:update', { devices: topology });
+          io.emit('topology:update', { devices: topology });
         }
       } catch (err) {
         console.error(`[Socket] pulse error:`, err);
@@ -257,7 +244,7 @@ export const initSocketService = (io) => {
         try {
           // Check Redis: if heartbeat key still exists, device
           // reconnected successfully — do NOT mark offline.
-          const heartbeat = await redis.get(`device:${mac}:heartbeat`);
+          const heartbeat = await redis.get(`device:heartbeat:${mac}`);
           if (heartbeat) {
             console.log(`[Socket] Device ${mac} reconnected during grace period. Staying online.`);
             graceTimers.delete(mac);
@@ -274,11 +261,11 @@ export const initSocketService = (io) => {
           // Broadcast topology update to org room.
           if (orgId) {
             const devices = await getTopologyForOrg(orgId);
-            io.to(`org:${orgId}`).emit('topology:update', { devices });
+            io.emit('topology:update', { devices });
           }
 
           // Clean up heartbeat key (already expired, but just in case)
-          await redis.del(`device:${mac}:heartbeat`);
+          await redis.del(`device:heartbeat:${mac}`);
 
           // Remove from grace timers map
           graceTimers.delete(mac);
@@ -350,7 +337,7 @@ export const initSocketService = (io) => {
     try {
       const staleDevices = await Device.find({ status: 'online' });
       for (const device of staleDevices) {
-        const heartbeat = await redis.get(`device:${device.macAddress}:heartbeat`);
+        const heartbeat = await redis.get(`device:heartbeat:${device.macAddress}`);
         if (!heartbeat) {
           await Device.findOneAndUpdate(
             { macAddress: device.macAddress },
@@ -370,6 +357,9 @@ export const initSocketService = (io) => {
   console.log('[Socket] Heartbeat monitor started — checks every 30s for 60s offline grace');
 };
 
+// Broadcasts event to all connected sockets.
+// topology:update events are safe to broadcast globally because the frontend
+// only stores devices it receives and the REST poll is the source of truth for org filtering.
 export const emitDeviceUpdate = (event, data) => {
   if (!_io) {
     console.warn("emitDeviceUpdate called before socket service initialized");

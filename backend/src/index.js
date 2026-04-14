@@ -17,7 +17,8 @@ import { errorHandler } from "./middleware/error.middleware.js";
 import { initSocketService } from "./services/socket.service.js";
 import { Server } from "socket.io";
 import { syncDeviceHashes } from "./services/deviceAuth.service.js";
-import "./config/redis.js";
+import redis from "./config/redis.js";
+import { initRedisPubSub } from "./services/redisPubSub.service.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -73,6 +74,13 @@ const start = async () => {
       cors: { origin: "*", methods: ["GET", "POST"] },
     });
     initSocketService(io);
+
+    // Make io and redis available to all route handlers via req.app.get()
+    app.set('io', io);
+    app.set('redis', redis);
+
+    // Initialize Redis Pub/Sub for device heartbeat monitoring
+    await initRedisPubSub(io);
 
     await syncDeviceHashes();
 
