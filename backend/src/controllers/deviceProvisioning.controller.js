@@ -167,12 +167,9 @@ export async function authenticateDevice(req, res) {
 
     return res.status(200).json({
       success: true,
-      authenticated: true,
       token,
-      deviceId,
       connectionType: 'direct',
-      expiresIn: '7d',
-      message: 'Device authenticated directly with server. Use token in subsequent requests.'
+      expiresIn: '7d'
     });
   } catch (error) {
     console.error('authenticateDevice error:', error);

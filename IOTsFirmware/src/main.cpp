@@ -74,7 +74,7 @@ bool authenticateWithServer() {
   String signature = generateHmacSignature(message, String(SHARED_SECRET));
 
   // Create JSON payload
-  StaticJsonDocument<512> doc;
+  DynamicJsonDocument doc(512);
   doc["deviceId"] = DEVICE_ID;
   doc["macAddress"] = WiFi.macAddress();
   doc["timestamp"] = timestamp;
@@ -98,7 +98,7 @@ bool authenticateWithServer() {
 
   if (httpCode == 200) {
     String response = http.getString();
-    StaticJsonDocument<1024> responseDoc;
+    DynamicJsonDocument responseDoc(1024);
     DeserializationError error = deserializeJson(responseDoc, response);
 
     if (!error) {
