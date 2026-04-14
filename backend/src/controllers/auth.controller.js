@@ -6,10 +6,11 @@ import {
 } from "../utils/generateToken.js";
 import config from "../config/index.js";
 import Organization from "../models/Organization.js";
+import jwt from "jsonwebtoken";
 
 export async function register(req, res, next) {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, organizationName } = req.body;
     const exists = await User.findOne({ email });
     if (exists)
       return sendResponse(res, 400, false, "Email already registered");
@@ -18,18 +19,27 @@ export async function register(req, res, next) {
     let orgId = null;
 
     if (userRole !== "admin") {
-      let org = await Organization.findOne({ email });
-      if (!org) {
-        org = new Organization({ name, email });
-        await org.save();
-      }
+      const org = await Organization.create({
+        name: organizationName || name || email,
+        email: email,
+        status: "active",
+      });
       orgId = org._id;
     }
 
-    const user = new User({ name, email, password, role: userRole, organizationId: orgId });
-    await user.save();
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role: userRole,
+      organizationId: orgId,
+    });
 
-    const accessToken = generateAccessToken({ id: user._id, role: user.role, organizationId: orgId });
+    const accessToken = generateAccessToken({
+      id: user._id,
+      role: user.role,
+      organizationId: orgId,
+    });
     const refreshToken = generateRefreshToken({ id: user._id });
 
     user.refreshTokens.push({ token: refreshToken });
@@ -45,7 +55,7 @@ export async function register(req, res, next) {
     return sendResponse(res, 201, true, "User registered", {
       accessToken,
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -67,16 +77,15 @@ export async function login(req, res, next) {
     const match = await user.comparePassword(password);
     if (!match) return sendResponse(res, 401, false, "Invalid credentials");
 
-    let orgId = user.organizationId;
-    if (!orgId && user.role !== "admin") {
-      const org = await Organization.findOne({ email: user.email });
-      if (org) {
-        orgId = org._id;
-        user.organizationId = orgId;
-      }
-    }
-
-    const accessToken = generateAccessToken({ id: user._id, role: user.role, organizationId: orgId });
+    const accessToken = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+        organizationId: user.organizationId || null,
+      },
+      config.jwt.accessSecret,
+      { expiresIn: config.jwt.accessExpire },
+    );
     const refreshToken = generateRefreshToken({ id: user._id });
 
     user.refreshTokens.push({ token: refreshToken });
@@ -108,17 +117,17 @@ export async function login(req, res, next) {
     console.log("Login Successful for:", user.email, "Role:", user.role);
     console.log(
       "Cookies set: refreshToken,",
-      user.role === "admin" ? "admin_token" : "organization_token"
+      user.role === "admin" ? "admin_token" : "organization_token",
     );
 
     return sendResponse(res, 200, true, "Logged in", {
       accessToken,
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
-        organizationId: orgId,
+        organizationId: user.organizationId || null,
       },
     });
   } catch (err) {
@@ -145,7 +154,7 @@ export async function refreshToken(req, res, next) {
               }
 
               const foundToken = user.refreshTokens.find(
-                (rt) => rt.token === token
+                (rt) => rt.token === token,
               );
 
               if (!foundToken) {
@@ -156,7 +165,7 @@ export async function refreshToken(req, res, next) {
                   res,
                   403,
                   false,
-                  "Refresh token reused. Security alert: Please login again."
+                  "Refresh token reused. Security alert: Please login again.",
                 );
               }
 
@@ -168,7 +177,7 @@ export async function refreshToken(req, res, next) {
               const newRefresh = generateRefreshToken({ id: user._id });
 
               user.refreshTokens = user.refreshTokens.filter(
-                (rt) => rt.token !== token
+                (rt) => rt.token !== token,
               );
               user.refreshTokens.push({ token: newRefresh });
               await user.save();
@@ -230,7 +239,7 @@ export async function logout(req, res, next) {
                 return sendResponse(res, 200, true, "Logged out");
               }
               user.refreshTokens = user.refreshTokens.filter(
-                (rt) => rt.token !== token
+                (rt) => rt.token !== token,
               );
               await user.save();
               res.clearCookie(config.cookie.refreshTokenName, cookieOptions);
@@ -249,32 +258,19 @@ export async function logout(req, res, next) {
 }
 
 export async function me(req, res, next) {
-  console.log('[AuthMe] Controller hit');
   try {
-    console.log('[AuthMe] About to query DB');
     const user = await User.findById(req.user.id)
       .select("-password")
       .maxTimeMS(4000);
-    console.log('[AuthMe] DB returned');
     if (!user) return sendResponse(res, 404, false, "User not found");
-
-    let orgId = user.organizationId;
-    if (!orgId && user.role !== "admin") {
-      const org = await Organization.findOne({ email: user.email });
-      if (org) {
-        orgId = org._id;
-        user.organizationId = orgId;
-        await user.save();
-      }
-    }
-
-    console.log('[AuthMe] Sending response');
-    return sendResponse(res, 200, true, "User profile", { 
+    return sendResponse(res, 200, true, "User profile", {
       user: {
-        ...user.toObject(),
-        id: user._id,
-        organizationId: orgId,
-      }
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        organizationId: user.organizationId || null,
+      },
     });
   } catch (err) {
     next(err);
