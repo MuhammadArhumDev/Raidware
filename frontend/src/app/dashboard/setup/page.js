@@ -1,12 +1,21 @@
-'use client';
+"use client";
 
-import DashboardLayout from '@/components/Dashboard/DashboardLayout';
-import { useState } from 'react';
-import useAuthStore from '@/store/useAuthStore';
-import { 
-  Network, Shield, Wifi, Save, Loader2, CheckCircle, 
-  Copy, PlusCircle, AlertCircle, FileCode, Info 
-} from 'lucide-react';
+import DashboardLayout from "@/components/Dashboard/DashboardLayout";
+import { useState, useEffect } from "react";
+import useAuthStore from "@/store/useAuthStore";
+import {
+  Network,
+  Shield,
+  Wifi,
+  Save,
+  Loader2,
+  CheckCircle,
+  Copy,
+  PlusCircle,
+  AlertCircle,
+  FileCode,
+  Info,
+} from "lucide-react";
 
 export default function SetupPage() {
   const user = useAuthStore((state) => state.user);
@@ -15,10 +24,10 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [networkConfig, setNetworkConfig] = useState({
-    networkName: '',
-    encryptionType: 'AES-256',
+    networkName: "",
+    encryptionType: "AES-256",
     mutualAuth: true,
-    sensorTypes: ['temperature', 'humidity', 'pressure', 'motion'],
+    sensorTypes: ["temperature", "humidity", "pressure", "motion"],
   });
 
   // Provisioning state
@@ -29,6 +38,58 @@ export default function SetupPage() {
   const [secretsTemplate, setSecretsTemplate] = useState("");
   const [copiedId, setCopiedId] = useState(false);
   const [copiedSecrets, setCopiedSecrets] = useState(false);
+  const [fetchedOrgId, setFetchedOrgId] = useState("");
+
+  // Debug: Log auth store state on every render
+  console.log("Debug [SetupPage] Render — user:", user);
+  console.log("Debug [SetupPage] Render — token present:", !!token);
+  console.log("Debug [SetupPage] Render — user.organizationId from store:", user?.organizationId);
+  console.log("Debug [SetupPage] Render — NEXT_PUBLIC_BACKEND_URL env:", process.env.NEXT_PUBLIC_BACKEND_URL);
+
+  useEffect(() => {
+    const fetchOrgId = async () => {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+      const fullUrl = `${backendUrl}/api/auth/me`;
+      console.log("Debug [fetchOrgId] Backend URL:", backendUrl);
+      console.log("Debug [fetchOrgId] Full request URL:", fullUrl);
+      console.log("Debug [fetchOrgId] Token (first 20 chars):", token?.substring(0, 20) + "...");
+
+      try {
+        const res = await fetch(fullUrl, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log("Debug [fetchOrgId] Response status:", res.status);
+        const data = await res.json();
+        console.log("Debug [fetchOrgId] Response body:", JSON.stringify(data, null, 2));
+
+        if (res.ok && data?.data?.user?.organizationId) {
+          console.log("Debug [fetchOrgId] SUCCESS — Organization ID:", data.data.user.organizationId);
+          setFetchedOrgId(data.data.user.organizationId);
+        } else {
+          console.warn("Debug [fetchOrgId] FAILED — No organization ID in response. res.ok:", res.ok);
+        }
+      } catch (err) {
+        console.error("Debug [fetchOrgId] NETWORK ERROR:", err.message);
+        console.error("Debug [fetchOrgId] This usually means the backend URL is wrong or unreachable.");
+      }
+    };
+
+    if (token) {
+      console.log("Debug [SetupPage useEffect] Token exists, calling fetchOrgId...");
+      fetchOrgId();
+    } else {
+      console.warn("Debug [SetupPage useEffect] No token available — skipping fetch");
+    }
+  }, [token]);
+
+  // Use the fetched org ID or fallback to the user store
+  const displayOrgId = fetchedOrgId || user?.organizationId || "";
+  console.log("Debug [SetupPage] displayOrgId resolved to:", displayOrgId);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -52,19 +113,22 @@ export default function SetupPage() {
     setSecretsTemplate("");
 
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
+      const backendUrl =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
       const res = await fetch(`${backendUrl}/api/devices/provision`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           macAddress,
-          orgId: user?.organizationId,
-          deviceName
-        })
+          orgId: displayOrgId,
+          deviceName,
+        }),
       });
+
+      console.log(res);
 
       const data = await res.json();
       if (!res.ok) {
@@ -92,7 +156,8 @@ export default function SetupPage() {
             Network Setup
           </h1>
           <p className="text-gray-600">
-            Configure your IoT network with mutual authentication and strong encryption
+            Configure your IoT network with mutual authentication and strong
+            encryption
           </p>
         </div>
 
@@ -100,22 +165,30 @@ export default function SetupPage() {
         <div className="bg-indigo-50 border-[1.5px] border-indigo-100 rounded-none p-6 shadow-sm">
           <div className="flex justify-between items-start">
             <div>
-              <h2 className="text-lg font-bold text-indigo-900 mb-1">Your Organization ID</h2>
-              <p className="text-indigo-700 text-sm mb-3">Use this ID when provisioning devices manually.</p>
+              <h2 className="text-lg font-bold text-indigo-900 mb-1">
+                Your Organization ID
+              </h2>
+              <p className="text-indigo-700 text-sm mb-3">
+                Use this ID when provisioning devices manually.
+              </p>
               <div className="flex items-center gap-2">
                 <code className="bg-white px-3 py-1.5 rounded-md text-indigo-900 font-mono text-sm border border-indigo-200">
-                  {user?.organizationId || "Not assigned"}
+                  {displayOrgId || "Not assigned"}
                 </code>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(user?.organizationId || "");
+                    navigator.clipboard.writeText(displayOrgId || "");
                     setCopiedId(true);
                     setTimeout(() => setCopiedId(false), 2000);
                   }}
                   className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors"
                   title="Copy to clipboard"
                 >
-                  {copiedId ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                  {copiedId ? (
+                    <CheckCircle className="w-5 h-5" />
+                  ) : (
+                    <Copy className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -141,7 +214,12 @@ export default function SetupPage() {
                 <input
                   type="text"
                   value={networkConfig.networkName}
-                  onChange={(e) => setNetworkConfig({ ...networkConfig, networkName: e.target.value })}
+                  onChange={(e) =>
+                    setNetworkConfig({
+                      ...networkConfig,
+                      networkName: e.target.value,
+                    })
+                  }
                   required
                   className="w-full px-4 py-2 border-[1.5px] border-gray-300 rounded-none bg-white text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   placeholder="My IoT Network"
@@ -154,7 +232,12 @@ export default function SetupPage() {
                 </label>
                 <select
                   value={networkConfig.encryptionType}
-                  onChange={(e) => setNetworkConfig({ ...networkConfig, encryptionType: e.target.value })}
+                  onChange={(e) =>
+                    setNetworkConfig({
+                      ...networkConfig,
+                      encryptionType: e.target.value,
+                    })
+                  }
                   className="w-full px-4 py-2 border-[1.5px] border-gray-300 rounded-none bg-white text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 >
                   <option value="AES-256">AES-256 (Recommended)</option>
@@ -181,7 +264,9 @@ export default function SetupPage() {
             <div className="space-y-4">
               <label className="flex items-center justify-between p-4 border-[1.5px] border-gray-200 rounded-none cursor-pointer hover:bg-gray-50">
                 <div>
-                  <p className="font-medium text-gray-900">Mutual Authentication</p>
+                  <p className="font-medium text-gray-900">
+                    Mutual Authentication
+                  </p>
                   <p className="text-sm text-gray-600">
                     Enable two-way authentication between devices and gateway
                   </p>
@@ -189,14 +274,21 @@ export default function SetupPage() {
                 <input
                   type="checkbox"
                   checked={networkConfig.mutualAuth}
-                  onChange={(e) => setNetworkConfig({ ...networkConfig, mutualAuth: e.target.checked })}
+                  onChange={(e) =>
+                    setNetworkConfig({
+                      ...networkConfig,
+                      mutualAuth: e.target.checked,
+                    })
+                  }
                   className="w-5 h-5 text-indigo-600 rounded-none"
                 />
               </label>
 
               <label className="flex items-center justify-between p-4 border-[1.5px] border-gray-200 rounded-none cursor-pointer hover:bg-gray-50">
                 <div>
-                  <p className="font-medium text-gray-900">Intrusion Detection System (IDS)</p>
+                  <p className="font-medium text-gray-900">
+                    Intrusion Detection System (IDS)
+                  </p>
                   <p className="text-sm text-gray-600">
                     Monitor network for attacks and unauthorized access
                   </p>
@@ -210,7 +302,9 @@ export default function SetupPage() {
 
               <label className="flex items-center justify-between p-4 border-[1.5px] border-gray-200 rounded-none cursor-pointer hover:bg-gray-50">
                 <div>
-                  <p className="font-medium text-gray-900">MAC Address Whitelisting</p>
+                  <p className="font-medium text-gray-900">
+                    MAC Address Whitelisting
+                  </p>
                   <p className="text-sm text-gray-600">
                     Only allow pre-approved devices to connect
                   </p>
@@ -237,8 +331,18 @@ export default function SetupPage() {
               <div className="p-4 border-[1.5px] border-gray-200 rounded-none">
                 <p className="font-medium text-gray-900 mb-3">Sensor Types</p>
                 <div className="grid grid-cols-2 gap-3">
-                  {['temperature', 'humidity', 'pressure', 'motion', 'light', 'sound'].map((type) => (
-                    <label key={type} className="flex items-center gap-2 cursor-pointer">
+                  {[
+                    "temperature",
+                    "humidity",
+                    "pressure",
+                    "motion",
+                    "light",
+                    "sound",
+                  ].map((type) => (
+                    <label
+                      key={type}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
                       <input
                         type="checkbox"
                         checked={networkConfig.sensorTypes.includes(type)}
@@ -251,13 +355,17 @@ export default function SetupPage() {
                           } else {
                             setNetworkConfig({
                               ...networkConfig,
-                              sensorTypes: networkConfig.sensorTypes.filter(t => t !== type),
+                              sensorTypes: networkConfig.sensorTypes.filter(
+                                (t) => t !== type,
+                              ),
                             });
                           }
                         }}
                         className="w-4 h-4 text-indigo-600 rounded-none"
                       />
-                      <span className="text-sm text-gray-700 capitalize">{type}</span>
+                      <span className="text-sm text-gray-700 capitalize">
+                        {type}
+                      </span>
                     </label>
                   ))}
                 </div>
@@ -338,7 +446,7 @@ export default function SetupPage() {
                 <input
                   type="text"
                   readOnly
-                  value={user?.organizationId || ""}
+                  value={displayOrgId}
                   className="w-full px-4 py-2 border-[1.5px] border-gray-200 rounded-none bg-gray-50 text-gray-500 cursor-not-allowed"
                 />
               </div>
@@ -386,12 +494,17 @@ export default function SetupPage() {
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm font-medium transition-colors"
                 >
-                  {copiedSecrets ? <CheckCircle className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                  {copiedSecrets ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
                   {copiedSecrets ? "Copied!" : "Copy to Clipboard"}
                 </button>
               </div>
               <p className="text-sm text-gray-600 mb-4">
-                Replace the existing identity section in Secrets.h with the content below, then reflash your ESP32.
+                Replace the existing identity section in Secrets.h with the
+                content below, then reflash your ESP32.
               </p>
               <div className="relative mb-6">
                 <pre className="bg-gray-900 text-gray-100 p-4 rounded-md overflow-x-auto text-sm font-mono whitespace-pre-wrap break-all">
@@ -403,17 +516,52 @@ export default function SetupPage() {
               <div className="bg-blue-50 border border-blue-200 rounded-md p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Info className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-semibold text-blue-900">How to Flash Your Device</h3>
+                  <h3 className="font-semibold text-blue-900">
+                    How to Flash Your Device
+                  </h3>
                 </div>
                 <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800 ml-1">
                   <li>Open your firmware project in VS Code with PlatformIO</li>
-                  <li>Open the file: <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">IOTs Firmware/include/Secrets.h</code></li>
-                  <li>Find the identity section (<code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">DEVICE_SHARED_SECRET</code>, <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">DEVICE_MAC</code>, <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">DEVICE_ORG_ID</code>)</li>
+                  <li>
+                    Open the file:{" "}
+                    <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">
+                      IOTs Firmware/include/Secrets.h
+                    </code>
+                  </li>
+                  <li>
+                    Find the identity section (
+                    <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">
+                      DEVICE_SHARED_SECRET
+                    </code>
+                    ,{" "}
+                    <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">
+                      DEVICE_MAC
+                    </code>
+                    ,{" "}
+                    <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">
+                      DEVICE_ORG_ID
+                    </code>
+                    )
+                  </li>
                   <li>Replace that section with the generated code above</li>
                   <li>Connect your ESP32 via USB</li>
-                  <li>Click <strong>Upload</strong> in PlatformIO (→ button) or run: <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">pio run --target upload</code></li>
-                  <li>Open Serial Monitor (115200 baud) and watch for: <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900 font-bold">[Auth] SUCCESS</code></li>
-                  <li>Return to the Network Topology page to see your device appear</li>
+                  <li>
+                    Click <strong>Upload</strong> in PlatformIO (→ button) or
+                    run:{" "}
+                    <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900">
+                      pio run --target upload
+                    </code>
+                  </li>
+                  <li>
+                    Open Serial Monitor (115200 baud) and watch for:{" "}
+                    <code className="bg-blue-100 px-1.5 py-0.5 rounded text-blue-900 font-bold">
+                      [Auth] SUCCESS
+                    </code>
+                  </li>
+                  <li>
+                    Return to the Network Topology page to see your device
+                    appear
+                  </li>
                 </ol>
               </div>
             </div>
