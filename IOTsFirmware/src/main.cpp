@@ -98,7 +98,7 @@ bool authenticateWithServer() {
 
   if (httpCode == 200) {
     String response = http.getString();
-    StaticJsonDocument<512> responseDoc;
+    StaticJsonDocument<1024> responseDoc;
     DeserializationError error = deserializeJson(responseDoc, response);
 
     if (!error) {

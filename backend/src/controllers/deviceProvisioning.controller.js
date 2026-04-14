@@ -117,7 +117,7 @@ export async function authenticateDevice(req, res) {
     }
 
     // Find device by deviceId
-    const device = await Device.findOne({ deviceId, macAddress });
+    const device = await Device.findOne({ deviceId });
     if (!device) {
       return res.status(404).json({
         success: false,
@@ -160,6 +160,9 @@ export async function authenticateDevice(req, res) {
     device.connectionType = 'direct';
     device.lastSeen = new Date();
     device.ipAddress = req.ip || req.connection.remoteAddress;
+    if (device.macAddress !== macAddress) {
+      device.macAddress = macAddress;
+    }
     await device.save();
 
     return res.status(200).json({

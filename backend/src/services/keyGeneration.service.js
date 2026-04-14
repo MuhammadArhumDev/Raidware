@@ -41,7 +41,7 @@ export function generateHashedId(deviceId) {
  */
 export function generateHmacSignature(sharedSecret, message) {
   return crypto
-    .createHmac('sha256', sharedSecret)
+    .createHmac('sha256', Buffer.from(sharedSecret, 'hex'))
     .update(message)
     .digest('hex');
 }
@@ -77,8 +77,10 @@ export function generateProvisioningToken() {
  */
 export function createDeviceJWT(deviceId, serverPrivateKey, expiresIn = '7d') {
   const payload = { deviceId, type: 'device' };
-  return jwt.sign(payload, serverPrivateKey, {
-    algorithm: 'EdDSA', // Matches Ed25519
+  // jsonwebtoken does not support EdDSA. Using HS256 with global secret ensures compatibility with auth.middleware.js
+  const secret = process.env.JWT_ACCESS_SECRET || 'VeryStrongJwtSecretForRaidware';
+  return jwt.sign(payload, secret, {
+    algorithm: 'HS256',
     expiresIn
   });
 }
@@ -88,7 +90,8 @@ export function createDeviceJWT(deviceId, serverPrivateKey, expiresIn = '7d') {
  */
 export function verifyDeviceJWT(token, serverPublicKey) {
   try {
-    return jwt.verify(token, serverPublicKey, { algorithms: ['EdDSA'] });
+    const secret = process.env.JWT_ACCESS_SECRET || 'VeryStrongJwtSecretForRaidware';
+    return jwt.verify(token, secret, { algorithms: ['HS256'] });
   } catch (error) {
     return null;
   }
