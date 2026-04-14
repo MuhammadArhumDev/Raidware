@@ -63,10 +63,10 @@ const useDeviceStore = create((set, get) => ({
   _pollInterval: null,
   _lastSocketTopologyAt: 0,
 
-  // Fetch devices from REST API — used as fallback/initial load.
-  // Also resets liveness timers for every online device returned.
-  // Devices with an active liveness timer are kept as online even if the REST
-  // response doesn't include them (they're still live within the 60s window).
+  // Fetch devices from REST API — display/fallback only.
+  // Does NOT reset liveness timers — only socket topology:update events are
+  // authoritative for heartbeat liveness. REST resetting timers caused devices
+  // to stay in stale/yellow indefinitely (never transitioning to offline).
   fetchDevices: async (orgId, token) => {
     if (!orgId || !token) return;
     try {
@@ -77,20 +77,21 @@ const useDeviceStore = create((set, get) => ({
         const data = await res.json();
         const newDevices = data.devices || [];
 
-        // Reset liveness timers for every online device the REST confirms
-        newDevices.forEach((device) => {
-          const mac = device.mac || device.id;
-          if (device.status === "online") {
-            resetLivenessTimer(mac, set);
-          }
-        });
-
         set((state) => {
           // MERGE — never replace the whole map.
-          // Devices with active liveness timers stay visible even if REST omits them.
+          // Prefer the fresher lastSeen: keep socket-stamped value if it's newer
+          // than what MongoDB returned (avoids stale DB timestamp overwriting fresh UI value).
           const merged = { ...state.nodes };
           newDevices.forEach((device) => {
-            merged[device.mac || device.id] = device;
+            const mac = device.mac || device.id;
+            const existing = merged[mac];
+            const existingTs = existing?.lastSeen ? new Date(existing.lastSeen).getTime() : 0;
+            const incomingTs = device.lastSeen  ? new Date(device.lastSeen).getTime()  : 0;
+            merged[mac] = {
+              ...device,
+              // Keep the fresher lastSeen so socket-stamped "now" isn't overwritten
+              lastSeen: existingTs > incomingTs ? existing.lastSeen : device.lastSeen,
+            };
           });
           return { nodes: merged, loading: false };
         });
@@ -211,26 +212,28 @@ const useDeviceStore = create((set, get) => ({
     });
 
     // ── topology:update ───────────────────────────────────────────────────────
-    // MERGE strategy: online devices are added/updated and their 60s timers are
-    // reset. Devices NOT in this payload are left untouched — the liveness timer
-    // is the SOLE authority for marking a device offline. This prevents spurious
-    // empty topology broadcasts from wiping live devices off the dashboard.
+    // Liveness timer is the SOLE authority for offline transitions.
+    // Order: (1) merge MongoDB data, (2) stamp lastSeen=now via resetLivenessTimer.
+    // This ensures the fresh timestamp wins over MongoDB's 30s-throttled value,
+    // so the 45s stale threshold gives exactly 15s of yellow before 60s offline.
     newSocket.on("topology:update", (data) => {
       if (data && data.devices) {
-        data.devices.forEach((device) => {
-          const mac = device.mac || device.id;
-          if (device.status === "online") {
-            resetLivenessTimer(mac, set);
-          }
-        });
-
+        // Step 1: merge MongoDB data into nodes
         set((state) => {
-          // Merge: update/add devices from payload, keep everything else
           const merged = { ...state.nodes };
           data.devices.forEach((device) => {
             merged[device.mac || device.id] = device;
           });
           return { nodes: merged, loading: false, _lastSocketTopologyAt: Date.now() };
+        });
+
+        // Step 2: for each online device, reset the 60s timer AND stamp lastSeen=now
+        // (runs after the merge so the fresh timestamp overwrites MongoDB's stale value)
+        data.devices.forEach((device) => {
+          const mac = device.mac || device.id;
+          if (device.status === "online") {
+            resetLivenessTimer(mac, set);
+          }
         });
       }
     });

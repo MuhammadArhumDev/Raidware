@@ -19,7 +19,8 @@ function getRelativeTime(date) {
 
 function nodeColor(device) {
   if (device.status === "online") {
-    const stale = Date.now() - new Date(device.lastSeen).getTime() > 60_000;
+    // Stale at 45s — gives a 15s yellow warning before the 60s liveness timer fires
+    const stale = Date.now() - new Date(device.lastSeen).getTime() > 45_000;
     return stale ? "#eab308" : "#22c55e";
   }
   if (device.status === "pending") return "#eab308";
