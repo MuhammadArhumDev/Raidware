@@ -17,12 +17,24 @@ function resetLivenessTimer(mac, setState) {
     clearTimeout(_livenessTimers.get(mac));
   }
 
+  // Stamp lastSeen = now in the UI so the display stays fresh even though
+  // MongoDB only writes every 30s (throttled). This is purely a display update.
+  setState((state) => {
+    if (!state.nodes[mac]) return {};
+    return {
+      nodes: {
+        ...state.nodes,
+        [mac]: { ...state.nodes[mac], lastSeen: new Date().toISOString() },
+      },
+    };
+  });
+
   // Start a fresh 60-second countdown
   const id = setTimeout(() => {
     _livenessTimers.delete(mac);
     console.log(`[DeviceStore] Liveness timer expired for ${mac} — no heartbeat in 60s, marking offline`);
     setState((state) => {
-      if (!state.nodes[mac]) return {}; // device already removed
+      if (!state.nodes[mac]) return {};
       return {
         nodes: {
           ...state.nodes,
