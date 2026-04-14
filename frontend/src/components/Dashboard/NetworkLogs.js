@@ -16,6 +16,7 @@ export default function NetworkLogs() {
   const [selectedType, setSelectedType] = useState('all');
 
   const orgId = user?.organizationId || user?.id;
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
   const fetchLogs = useCallback(async (isAlertsOnly) => {
     if (!orgId) return;
@@ -23,9 +24,9 @@ export default function NetworkLogs() {
     setError(null);
     try {
       const url = isAlertsOnly
-        ? `/api/devices/logs/${orgId}/alerts?limit=50`
-        : `/api/devices/logs/${orgId}?limit=50`;
-      const res = await fetch(process.env.NEXT_PUBLIC_BACKEND_URL + url, {
+        ? `${BACKEND_URL}/api/devices/logs/${orgId}/alerts?limit=50`
+        : `${BACKEND_URL}/api/devices/logs/${orgId}?limit=50`;
+      const res = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -42,7 +43,7 @@ export default function NetworkLogs() {
     } finally {
       setLoading(false);
     }
-  }, [orgId, token]);
+  }, [orgId, token, BACKEND_URL]);
 
   useEffect(() => {
     fetchLogs(alertsOnly);
@@ -142,7 +143,7 @@ export default function NetworkLogs() {
   const cleanCount = filteredLogs.filter(l => l.action === "ALLOW").length;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-none shadow-sm border-[1.5px] border-gray-200 p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Network Logs</h2>
@@ -151,7 +152,7 @@ export default function NetworkLogs() {
         <div className="mt-4 sm:mt-0 flex gap-2">
           <button
             onClick={() => handleFilterChange(false)}
-            className={`px-4 py-2 text-sm font-medium rounded-md border ${
+            className={`px-4 py-2 text-sm font-medium rounded-none border ${
               !alertsOnly
                 ? "bg-indigo-600 text-white border-indigo-600"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
@@ -161,7 +162,7 @@ export default function NetworkLogs() {
           </button>
           <button
             onClick={() => handleFilterChange(true)}
-            className={`px-4 py-2 text-sm font-medium rounded-md border ${
+            className={`px-4 py-2 text-sm font-medium rounded-none border ${
               alertsOnly
                 ? "bg-indigo-600 text-white border-indigo-600"
                 : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
@@ -173,19 +174,19 @@ export default function NetworkLogs() {
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100 text-center">
+        <div className="bg-gray-50 rounded-none p-4 border border-gray-100 text-center">
           <p className="text-gray-500 text-xs font-medium mb-1">Total Logs</p>
           <p className="text-xl font-bold text-gray-900">{totalLogs}</p>
         </div>
-        <div className="bg-red-50 rounded-lg p-4 border border-red-100 text-center">
+        <div className="bg-red-50 rounded-none p-4 border border-red-100 text-center">
           <p className="text-red-500 text-xs font-medium mb-1">Blocked</p>
           <p className="text-xl font-bold text-red-700">{blockedCount}</p>
         </div>
-        <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-100 text-center">
+        <div className="bg-yellow-50 rounded-none p-4 border border-yellow-100 text-center">
           <p className="text-yellow-600 text-xs font-medium mb-1">Flagged</p>
           <p className="text-xl font-bold text-yellow-700">{flaggedCount}</p>
         </div>
-        <div className="bg-green-50 rounded-lg p-4 border border-green-100 text-center">
+        <div className="bg-green-50 rounded-none p-4 border border-green-100 text-center">
           <p className="text-green-600 text-xs font-medium mb-1">Clean</p>
           <p className="text-xl font-bold text-green-700">{cleanCount}</p>
         </div>
@@ -198,7 +199,7 @@ export default function NetworkLogs() {
           <select
             value={selectedDevice}
             onChange={(e) => setSelectedDevice(e.target.value)}
-            className="text-sm border border-gray-300 rounded-md px-3 py-1.5
+            className="text-sm border border-gray-300 rounded-none px-3 py-1.5
                        bg-white text-gray-700 focus:outline-none 
                        focus:ring-2 focus:ring-indigo-500"
           >
@@ -215,7 +216,7 @@ export default function NetworkLogs() {
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="text-sm border border-gray-300 rounded-md px-3 py-1.5
+            className="text-sm border border-gray-300 rounded-none px-3 py-1.5
                        bg-white text-gray-700 focus:outline-none
                        focus:ring-2 focus:ring-indigo-500"
           >
@@ -240,7 +241,7 @@ export default function NetworkLogs() {
       </div>
 
       {loading ? (
-        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+        <div className="overflow-x-auto border border-gray-200 rounded-none">
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
               <tr>
@@ -257,14 +258,14 @@ export default function NetworkLogs() {
             <tbody>
               {[...Array(5)].map((_, i) => (
                 <tr key={i} className="border-b border-gray-100 bg-white">
-                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div></td>
-                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div></td>
-                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div></td>
-                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-12 animate-pulse"></div></td>
-                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-10 animate-pulse"></div></td>
-                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-28 animate-pulse"></div></td>
-                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded w-12 animate-pulse"></div></td>
-                  <td className="px-4 py-3"><div className="h-5 bg-gray-200 rounded w-16 animate-pulse"></div></td>
+                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-none w-20 animate-pulse"></div></td>
+                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-none w-24 animate-pulse"></div></td>
+                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-none w-24 animate-pulse"></div></td>
+                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-none w-12 animate-pulse"></div></td>
+                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-none w-10 animate-pulse"></div></td>
+                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-none w-28 animate-pulse"></div></td>
+                  <td className="px-4 py-3"><div className="h-4 bg-gray-200 rounded-none w-12 animate-pulse"></div></td>
+                  <td className="px-4 py-3"><div className="h-5 bg-gray-200 rounded-none w-16 animate-pulse"></div></td>
                 </tr>
               ))}
             </tbody>
@@ -293,7 +294,7 @@ export default function NetworkLogs() {
           </p>
         </div>
       ) : (
-        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+        <div className="overflow-x-auto border border-gray-200 rounded-none">
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-10 shadow-sm">
@@ -322,7 +323,7 @@ export default function NetworkLogs() {
                   const confPct = log.confidence ? (log.confidence * 100).toFixed(1) + "%" : "";
 
                   return (
-                    <tr key={log.id || Math.random().toString()} className={getRowClass(log)}>
+                    <tr key={log.id || log._id || Math.random().toString()} className={getRowClass(log)}>
                       <td className="px-4 py-3 whitespace-nowrap text-gray-500">{timeStr}</td>
                       <td className="px-4 py-3 font-medium text-gray-900">{devName}</td>
                       <td className="px-4 py-3 text-gray-600">{log.srcIp}</td>
@@ -331,7 +332,7 @@ export default function NetworkLogs() {
                       <td className="px-4 py-3 text-gray-900">{predStr}</td>
                       <td className="px-4 py-3 text-gray-600">{confPct}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2.5 py-0.5 rounded text-xs font-medium ${getBadgeClass(log.action)}`}>
+                        <span className={`px-2.5 py-0.5 rounded-none text-xs font-medium ${getBadgeClass(log.action)}`}>
                           {log.action}
                         </span>
                       </td>

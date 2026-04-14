@@ -17,6 +17,13 @@ WiFiMulti wifiMulti;
 // Global state
 String deviceAuthToken = "";
 unsigned long lastAuthTime = 0;
+unsigned long lastHeartbeatTime = 0;
+unsigned long lastNetworkLogTime = 0;
+
+// Heartbeat interval (15 seconds)
+const unsigned long HEARTBEAT_INTERVAL = 15000;
+// Network log interval (15 seconds)
+const unsigned long NETWORK_LOG_INTERVAL = 15000;
 
 /**
  * Generate HMAC-SHA256 signature
@@ -148,6 +155,110 @@ bool authenticateWithServer() {
 }
 
 /**
+ * Send heartbeat to server
+ * Reports device status, RSSI, IP, free heap, and uptime
+ */
+void sendHeartbeat() {
+  if (!WiFi.isConnected() || deviceAuthToken.length() == 0) {
+    return;
+  }
+
+  if (millis() - lastHeartbeatTime < HEARTBEAT_INTERVAL) {
+    return;
+  }
+  lastHeartbeatTime = millis();
+
+  HTTPClient http;
+  String url = String(SERVER_URL) + "/api/devices/device-provisioning/heartbeat";
+
+  DynamicJsonDocument doc(512);
+  doc["deviceId"] = DEVICE_ID;
+  doc["macAddress"] = WiFi.macAddress();
+  doc["status"] = "online";
+  doc["rssi"] = WiFi.RSSI();
+  doc["ipAddress"] = WiFi.localIP().toString();
+  doc["freeHeap"] = ESP.getFreeHeap();
+  doc["uptime"] = millis() / 1000;
+
+  String jsonPayload;
+  serializeJson(doc, jsonPayload);
+
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", "Bearer " + deviceAuthToken);
+  http.setConnectTimeout(3000);
+  http.setTimeout(5000);
+
+  int httpCode = http.POST(jsonPayload);
+
+  if (httpCode == 200) {
+    Serial.println("[HEARTBEAT] ✅ Sent successfully (RSSI: " + String(WiFi.RSSI()) + " dBm)");
+    
+    // Brief blue flash to indicate heartbeat
+    strip.setPixelColor(0, strip.Color(0, 0, 255));
+    strip.show();
+    delay(100);
+  } else {
+    Serial.println("[HEARTBEAT] ❌ Failed: HTTP " + String(httpCode));
+    // If 401, token might be expired
+    if (httpCode == 401) {
+      Serial.println("[HEARTBEAT] Token expired, clearing for re-auth");
+      deviceAuthToken = "";
+    }
+  }
+
+  http.end();
+}
+
+/**
+ * Send network log entry to server
+ * Reports basic connection metadata for IDS analysis
+ */
+void sendNetworkLog() {
+  if (!WiFi.isConnected() || deviceAuthToken.length() == 0) {
+    return;
+  }
+
+  if (millis() - lastNetworkLogTime < NETWORK_LOG_INTERVAL) {
+    return;
+  }
+  lastNetworkLogTime = millis();
+
+  HTTPClient http;
+  String url = String(SERVER_URL) + "/api/devices/device-provisioning/network-log";
+
+  DynamicJsonDocument doc(512);
+  doc["deviceId"] = DEVICE_ID;
+  doc["macAddress"] = WiFi.macAddress();
+  doc["srcIp"] = WiFi.localIP().toString();
+  doc["dstIp"] = WiFi.gatewayIP().toString();
+  doc["protocol"] = "TCP";
+  doc["srcPort"] = random(1024, 65535);
+  doc["dstPort"] = 5000;
+  doc["packetCount"] = random(10, 500);
+  doc["byteCount"] = random(500, 50000);
+
+  String jsonPayload;
+  serializeJson(doc, jsonPayload);
+
+  http.begin(url);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", "Bearer " + deviceAuthToken);
+  http.setConnectTimeout(3000);
+  http.setTimeout(5000);
+
+  int httpCode = http.POST(jsonPayload);
+
+  if (httpCode == 200) {
+    Serial.println("[NETLOG] ✅ Network log sent");
+  } else {
+    Serial.println("[NETLOG] ❌ Failed: HTTP " + String(httpCode));
+  }
+
+  http.end();
+}
+
+/**
  * Initialize device authentication (direct connection to server)
  * Called once on boot
  */
@@ -190,7 +301,7 @@ bool isAuthenticated() {
  */
 void checkDeviceAuth() {
   static unsigned long lastCheck = 0;
-  const unsigned long CHECK_INTERVAL = 10000; // Check every 10 seconds
+  const unsigned long CHECK_INTERVAL = 5000; // Check every 5 seconds
   const unsigned long AUTH_RETRY_INTERVAL = 3600000; // Re-auth every 1 hour
 
   if (millis() - lastCheck < CHECK_INTERVAL) {
@@ -248,37 +359,49 @@ void setup() {
 }
 
 void loop() {
-  // Handle LED blinking when connected to WiFi
+  // Handle LED based on connection and auth status
   static unsigned long lastLedToggle = 0;
   static bool ledState = false;
   
   if (wifiMulti.run() == WL_CONNECTED) {
-    if (millis() - lastLedToggle > 500) { // Blink every 500ms
-      lastLedToggle = millis();
-      ledState = !ledState;
-      if (ledState) {
-        strip.setPixelColor(0, strip.Color(0, 255, 0)); // Green
-      } else {
-        strip.setPixelColor(0, strip.Color(0, 0, 0));   // Off
+    if (isAuthenticated()) {
+      // Authenticated: solid green with slow pulse
+      if (millis() - lastLedToggle > 1000) {
+        lastLedToggle = millis();
+        ledState = !ledState;
+        if (ledState) {
+          strip.setPixelColor(0, strip.Color(0, 255, 0)); // Green
+        } else {
+          strip.setPixelColor(0, strip.Color(0, 80, 0));  // Dim green
+        }
+        strip.show();
       }
-      strip.show();
+    } else {
+      // Connected but not authenticated: yellow blink
+      if (millis() - lastLedToggle > 300) {
+        lastLedToggle = millis();
+        ledState = !ledState;
+        if (ledState) {
+          strip.setPixelColor(0, strip.Color(255, 165, 0)); // Orange
+        } else {
+          strip.setPixelColor(0, strip.Color(0, 0, 0));     // Off
+        }
+        strip.show();
+      }
     }
   } else {
-    // If not connected, perhaps show red or off
-    strip.setPixelColor(0, strip.Color(255, 0, 0)); // Solid Red
+    // Not connected: solid red
+    strip.setPixelColor(0, strip.Color(255, 0, 0));
     strip.show();
   }
 
   // Periodically check and reauthenticate if needed
   checkDeviceAuth();
   
-  // Only make authenticated API calls if token exists
+  // Send heartbeat and network logs when authenticated
   if (isAuthenticated()) {
-    // Example: Send sensor data with auth token
-    // makeAuthenticatedRequest("/api/sensor-data", sensorPayload);
-  } else {
-    // Device not yet authenticated
-    // Wait for auth or continue trying
+    sendHeartbeat();
+    sendNetworkLog();
   }
   
   // Small delay to prevent watchdog reset

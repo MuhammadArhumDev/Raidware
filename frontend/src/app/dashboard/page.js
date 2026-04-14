@@ -1,186 +1,107 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import useDeviceStore from "@/store/useDeviceStore";
+import useAuthStore from "@/store/useAuthStore";
 import DashboardLayout from "@/components/Dashboard/DashboardLayout";
 import StatsCard from "@/components/Dashboard/StatsCard";
 import MetricChart from "@/components/Dashboard/MetricChart";
-import RealTimeChart from "@/components/Dashboard/RealTimeChart";
 import {
   Network,
-  Video,
   Activity,
   Shield,
-  TrendingUp,
-  Users,
   Wifi,
-  Lock,
   Server,
 } from "lucide-react";
-import { useMemo } from "react";
-import ActivityFeed from "@/components/Dashboard/ActivityFeed";
-import PerformanceMetrics from "@/components/Dashboard/PerformanceMetrics";
 import TopologyView from "@/components/Dashboard/TopologyView";
 import MessageSender from "@/components/Dashboard/MessageSender";
 
-// Memoized sensor chart component to prevent re-renders
-function SensorDataChart({ sensors }) {
-  const sensorData = useMemo(() => {
-    const sensorLabels = sensors.slice(-20).map((_, i) => {
-      const timestamp =
-        sensors[sensors.length - 20 + i]?.timestamp || Date.now();
-      return new Date(timestamp).toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    });
-    return {
-      labels: sensorLabels,
-      datasets: [
-        {
-          label: "Temperature (°C)",
-          data: sensors.slice(-20).map((s) => s.temperature || 0),
-          borderColor: "rgba(239, 68, 68, 1)",
-          backgroundColor: "rgba(239, 68, 68, 0.1)",
-          tension: 0.4,
-          fill: true,
-          yAxisID: "y",
-        },
-        {
-          label: "Humidity (%)",
-          data: sensors.slice(-20).map((s) => s.humidity || 0),
-          borderColor: "rgba(59, 130, 246, 1)",
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
-          tension: 0.4,
-          fill: true,
-          yAxisID: "y1",
-        },
-      ],
-    };
-  }, [sensors]);
-
-  return (
-    <RealTimeChart
-      type="line"
-      height={300}
-      title="Sensor Data Overview - Temperature & Humidity"
-      data={sensorData}
-    />
-  );
-}
-
 export default function DashboardPage() {
-  const { nodes, alerts, sensors, connectSocket, disconnectSocket } =
-    useDeviceStore();
-  const [networkHealth, setNetworkHealth] = useState(95);
-
-  useEffect(() => {
-    connectSocket();
-    return () => disconnectSocket();
-  }, [connectSocket, disconnectSocket]);
+  const { nodes, alerts, logs, startRealtime, stopRealtime } = useDeviceStore();
+  const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+  const [networkHealth, setNetworkHealth] = useState(0);
   const [networkHealthHistory, setNetworkHealthHistory] = useState([]);
   const [nodeCountHistory, setNodeCountHistory] = useState([]);
-  const [alertCountHistory, setAlertCountHistory] = useState([]);
+
+  const orgId = user?.organizationId || user?.id;
+
+  // Start real-time updates (socket + polling)
+  useEffect(() => {
+    if (orgId && token) {
+      startRealtime(orgId, token);
+    }
+    return () => stopRealtime();
+  }, [orgId, token, startRealtime, stopRealtime]);
+
+  // Compute stats
+  const nodeCount = Object.keys(nodes).length;
+  const onlineNodes = Object.values(nodes).filter(
+    (node) => node.status === "online"
+  ).length;
 
   useEffect(() => {
-    // Calculate network health based on node status
-    const calculateNetworkHealth = () => {
-      const nodeCount = Object.keys(nodes).length;
-      if (nodeCount === 0) {
-        return 0;
-      }
-      const onlineNodes = Object.values(nodes).filter(
-        (node) => node.status === "online"
-      ).length;
+    const health = nodeCount === 0 ? 0 : (onlineNodes / nodeCount) * 100;
+    setNetworkHealth(health);
 
-      const health = (onlineNodes / nodeCount) * 100;
-      return health;
-    };
-
-    // Initial calculation
-    const initialHealth = calculateNetworkHealth();
-    setNetworkHealth(initialHealth);
-
-    // Update history initially
     const now = Date.now();
-    setNetworkHealthHistory([{ timestamp: now, value: initialHealth }]);
-    setNodeCountHistory([{ timestamp: now, value: Object.keys(nodes).length }]);
-    setAlertCountHistory([{ timestamp: now, value: alerts.length }]);
+    setNetworkHealthHistory((prev) => {
+      const newHistory = [...prev, { timestamp: now, value: health }];
+      return newHistory.slice(-30);
+    });
+    setNodeCountHistory((prev) => {
+      const newHistory = [...prev, { timestamp: now, value: nodeCount }];
+      return newHistory.slice(-30);
+    });
+  }, [nodeCount, onlineNodes]);
 
-    // Set up interval for updates
-    const updateInterval = setInterval(() => {
-      const health = calculateNetworkHealth();
-      setNetworkHealth(health);
-
-      const updateTime = Date.now();
-      setNetworkHealthHistory((prev) => {
-        const newHistory = [...prev, { timestamp: updateTime, value: health }];
-        return newHistory.slice(-30); // Keep last 30 points
-      });
-      setNodeCountHistory((prev) => {
-        const currentNodeCount = Object.keys(nodes).length;
-        const newHistory = [
-          ...prev,
-          { timestamp: updateTime, value: currentNodeCount },
-        ];
-        return newHistory.slice(-30);
-      });
-      setAlertCountHistory((prev) => {
-        const currentAlertCount = alerts.length;
-        const newHistory = [
-          ...prev,
-          { timestamp: updateTime, value: currentAlertCount },
-        ];
-        return newHistory.slice(-30);
-      });
-    }, 5000);
-
-    return () => {
-      clearInterval(updateInterval);
-    };
-  }, [nodes, alerts]); // Removed networkHealth from dependencies to prevent infinite loop
+  // Recent logs for the dashboard
+  const recentLogs = logs.slice(0, 8);
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900  mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Dashboard Overview
           </h1>
-          <p className="text-gray-600 ">
-            Cloud platform for secure IoT network management with sensors,
+          <p className="text-gray-600">
+            Cloud platform for secure IoT network management with sensors
             and IDS protection
           </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard
             icon={Network}
-            title="Active Nodes"
-            value={Object.keys(nodes).length}
-            change={2.5}
-            trend="up"
+            title="Total Nodes"
+            value={nodeCount}
             color="indigo"
+          />
+          <StatsCard
+            icon={Wifi}
+            title="Online Nodes"
+            value={onlineNodes}
+            color="green"
           />
           <StatsCard
             icon={Activity}
             title="Network Health"
             value={`${networkHealth.toFixed(1)}%`}
-            change={-1.2}
-            trend="down"
-            color="green"
+            color="blue"
           />
           <StatsCard
             icon={Shield}
-            title="Active Alerts"
-            value={alerts.length}
+            title="Network Logs"
+            value={logs.length}
             color="red"
           />
         </div>
 
-        {/* Real-time Charts - Main Metrics */}
+        {/* Topology + Health Chart */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TopologyView nodes={nodes} />
           <MetricChart
             title="Network Health Trend"
             dataSource={networkHealthHistory}
@@ -191,10 +112,90 @@ export default function DashboardPage() {
             unit="%"
             gradient={true}
           />
-          <TopologyView nodes={nodes} />
         </div>
 
-        {/* Secondary Charts & Messaging */}
+        {/* Recent Network Logs */}
+        <div className="bg-white rounded-none shadow-sm border-[1.5px] border-gray-200">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">Recent Network Logs</h2>
+              <p className="text-sm text-gray-500 mt-1">Live IDS-analyzed device traffic — updates in real-time via WebSocket</p>
+            </div>
+            <a
+              href="/dashboard/logs"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+            >
+              View All →
+            </a>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3">Time</th>
+                  <th className="px-4 py-3">Device</th>
+                  <th className="px-4 py-3">Src IP</th>
+                  <th className="px-4 py-3">Protocol</th>
+                  <th className="px-4 py-3">Dst Port</th>
+                  <th className="px-4 py-3">Prediction</th>
+                  <th className="px-4 py-3">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                      No network logs yet. Waiting for device traffic...
+                    </td>
+                  </tr>
+                ) : (
+                  recentLogs.map((log, idx) => {
+                    const timeStr = log.timestamp
+                      ? new Date(log.timestamp).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          second: "2-digit",
+                        })
+                      : "—";
+                    const actionClass =
+                      log.action === "BLOCK"
+                        ? "bg-red-100 text-red-700"
+                        : log.action === "FLAG"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-green-100 text-green-700";
+                    const rowClass =
+                      log.action === "BLOCK"
+                        ? "bg-red-50"
+                        : log.action === "FLAG"
+                        ? "bg-yellow-50"
+                        : "bg-white";
+
+                    return (
+                      <tr
+                        key={log.id || log._id || idx}
+                        className={`${rowClass} border-b border-gray-100 hover:bg-gray-50`}
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-500">{timeStr}</td>
+                        <td className="px-4 py-3 font-medium text-gray-900">{log.deviceName || "Unknown"}</td>
+                        <td className="px-4 py-3 text-gray-600 font-mono text-xs">{log.srcIp}</td>
+                        <td className="px-4 py-3 text-gray-600">{log.protocol}</td>
+                        <td className="px-4 py-3 text-gray-600">{log.dstPort}</td>
+                        <td className="px-4 py-3 text-gray-900">{log.prediction || "—"}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2.5 py-0.5 rounded-none text-xs font-medium ${actionClass}`}>
+                            {log.action}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Node Count Chart + Messaging */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <MetricChart
             title="Active Nodes Count"
@@ -208,151 +209,92 @@ export default function DashboardPage() {
           <MessageSender />
         </div>
 
-        {/* Performance Metrics */}
-        <div className="grid grid-cols-1 gap-6">
-          <PerformanceMetrics />
-        </div>
-
-        {/* System Status & Network Info */}
+        {/* System Status & Security */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
-            <h2 className="text-xl font-semibold text-gray-900  mb-4">
-              System Status
-            </h2>
+          <div className="bg-white rounded-none shadow-sm p-6 border-[1.5px] border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">System Status</h2>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100   rounded-none border border-green-200 ">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100 rounded-none border border-green-200">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-600 rounded-none">
                     <Wifi className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 ">
-                      Mesh Network
-                    </p>
-                    <p className="text-xs text-gray-600 ">
-                      All nodes connected
-                    </p>
+                    <p className="font-medium text-gray-900">IoT Network</p>
+                    <p className="text-xs text-gray-600">{onlineNodes}/{nodeCount} nodes online</p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-green-100  text-green-800  rounded-none text-sm font-medium">
-                  Operational
+                <span className={`px-3 py-1 rounded-none text-sm font-medium ${onlineNodes > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {onlineNodes > 0 ? "Operational" : "Offline"}
                 </span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100   rounded-none border border-green-200 ">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100 rounded-none border border-green-200">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-600 rounded-none">
                     <Server className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 ">
-                      Gateway Connection
-                    </p>
-                    <p className="text-xs text-gray-600 ">
-                      Raspberry Pi gateway
-                    </p>
+                    <p className="font-medium text-gray-900">Gateway Connection</p>
+                    <p className="text-xs text-gray-600">Direct HTTPS connection</p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-green-100  text-green-800  rounded-none text-sm font-medium">
-                  Connected
-                </span>
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-none text-sm font-medium">Connected</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-linear-to-r from-blue-50 to-blue-100   rounded-none border border-blue-200 ">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-blue-50 to-blue-100 rounded-none border border-blue-200">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-600 rounded-none">
                     <Activity className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 ">
-                      Data Sync
-                    </p>
-                    <p className="text-xs text-gray-600 ">
-                      Real-time updates
-                    </p>
+                    <p className="font-medium text-gray-900">Data Sync</p>
+                    <p className="text-xs text-gray-600">Real-time via WebSocket</p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-blue-100  text-blue-800  rounded-none text-sm font-medium">
-                  Active
-                </span>
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-none text-sm font-medium">Active</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-linear-to-r from-yellow-50 to-yellow-100   rounded-none border border-yellow-200 ">
+              <div className="flex items-center justify-between p-4 bg-linear-to-r from-yellow-50 to-yellow-100 rounded-none border border-yellow-200">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-yellow-600 rounded-none">
                     <Shield className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900 ">
-                      Intrusion Detection
-                    </p>
-                    <p className="text-xs text-gray-600 ">
-                      IDS monitoring active
-                    </p>
+                    <p className="font-medium text-gray-900">Intrusion Detection</p>
+                    <p className="text-xs text-gray-600">IDS monitoring active</p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-yellow-100  text-yellow-800  rounded-none text-sm font-medium">
-                  Monitoring
-                </span>
+                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-none text-sm font-medium">Monitoring</span>
               </div>
             </div>
           </div>
 
-          {/* Network Security Status (Dynamic) */}
-          <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
-            <h2 className="text-xl font-semibold text-gray-900  mb-4">
-              Security Status
-            </h2>
+          <div className="bg-white rounded-none shadow-sm p-6 border-[1.5px] border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Security Status</h2>
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 ">
-                    Encryption (Kyber-768)
-                  </span>
-                  <span className="text-sm font-semibold text-green-600 ">
-                    Active
-                  </span>
+                  <span className="text-sm font-medium text-gray-700">Encryption (Kyber-768)</span>
+                  <span className="text-sm font-semibold text-green-600">Active</span>
                 </div>
-                <div className="w-full bg-gray-200  rounded-none h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-none"
-                    style={{ width: "100%" }}
-                  />
+                <div className="w-full bg-gray-200 rounded-none h-2">
+                  <div className="bg-green-600 h-2 rounded-none" style={{ width: "100%" }} />
                 </div>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 ">
-                    Online Devices
-                  </span>
-                  <span className="text-sm font-semibold text-indigo-600 ">
-                    {
-                      Object.values(nodes).filter((n) => n.status === "online")
-                        .length
-                    }{" "}
-                    / {Object.keys(nodes).length}
-                  </span>
+                  <span className="text-sm font-medium text-gray-700">Online Devices</span>
+                  <span className="text-sm font-semibold text-indigo-600">{onlineNodes} / {nodeCount}</span>
                 </div>
-                <div className="w-full bg-gray-200  rounded-none h-2">
+                <div className="w-full bg-gray-200 rounded-none h-2">
                   <div
                     className="bg-indigo-600 h-2 rounded-none"
-                    style={{
-                      width: `${
-                        (Object.values(nodes).filter(
-                          (n) => n.status === "online"
-                        ).length /
-                          (Object.keys(nodes).length || 1)) *
-                        100
-                      }%`,
-                    }}
+                    style={{ width: `${(onlineNodes / (nodeCount || 1)) * 100}%` }}
                   />
                 </div>
               </div>
-              <div className="pt-4 border-t-[1.5px] border-gray-200 ">
+              <div className="pt-4 border-t-[1.5px] border-gray-200">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 ">
-                    Encryption Status
-                  </span>
-                  <span className="text-2xl font-bold text-green-600 ">
-                    SECURE
-                  </span>
+                  <span className="text-sm font-medium text-gray-700">Encryption Status</span>
+                  <span className="text-2xl font-bold text-green-600">SECURE</span>
                 </div>
               </div>
             </div>

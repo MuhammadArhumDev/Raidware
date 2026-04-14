@@ -9,6 +9,8 @@ import {
   createDeviceJWT,
   verifyDeviceJWT
 } from '../services/keyGeneration.service.js';
+import { saveAndAnalyzeLog } from '../services/networkLog.service.js';
+import { emitDeviceUpdate } from '../services/socket.service.js';
 
 /**
  * POST /api/device-provisioning/generate-keys/:orgId
@@ -251,6 +253,125 @@ export async function verifyServerSignature(req, res) {
     });
   } catch (error) {
     console.error('verifyServerSignature error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * POST /api/device-provisioning/heartbeat
+ * 
+ * Device sends periodic heartbeat with status, RSSI, IP, etc.
+ * Updates device record and broadcasts topology update
+ */
+export async function deviceHeartbeat(req, res) {
+  try {
+    const { deviceId, macAddress, status, rssi, ipAddress, freeHeap, uptime } = req.body;
+
+    if (!deviceId) {
+      return res.status(400).json({ success: false, error: 'deviceId is required' });
+    }
+
+    const device = await Device.findOne({ deviceId });
+    if (!device) {
+      return res.status(404).json({ success: false, error: 'Device not found' });
+    }
+
+    // Update device fields
+    device.status = status || 'online';
+    device.lastSeen = new Date();
+    device.rssi = rssi || device.rssi;
+    device.ipAddress = ipAddress || device.ipAddress;
+    if (macAddress && device.macAddress !== macAddress) {
+      device.macAddress = macAddress;
+    }
+    // Store extra data in metadata
+    if (freeHeap) device.metadata.set('freeHeap', String(freeHeap));
+    if (uptime) device.metadata.set('uptime', String(uptime));
+
+    await device.save();
+
+    // Broadcast topology update to org dashboard
+    if (device.organizationId) {
+      const devices = await Device.find({ organizationId: device.organizationId });
+      const topology = devices.map(d => ({
+        id: d._id,
+        mac: d.macAddress,
+        name: d.name,
+        status: d.status,
+        lastSeen: d.lastSeen,
+        connectionType: d.connectionType,
+        rssi: d.rssi,
+        ipAddress: d.ipAddress,
+        authenticated: d.provisioned
+      }));
+      emitDeviceUpdate('topology:update', { devices: topology });
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('deviceHeartbeat error:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+/**
+ * POST /api/device-provisioning/network-log
+ * 
+ * Device sends network connection data for IDS analysis
+ */
+export async function deviceNetworkLog(req, res) {
+  try {
+    const { deviceId, macAddress, srcIp, dstIp, protocol, srcPort, dstPort, packetCount, byteCount, features } = req.body;
+
+    if (!deviceId) {
+      return res.status(400).json({ success: false, error: 'deviceId is required' });
+    }
+
+    const device = await Device.findOne({ deviceId });
+    if (!device) {
+      return res.status(404).json({ success: false, error: 'Device not found' });
+    }
+
+    const logData = {
+      orgId: device.organizationId?.toString() || '',
+      macAddress: macAddress || device.macAddress,
+      deviceName: device.name || 'Unknown Device',
+      srcIp: srcIp || '0.0.0.0',
+      dstIp: dstIp || '0.0.0.0',
+      protocol: protocol || 'TCP',
+      srcPort: srcPort || 0,
+      dstPort: dstPort || 0,
+      flowDuration: 0,
+      packetCount: packetCount || 0,
+      byteCount: byteCount || 0,
+      features: Array.isArray(features) ? features : []
+    };
+
+    const savedLog = await saveAndAnalyzeLog(logData);
+
+    if (savedLog && device.organizationId) {
+      // Broadcast log to org dashboard
+      emitDeviceUpdate('network:log:new', {
+        log: {
+          id: savedLog._id,
+          macAddress: savedLog.macAddress,
+          deviceName: savedLog.deviceName,
+          srcIp: savedLog.srcIp,
+          dstIp: savedLog.dstIp,
+          protocol: savedLog.protocol,
+          srcPort: savedLog.srcPort,
+          dstPort: savedLog.dstPort,
+          prediction: savedLog.prediction,
+          confidence: savedLog.confidence,
+          action: savedLog.action,
+          timestamp: savedLog.timestamp
+        }
+      });
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('deviceNetworkLog error:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 }

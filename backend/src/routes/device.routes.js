@@ -16,7 +16,9 @@ import {
   generateDeviceKeys,
   authenticateDevice,
   getCopyableSecrets,
-  verifyServerSignature
+  verifyServerSignature,
+  deviceHeartbeat,
+  deviceNetworkLog
 } from '../controllers/deviceProvisioning.controller.js';
 
 const router = express.Router();
@@ -274,5 +276,7 @@ router.post('/device-provisioning/generate-keys/:orgId', verifyToken, generateDe
 router.post('/device-provisioning/authenticate', authenticateDevice); // No auth needed (device doesn't have token yet)
 router.get('/device-provisioning/copy-secrets/:orgId/:macAddress', verifyToken, getCopyableSecrets);
 router.post('/device-provisioning/verify-server-signature', verifyServerSignature);
+router.post('/device-provisioning/heartbeat', deviceHeartbeat); // Device sends JWT in Authorization header
+router.post('/device-provisioning/network-log', deviceNetworkLog); // Device sends network data for IDS
 
 export default router;

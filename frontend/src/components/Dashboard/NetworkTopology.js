@@ -31,15 +31,18 @@ export default function NetworkTopology() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [lastRefresh, setLastRefresh] = useState(null);
 
   const orgId = user?.organizationId || user?.id;
+
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
   const fetchTopology = useCallback(async () => {
     if (!orgId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/devices/topology/${orgId}`, {
+      const res = await fetch(`${BACKEND_URL}/api/devices/topology/${orgId}`, {
         headers: {
           "Authorization": `Bearer ${token}`
         }
@@ -47,6 +50,7 @@ export default function NetworkTopology() {
       if (res.ok) {
         const data = await res.json();
         setDevices(data.devices || []);
+        setLastRefresh(new Date());
       } else {
         throw new Error("Failed to fetch topology");
       }
@@ -56,105 +60,75 @@ export default function NetworkTopology() {
     } finally {
       setLoading(false);
     }
-  }, [orgId, token]);
+  }, [orgId, token, BACKEND_URL]);
 
   useEffect(() => {
     fetchTopology();
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(fetchTopology, 10000);
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
-    const socket = io(backendUrl, {
-      auth: { token },
-      transports: ["websocket"],
+    // Also listen for real-time topology updates via socket
+    const socket = io(BACKEND_URL, {
+      transports: ["websocket", "polling"],
     });
-
-    socket.on("connect", () => {
-      console.log("[Topology] Socket connected for live updates");
-    });
-
     socket.on("topology:update", (data) => {
       if (data && data.devices) {
         setDevices(data.devices);
+        setLastRefresh(new Date());
       }
     });
 
     return () => {
+      clearInterval(interval);
       socket.disconnect();
     };
-  }, [fetchTopology, token]);
+  }, [fetchTopology, BACKEND_URL]);
 
   const getNodeColor = (device) => {
     if (device.status === "offline") return "#6b7280";
+    if (device.status === "pending") return "#eab308";
     const timeSince = Date.now() - new Date(device.lastSeen).getTime();
-    if (timeSince > 30000) return "#eab308";
+    if (timeSince > 60000) return "#eab308"; // stale after 60s
     return "#22c55e";
   };
 
+  const getStatusLabel = (device) => {
+    if (device.status === "offline") return "Offline";
+    if (device.status === "pending") return "Pending";
+    const timeSince = Date.now() - new Date(device.lastSeen).getTime();
+    if (timeSince > 60000) return "Stale";
+    return "Online";
+  };
+
+  // Direct connection layout: all devices connect directly to server (star topology)
   const buildLayout = () => {
     const cx = 350;
-    const cy = 250;
+    const cy = 80;
     const positions = {};
     
     if (devices.length === 0) return { positions, cx, cy };
 
-    let root = devices.find((d) => d.meshRole === "root");
-    if (!root) root = devices[0];
+    const radius = Math.min(180, 60 + devices.length * 20);
 
-    positions[root.mac] = { x: cx, y: cy };
-
-    const children = devices.filter((d) => d.parentMac === root.mac);
-    const ring1Radius = 160;
-
-    children.forEach((child, i) => {
-      const angle = (i * 2 * Math.PI) / children.length - Math.PI / 2;
-      positions[child.mac] = {
-        x: cx + Math.cos(angle) * ring1Radius,
-        y: cy + Math.sin(angle) * ring1Radius,
-        angle,
-      };
-    });
-
-    const ring2Radius = 280;
-    const allGrandchildren = devices.filter(
-      (d) => d.mac !== root.mac && children.some((c) => c.mac === d.parentMac)
-    );
-
-    const gcByParent = {};
-    allGrandchildren.forEach((gc) => {
-      if (!gcByParent[gc.parentMac]) gcByParent[gc.parentMac] = [];
-      gcByParent[gc.parentMac].push(gc);
-    });
-
-    for (const [parentMac, gcs] of Object.entries(gcByParent)) {
-      const parentPos = positions[parentMac];
-      const baseAngle = parentPos.angle;
-      const angleSpread = Math.PI / 4;
-
-      gcs.forEach((gc, i) => {
-        let angleOffset = 0;
-        if (gcs.length > 1) {
-          angleOffset = -angleSpread / 2 + (angleSpread / (gcs.length - 1)) * i;
-        }
-        const finalAngle = baseAngle + angleOffset;
-        positions[gc.mac] = {
-          x: cx + Math.cos(finalAngle) * ring2Radius,
-          y: cy + Math.sin(finalAngle) * ring2Radius,
-        };
-      });
-    }
-
-    const leftovers = devices.filter((d) => !positions[d.mac]);
-    leftovers.forEach((d, i) => {
-      const angle = (i * 2 * Math.PI) / leftovers.length;
+    devices.forEach((d, i) => {
+      const angleSpread = Math.PI * 0.8; // 144 degrees spread
+      const startAngle = Math.PI / 2 - angleSpread / 2; // centered below server
+      let angle;
+      if (devices.length === 1) {
+        angle = Math.PI / 2; // straight down
+      } else {
+        angle = startAngle + (i * angleSpread) / (devices.length - 1);
+      }
       positions[d.mac] = {
-        x: cx + Math.cos(angle) * 320,
-        y: cy + Math.sin(angle) * 320,
+        x: cx + Math.cos(angle) * radius,
+        y: cy + Math.sin(angle) * radius,
       };
     });
 
-    return { positions, cx, cy, rootMac: root.mac };
+    return { positions, cx, cy };
   };
 
-  const { positions, cx, cy, rootMac } = buildLayout();
+  const { positions, cx, cy } = buildLayout();
 
   const handleSvgClick = (e) => {
     if (e.target.tagName === "svg") {
@@ -163,13 +137,28 @@ export default function NetworkTopology() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Network Topology</h2>
-        <p className="text-gray-600 text-sm">Live real-time mesh device map</p>
+    <div className="bg-white rounded-none shadow-sm border-[1.5px] border-gray-200 p-6">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Network Topology</h2>
+          <p className="text-gray-600 text-sm">Live real-time device map — direct connections</p>
+        </div>
+        <div className="flex items-center gap-3">
+          {lastRefresh && (
+            <span className="text-xs text-gray-400">
+              Updated {getRelativeTime(lastRefresh)}
+            </span>
+          )}
+          <button
+            onClick={fetchTopology}
+            className="px-3 py-1.5 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-none border border-gray-300 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
-      <div className="relative border border-gray-100 bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center min-h-[500px]">
+      <div className="relative border border-gray-100 bg-gray-50 rounded-none overflow-hidden flex items-center justify-center min-h-[350px]">
         {loading ? (
           <div className="text-gray-500 font-medium">Loading topology...</div>
         ) : error ? (
@@ -177,60 +166,67 @@ export default function NetworkTopology() {
             <div className="text-red-500 font-medium mb-3">{error}</div>
             <button
               onClick={fetchTopology}
-              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-none hover:bg-indigo-700 transition-colors"
             >
               Retry
             </button>
           </div>
         ) : devices.length === 0 ? (
-          <div className="text-gray-500 font-medium">No devices connected</div>
+          <div className="text-center">
+            <p className="text-gray-400 text-4xl mb-2">📡</p>
+            <p className="text-gray-500 font-medium">No devices connected</p>
+            <p className="text-gray-400 text-sm">Provision a device to see it here</p>
+          </div>
         ) : (
           <svg
             width="100%"
-            height="500"
-            viewBox="0 0 700 500"
-            className="w-full h-auto max-h-[600px]"
+            height="350"
+            viewBox="0 0 700 350"
+            className="w-full h-auto max-h-[400px]"
             onClick={handleSvgClick}
           >
-            <defs>
-              <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
-                <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.2" />
-              </filter>
-            </defs>
-
-            {/* Draw Edges */}
+            {/* Draw Edges — all devices connect to server */}
             {devices.map((d) => {
-              if (d.parentMac && positions[d.mac] && positions[d.parentMac]) {
-                const from = positions[d.parentMac];
-                const to = positions[d.mac];
-                return (
-                  <line
-                    key={`edge-${d.mac}`}
-                    x1={from.x}
-                    y1={from.y}
-                    x2={to.x}
-                    y2={to.y}
-                    stroke="#374151"
-                    strokeWidth="1.5"
-                    opacity="0.5"
-                  />
-                );
-              }
-              return null;
+              const pos = positions[d.mac];
+              if (!pos) return null;
+              const color = getNodeColor(d);
+              return (
+                <line
+                  key={`edge-${d.mac}`}
+                  x1={cx}
+                  y1={cy}
+                  x2={pos.x}
+                  y2={pos.y}
+                  stroke={color}
+                  strokeWidth="2"
+                  opacity="0.4"
+                  strokeDasharray={d.status === "offline" ? "6,4" : "none"}
+                />
+              );
             })}
+
+            {/* Central Server */}
+            <rect x={cx - 30} y={cy - 20} width="60" height="40" fill="#111827" />
+            <text
+              x={cx}
+              y={cy + 4}
+              textAnchor="middle"
+              fill="#ffffff"
+              fontSize="11"
+              fontWeight="700"
+            >
+              SERVER
+            </text>
 
             {/* Draw Nodes */}
             {devices.map((d) => {
               const pos = positions[d.mac];
               if (!pos) return null;
               
-              const isRoot = d.mac === rootMac;
-              const radius = isRoot ? 36 : 28;
               const color = getNodeColor(d);
               const isSelected = selectedNode?.mac === d.mac;
-              
-              const displayName = d.name ? (d.name.length > 10 ? d.name.substring(0, 10) + "..." : d.name) : "Unknown";
-              const shortMac = d.mac ? d.mac.slice(-6) : "N/A";
+              const displayName = d.name ? (d.name.length > 12 ? d.name.substring(0, 12) + "…" : d.name) : "Unknown";
+              const shortMac = d.mac ? d.mac.slice(-8) : "N/A";
 
               return (
                 <g
@@ -243,43 +239,51 @@ export default function NetworkTopology() {
                 >
                   {/* Selection Highlight */}
                   {isSelected && (
-                    <circle cx={pos.x} cy={pos.y} r={radius + 4} fill="none" stroke="#6366f1" strokeWidth="2" />
+                    <rect x={pos.x - 26} y={pos.y - 18} width="52" height="36" fill="none" stroke="#6366f1" strokeWidth="2" />
                   )}
 
-                  {/* Main Circle */}
-                  <circle
-                    cx={pos.x}
-                    cy={pos.y}
-                    r={radius}
+                  {/* Node Rectangle */}
+                  <rect
+                    x={pos.x - 22}
+                    y={pos.y - 14}
+                    width="44"
+                    height="28"
                     fill={color}
-                    filter="url(#drop-shadow)"
                   />
 
-                  {/* Role Pill Above */}
+                  {/* Status dot */}
+                  <circle
+                    cx={pos.x + 16}
+                    cy={pos.y - 8}
+                    r="4"
+                    fill={d.status === "online" ? "#fff" : "#374151"}
+                    opacity="0.8"
+                  />
+
+                  {/* Connection Type Pill */}
                   <rect 
-                    x={pos.x - 20} 
-                    y={pos.y - radius - 14} 
-                    width="40" 
-                    height="16" 
-                    rx="8" 
+                    x={pos.x - 18} 
+                    y={pos.y - 28} 
+                    width="36" 
+                    height="12" 
                     fill="#1f2937" 
                   />
                   <text
                     x={pos.x}
-                    y={pos.y - radius - 6}
+                    y={pos.y - 20}
                     textAnchor="middle"
                     fill="#ffffff"
-                    fontSize="9"
+                    fontSize="8"
                     fontWeight="600"
                     pointerEvents="none"
                   >
-                    {d.meshRole || "node"}
+                    {d.connectionType || "direct"}
                   </text>
 
                   {/* Labels Below */}
                   <text
                     x={pos.x}
-                    y={pos.y + radius + 16}
+                    y={pos.y + 26}
                     textAnchor="middle"
                     fill="#374151"
                     fontSize="11"
@@ -290,7 +294,7 @@ export default function NetworkTopology() {
                   </text>
                   <text
                     x={pos.x}
-                    y={pos.y + radius + 28}
+                    y={pos.y + 38}
                     textAnchor="middle"
                     fill="#6b7280"
                     fontSize="9"
@@ -305,9 +309,31 @@ export default function NetworkTopology() {
         )}
       </div>
 
+      {/* Legend */}
+      {devices.length > 0 && (
+        <div className="flex items-center gap-6 mt-4 pt-4 border-t border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-green-500 rounded-none" />
+            <span className="text-xs text-gray-600">Online</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-yellow-500 rounded-none" />
+            <span className="text-xs text-gray-600">Stale/Pending</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-gray-500 rounded-none" />
+            <span className="text-xs text-gray-600">Offline</span>
+          </div>
+          <div className="ml-auto text-xs text-gray-400">
+            {devices.length} device{devices.length !== 1 ? "s" : ""} •{" "}
+            {devices.filter(d => d.status === "online").length} online
+          </div>
+        </div>
+      )}
+
       {/* Info Panel */}
       {selectedNode && (
-        <div className="mt-6 p-5 bg-white border border-gray-200 rounded-lg shadow-sm">
+        <div className="mt-6 p-5 bg-white border-[1.5px] border-gray-200 rounded-none shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-gray-900">Device Details</h3>
             <button
@@ -325,15 +351,20 @@ export default function NetworkTopology() {
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">MAC Address</p>
-              <p className="font-semibold text-gray-900">{selectedNode.mac}</p>
+              <p className="font-semibold text-gray-900 font-mono text-xs">{selectedNode.mac}</p>
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">Status</p>
-              <p className="font-semibold text-gray-900 capitalize">{selectedNode.status}</p>
+              <p className={`font-semibold capitalize ${
+                selectedNode.status === "online" ? "text-green-600" : 
+                selectedNode.status === "pending" ? "text-yellow-600" : "text-gray-600"
+              }`}>
+                {getStatusLabel(selectedNode)}
+              </p>
             </div>
             <div>
-              <p className="text-gray-500 font-medium mb-1">Mesh Role</p>
-              <p className="font-semibold text-gray-900 capitalize">{selectedNode.meshRole || "node"}</p>
+              <p className="text-gray-500 font-medium mb-1">Connection</p>
+              <p className="font-semibold text-gray-900 capitalize">{selectedNode.connectionType || "direct"}</p>
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">Last Seen</p>
@@ -341,10 +372,16 @@ export default function NetworkTopology() {
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">IP Address</p>
-              <p className="font-semibold text-gray-900">{selectedNode.ipAddress || "N/A"}</p>
+              <p className="font-semibold text-gray-900 font-mono text-xs">{selectedNode.ipAddress || "N/A"}</p>
             </div>
-            <div className="col-span-2">
-              <p className="text-gray-500 font-medium mb-1">Signal Strength (RSSI)</p>
+            <div>
+              <p className="text-gray-500 font-medium mb-1">Authenticated</p>
+              <p className={`font-semibold ${selectedNode.authenticated ? "text-green-600" : "text-gray-400"}`}>
+                {selectedNode.authenticated ? "Yes" : "No"}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-500 font-medium mb-1">Signal (RSSI)</p>
               <p className="font-semibold text-gray-900">
                 {selectedNode.rssi != null ? `${selectedNode.rssi} dBm (${getSignalLabel(selectedNode.rssi)})` : "N/A"}
               </p>
