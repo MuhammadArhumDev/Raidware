@@ -24,12 +24,12 @@ export default function DashboardLayout({ children }) {
   }, [_hasHydrated, isInitialized, isLoading, checkAuth]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/");
+    if (!loading && isInitialized && _hasHydrated && !user) {
+      router.push("/login");
     } else if (!loading && user && userRole === "admin") {
       router.push("/admin/dashboard");
     }
-  }, [user, loading, userRole, router]);
+  }, [user, loading, isInitialized, _hasHydrated, userRole, router]);
 
   if (loading) {
     return (

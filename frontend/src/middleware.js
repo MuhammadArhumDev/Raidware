@@ -9,8 +9,8 @@ export function middleware(request) {
 
   const isLoggedIn = !!(adminToken || orgToken || refreshToken);
 
-  // If user is trying to access auth pages (login/signup) while logged in
-  if (isLoggedIn && (pathname === '/login' || pathname.startsWith('/signup'))) {
+  // If authenticated user visits / (home) or /login, redirect to correct dashboard
+  if (isLoggedIn && (pathname === '/' || pathname === '/login' || pathname.startsWith('/signup'))) {
     if (adminToken) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     } else if (orgToken) {
@@ -42,5 +42,5 @@ export function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/login', '/signup', '/dashboard/:path*', '/admin/:path*'],
+  matcher: ['/', '/login', '/signup', '/dashboard/:path*', '/admin/:path*'],
 };
