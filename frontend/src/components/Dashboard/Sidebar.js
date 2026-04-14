@@ -32,6 +32,9 @@ export default function Sidebar() {
   const user = useAuthStore((state) => state.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Debug log to trace what the sidebar sees
+  console.log("[Sidebar Debug] Current user state from store:", user);
+
   const handleLogout = async () => {
     await logout();
     // Redirect is handled by the auth store, but we can have this as fallback
@@ -109,12 +112,23 @@ export default function Sidebar() {
           {/* User info and logout */}
           <div className="p-4 border-t border-gray-800">
             <div className="mb-4 px-4 py-2">
-              <p className="text-sm font-medium text-white">
+              <p className="text-sm font-medium text-white truncate">
                 {user?.email || "User"}
               </p>
-              <p className="text-xs text-gray-500">
-                Organization User
-              </p>
+              {user?.role === 'admin' ? (
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Admin
+                </p>
+              ) : (
+                <div className="mt-1">
+                  <p className="text-xs text-gray-500">Organization ID</p>
+                  <p className="text-xs text-gray-300 font-mono truncate mt-0.5">
+                    {user?.organizationId
+                      ? String(user.organizationId)
+                      : "Not assigned"}
+                  </p>
+                </div>
+              )}
             </div>
             <button
               onClick={handleLogout}

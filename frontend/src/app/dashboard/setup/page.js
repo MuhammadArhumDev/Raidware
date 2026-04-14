@@ -123,7 +123,7 @@ export default function SetupPage() {
         },
         body: JSON.stringify({
           macAddress,
-          orgId: displayOrgId,
+          orgId: displayOrgId ? String(displayOrgId) : null,
           deviceName,
         }),
       });
@@ -171,26 +171,37 @@ export default function SetupPage() {
               <p className="text-indigo-700 text-sm mb-3">
                 Use this ID when provisioning devices manually.
               </p>
-              <div className="flex items-center gap-2">
-                <code className="bg-white px-3 py-1.5 rounded-md text-indigo-900 font-mono text-sm border border-indigo-200">
-                  {displayOrgId || "Not assigned"}
-                </code>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(displayOrgId || "");
-                    setCopiedId(true);
-                    setTimeout(() => setCopiedId(false), 2000);
-                  }}
-                  className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors"
-                  title="Copy to clipboard"
-                >
-                  {copiedId ? (
-                    <CheckCircle className="w-5 h-5" />
-                  ) : (
-                    <Copy className="w-5 h-5" />
+              {user?.role === 'admin' ? (
+                <div className="flex items-center gap-2">
+                  <code className="bg-white px-3 py-1.5 rounded-md text-gray-400 font-mono text-sm border border-indigo-200 italic">
+                    N/A — admin account
+                  </code>
+                  <Info className="w-4 h-4 text-indigo-300" title="Admin accounts do not belong to an organization" />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <code className="bg-white px-3 py-1.5 rounded-md text-indigo-900 font-mono text-sm border border-indigo-200">
+                    {displayOrgId ? String(displayOrgId) : "Not assigned"}
+                  </code>
+                  {displayOrgId && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(String(displayOrgId));
+                        setCopiedId(true);
+                        setTimeout(() => setCopiedId(false), 2000);
+                      }}
+                      className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors"
+                      title="Copy to clipboard"
+                    >
+                      {copiedId ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        <Copy className="w-5 h-5" />
+                      )}
+                    </button>
                   )}
-                </button>
-              </div>
+                </div>
+              )}
             </div>
             <Shield className="w-8 h-8 text-indigo-300" />
           </div>
