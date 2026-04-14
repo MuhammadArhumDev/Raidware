@@ -271,26 +271,28 @@ export async function deviceHeartbeat(req, res) {
       return res.status(400).json({ success: false, error: 'deviceId is required' });
     }
 
-    const device = await Device.findOne({ deviceId });
+    // Build atomic $set update — avoids loading doc + metadata.set() crash
+    const updateFields = {
+      status: status || 'online',
+      lastSeen: new Date()
+    };
+    if (rssi != null) updateFields.rssi = rssi;
+    if (ipAddress) updateFields.ipAddress = ipAddress;
+    if (macAddress) updateFields.macAddress = macAddress;
+    if (freeHeap != null) updateFields['metadata.freeHeap'] = String(freeHeap);
+    if (uptime != null) updateFields['metadata.uptime'] = String(uptime);
+
+    const device = await Device.findOneAndUpdate(
+      { deviceId },
+      { $set: updateFields },
+      { new: true }
+    );
+
     if (!device) {
       return res.status(404).json({ success: false, error: 'Device not found' });
     }
 
-    // Update device fields
-    device.status = status || 'online';
-    device.lastSeen = new Date();
-    device.rssi = rssi || device.rssi;
-    device.ipAddress = ipAddress || device.ipAddress;
-    if (macAddress && device.macAddress !== macAddress) {
-      device.macAddress = macAddress;
-    }
-    // Store extra data in metadata
-    if (freeHeap) device.metadata.set('freeHeap', String(freeHeap));
-    if (uptime) device.metadata.set('uptime', String(uptime));
-
-    await device.save();
-
-    // Broadcast topology update to org dashboard
+    // Broadcast topology update to org dashboard via WebSocket
     if (device.organizationId) {
       const devices = await Device.find({ organizationId: device.organizationId });
       const topology = devices.map(d => ({
