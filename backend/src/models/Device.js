@@ -109,6 +109,22 @@ deviceSchema.index({ organizationId: 1, connectionType: 1 });
 deviceSchema.index({ deviceId: 1 });
 deviceSchema.index({ macAddress: 1 });
 
+// ── DIAGNOSTIC HOOKS — find ALL offline writes ──
+deviceSchema.pre('findOneAndUpdate', function () {
+  const update = this.getUpdate();
+  if (update && (update.status === 'offline' || (update.$set && update.$set.status === 'offline'))) {
+    console.log('[Device][DIAG] STATUS SET TO OFFLINE via findOneAndUpdate — stack:');
+    console.trace();
+  }
+});
+
+deviceSchema.pre('save', function () {
+  if (this.isModified('status') && this.status === 'offline') {
+    console.log('[Device][DIAG] STATUS SAVED AS OFFLINE via save() — stack:');
+    console.trace();
+  }
+});
+
 const Device = mongoose.model("Device", deviceSchema);
 
 export default Device;

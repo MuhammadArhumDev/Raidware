@@ -18,9 +18,12 @@ WiFiMulti wifiMulti;
 String deviceAuthToken = "";
 unsigned long lastAuthTime = 0;
 unsigned long lastHeartbeatTime = 0;
+unsigned long lastNetworkLogTime = 0;
 
 // Heartbeat interval (15 seconds)
 const unsigned long HEARTBEAT_INTERVAL = 15000;
+// Network log interval (5 seconds) — fast enough for live dashboard, slow enough for rate limiter
+const unsigned long NETWORK_LOG_INTERVAL = 5000;
 
 /**
  * Generate HMAC-SHA256 signature
@@ -210,12 +213,17 @@ void sendHeartbeat() {
 /**
  * Send network log entry to server
  * Reports basic connection metadata for IDS analysis
- * No interval — sends every loop() call for continuous dashboard feed
+ * Sends every 5 seconds — fast enough for live dashboard, avoids 429 rate limit
  */
 void sendNetworkLog() {
   if (!WiFi.isConnected() || deviceAuthToken.length() == 0) {
     return;
   }
+
+  if (millis() - lastNetworkLogTime < NETWORK_LOG_INTERVAL) {
+    return;
+  }
+  lastNetworkLogTime = millis();
 
   HTTPClient http;
   String url = String(SERVER_URL) + "/api/devices/device-provisioning/network-log";

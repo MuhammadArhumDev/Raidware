@@ -68,7 +68,10 @@ export default function TopologyView({ nodes }) {
         ctx.beginPath();
         ctx.moveTo(cx, cy + 16);
         ctx.lineTo(x, y - 12);
-        ctx.strokeStyle = node.status === "online" ? "rgba(34, 197, 94, 0.4)" : "rgba(156, 163, 175, 0.3)";
+        ctx.strokeStyle =
+          node.status === "online"
+            ? "rgba(34, 197, 94, 0.4)"
+            : "rgba(156, 163, 175, 0.3)";
         ctx.lineWidth = 2;
         if (node.status === "offline") {
           ctx.setLineDash([4, 4]);
@@ -79,8 +82,12 @@ export default function TopologyView({ nodes }) {
         ctx.setLineDash([]);
 
         // Draw Node Rectangle (no border-radius)
-        const nodeColor = node.status === "online" ? "#22c55e" : 
-                         node.status === "pending" ? "#eab308" : "#6b7280";
+        const nodeColor =
+          node.status === "online"
+            ? "#22c55e"
+            : node.status === "pending"
+              ? "#eab308"
+              : "#6b7280";
         ctx.fillStyle = nodeColor;
         ctx.fillRect(x - 16, y - 10, 32, 20);
 
@@ -88,9 +95,13 @@ export default function TopologyView({ nodes }) {
         ctx.fillStyle = "#374151";
         ctx.font = "10px sans-serif";
         ctx.textAlign = "center";
-        const label = node.name ? 
-          (node.name.length > 8 ? node.name.substring(0, 8) + "…" : node.name) :
-          (node.mac ? node.mac.substring(node.mac.length - 5) : "???");
+        const label = node.name
+          ? node.name.length > 8
+            ? node.name.substring(0, 8) + "…"
+            : node.name
+          : node.mac
+            ? node.mac.substring(node.mac.length - 5)
+            : "???";
         ctx.fillText(label, x, y + 24);
 
         // Status text

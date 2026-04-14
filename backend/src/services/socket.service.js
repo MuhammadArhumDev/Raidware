@@ -3,6 +3,10 @@ import Device from '../models/Device.js';
 import { initiateAuth, verifyAuthResponse, decryptPulse } from './deviceAuth.service.js';
 import { saveAndAnalyzeLog } from './networkLog.service.js';
 
+// Module-scoped Map: macAddress → setTimeout reference.
+// Persists across multiple socket connection/disconnection cycles.
+const graceTimers = new Map();
+
 export const getTopologyForOrg = async (orgId) => {
   const devices = await Device.find({ organizationId: orgId });
   
@@ -15,7 +19,9 @@ export const getTopologyForOrg = async (orgId) => {
     meshRole: device.meshRole,
     rssi: device.rssi,
     parentMac: device.parentMac,
-    ipAddress: device.ipAddress
+    ipAddress: device.ipAddress,
+    connectionType: device.connectionType,
+    authenticated: device.provisioned
   }));
 };
 
@@ -45,12 +51,28 @@ export const initSocketService = (io) => {
           console.log(`[Socket] Device ${macAddress} authenticated via Redis fast-path`);
           socket.isAuthenticated = true;
           
+          // Cancel any pending grace timer from a previous disconnect
+          if (graceTimers.has(macAddress)) {
+            clearTimeout(graceTimers.get(macAddress));
+            graceTimers.delete(macAddress);
+            console.log(`[Socket] Grace timer cancelled for ${macAddress} — device reconnected (fast-path).`);
+          }
+
           await Device.findOneAndUpdate(
             { macAddress },
             { status: 'online', lastSeen: new Date() }
           );
           
+          // Extend heartbeat TTL on reconnect
+          await redis.set(
+            `device:${macAddress}:heartbeat`,
+            new Date().toISOString(),
+            'EX',
+            60
+          );
+
           socket.emit('auth:success');
+          socket.join(`org:${orgId}`);
           
           const topology = await getTopologyForOrg(orgId);
           io.to(`org:${orgId}`).emit('topology:update', { devices: topology });
@@ -85,12 +107,27 @@ export const initSocketService = (io) => {
         console.log(`[Socket] Device ${socket.macAddress} successfully authenticated`);
         socket.isAuthenticated = true;
         
+        // Cancel any pending grace timer from a previous disconnect
+        if (graceTimers.has(socket.macAddress)) {
+          clearTimeout(graceTimers.get(socket.macAddress));
+          graceTimers.delete(socket.macAddress);
+          console.log(`[Socket] Grace timer cancelled for ${socket.macAddress} — device reconnected.`);
+        }
+
         await redis.set(`device:${socket.macAddress}:auth`, "1", "EX", 86400);
 
         await Device.findOneAndUpdate(
           { macAddress: socket.macAddress },
           { status: 'online', lastSeen: new Date(), organizationId: socket.orgId },
           { upsert: true, new: true }
+        );
+
+        // Set heartbeat key with 60s TTL
+        await redis.set(
+          `device:${socket.macAddress}:heartbeat`,
+          new Date().toISOString(),
+          'EX',
+          60
         );
 
         socket.emit('auth:success');
@@ -119,10 +156,21 @@ export const initSocketService = (io) => {
 
         await Device.findOneAndUpdate(
           { macAddress: socket.macAddress },
-          { status: status || 'online', lastSeen, rssi, ipAddress: ip }
+          {
+            status: status || 'online',
+            lastSeen,
+            rssi,
+            ipAddress: ip
+          }
         );
 
-        await redis.set(`device:${socket.macAddress}:heartbeat`, lastSeen.toISOString(), "EX", 30);
+        // Extend heartbeat TTL to 60 seconds
+        await redis.set(
+          `device:${socket.macAddress}:heartbeat`,
+          lastSeen.toISOString(),
+          'EX',
+          60
+        );
 
         const topology = await getTopologyForOrg(socket.orgId);
         io.to(`org:${socket.orgId}`).emit('topology:update', { devices: topology });
@@ -132,24 +180,58 @@ export const initSocketService = (io) => {
     });
 
     // ── disconnect ─────────────────────────────────────────────────────────
-    socket.on('disconnect', async () => {
-      try {
-        if (socket.isAuthenticated && socket.macAddress) {
-          console.log(`[Socket] Device ${socket.macAddress} disconnected`);
-          
+    socket.on('disconnect', async (reason) => {
+      if (!socket.isAuthenticated || !socket.macAddress) return;
+
+      console.log(`[Socket] Device ${socket.macAddress} disconnected. Reason: ${reason}`);
+
+      // Grace period: wait 35 seconds before marking offline.
+      // If the device reconnects and re-authenticates within that window,
+      // the grace timer is cancelled and the device stays online.
+      // 35s is slightly longer than the 15s heartbeat interval so a single
+      // missed heartbeat does NOT trigger an offline event.
+      const graceMs = 35_000;
+      const mac = socket.macAddress;
+      const orgId = socket.orgId;
+
+      const graceTimer = setTimeout(async () => {
+        try {
+          // Check Redis: if heartbeat key still exists, device
+          // reconnected successfully — do NOT mark offline.
+          const heartbeat = await redis.get(`device:${mac}:heartbeat`);
+          if (heartbeat) {
+            console.log(`[Socket] Device ${mac} reconnected during grace period. Staying online.`);
+            graceTimers.delete(mac);
+            return;
+          }
+
+          // No heartbeat in Redis — device is genuinely offline.
           await Device.findOneAndUpdate(
-            { macAddress: socket.macAddress },
+            { macAddress: mac },
             { status: 'offline', lastSeen: new Date() }
           );
+          console.log(`[Socket] Device ${mac} marked offline after grace period.`);
 
-          await redis.del(`device:${socket.macAddress}:heartbeat`);
+          // Broadcast topology update to org room.
+          if (orgId) {
+            const devices = await getTopologyForOrg(orgId);
+            io.to(`org:${orgId}`).emit('topology:update', { devices });
+          }
 
-          const topology = await getTopologyForOrg(socket.orgId);
-          io.to(`org:${socket.orgId}`).emit('topology:update', { devices: topology });
+          // Clean up heartbeat key (already expired, but just in case)
+          await redis.del(`device:${mac}:heartbeat`);
+
+          // Remove from grace timers map
+          graceTimers.delete(mac);
+        } catch (err) {
+          console.error(`[Socket] Grace period error for ${mac}:`, err.message);
+          graceTimers.delete(mac);
         }
-      } catch (err) {
-        console.error(`[Socket] disconnect error:`, err);
-      }
+      }, graceMs);
+
+      // Store timer in module-scoped Map for cancellation on reconnect
+      graceTimers.set(mac, graceTimer);
+      console.log(`[Socket] Grace timer started for ${mac} (${graceMs}ms)`);
     });
 
     // ── network:log ────────────────────────────────────────────────────────
@@ -181,7 +263,6 @@ export const initSocketService = (io) => {
       if (!savedLog) return;
 
       // 4. Broadcast to org room so dashboard updates in real time
-      //    Emit the full saved log document
       _io.to(`org:${socket.orgId}`).emit('network:log:new', {
         log: {
           id:           savedLog._id,
@@ -202,6 +283,28 @@ export const initSocketService = (io) => {
       console.log(`[Socket] network:log processed | ${savedLog.macAddress} | ${savedLog.action}`);
     });
   });
+
+  // ── STARTUP WATCHDOG ──────────────────────────────────────────────────────
+  // On startup: mark all devices offline that have no active heartbeat in Redis.
+  // This fixes stale 'online' status from a previous server crash or restart.
+  (async () => {
+    try {
+      const staleDevices = await Device.find({ status: 'online' });
+      for (const device of staleDevices) {
+        const heartbeat = await redis.get(`device:${device.macAddress}:heartbeat`);
+        if (!heartbeat) {
+          await Device.findOneAndUpdate(
+            { macAddress: device.macAddress },
+            { status: 'offline' }
+          );
+          console.log(`[Socket] Startup: marked ${device.macAddress} offline (no heartbeat in Redis)`);
+        }
+      }
+      console.log(`[Socket] Startup cleanup complete. Checked ${staleDevices.length} devices.`);
+    } catch (err) {
+      console.error('[Socket] Startup cleanup error:', err.message);
+    }
+  })();
 };
 
 export const emitDeviceUpdate = (event, data) => {

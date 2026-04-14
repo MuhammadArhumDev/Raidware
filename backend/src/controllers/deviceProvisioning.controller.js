@@ -1,4 +1,5 @@
 import Device from '../models/Device.js';
+import redis from '../config/redis.js';
 import {
   generateServerKeyPair,
   generateSharedSecret,
@@ -167,6 +168,33 @@ export async function authenticateDevice(req, res) {
     }
     await device.save();
 
+    // Set Redis heartbeat key (60s TTL) immediately on auth
+    await redis.set(
+      `device:${device.macAddress}:heartbeat`,
+      new Date().toISOString(),
+      'EX',
+      60
+    );
+
+    // Broadcast topology update immediately so dashboard sees device online
+    if (device.organizationId) {
+      const devices = await Device.find({ organizationId: device.organizationId });
+      const topology = devices.map(d => ({
+        id: d._id,
+        mac: d.macAddress,
+        name: d.name,
+        status: d.status,
+        lastSeen: d.lastSeen,
+        connectionType: d.connectionType,
+        rssi: d.rssi,
+        ipAddress: d.ipAddress,
+        authenticated: d.provisioned
+      }));
+      emitDeviceUpdate('topology:update', { devices: topology });
+    }
+
+    console.log(`[Auth] Device ${deviceId} authenticated → status: online`);
+
     return res.status(200).json({
       success: true,
       token,
@@ -292,6 +320,14 @@ export async function deviceHeartbeat(req, res) {
       return res.status(404).json({ success: false, error: 'Device not found' });
     }
 
+    // Set Redis heartbeat key (60s TTL) so startup watchdog knows device is alive
+    await redis.set(
+      `device:${device.macAddress}:heartbeat`,
+      new Date().toISOString(),
+      'EX',
+      60
+    );
+
     // Broadcast topology update to org dashboard via WebSocket
     if (device.organizationId) {
       const devices = await Device.find({ organizationId: device.organizationId });
@@ -309,6 +345,7 @@ export async function deviceHeartbeat(req, res) {
       emitDeviceUpdate('topology:update', { devices: topology });
     }
 
+    console.log(`[Heartbeat] ${deviceId} → status: ${device.status}, lastSeen: ${device.lastSeen}`);
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error('deviceHeartbeat error:', error);

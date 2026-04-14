@@ -14,7 +14,6 @@ import authRoutes from "./routes/auth.js";
 import deviceRoutes from "./routes/device.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
-import { globalLimiter } from "./middleware/rateLimit.middleware.js";
 import { initSocketService } from "./services/socket.service.js";
 import { Server } from "socket.io";
 import { syncDeviceHashes } from "./services/deviceAuth.service.js";
@@ -48,15 +47,20 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan("dev"));
 
+import { globalLimiter, deviceLimiter } from "./middleware/rateLimit.middleware.js";
+
 import { safeMongoSanitize } from "./middleware/security.middleware.js";
 app.use(safeMongoSanitize);
 
 app.use(hpp());
 
+// Device routes use a generous limiter (600 req/15min) — must come BEFORE globalLimiter
+app.use("/api/devices", deviceLimiter, deviceRoutes);
+
+// Global limiter applies to everything else (auth, admin, frontend API)
 app.use(globalLimiter);
 
 app.use("/api/auth", authRoutes);
-app.use("/api/devices", deviceRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.use(errorHandler);

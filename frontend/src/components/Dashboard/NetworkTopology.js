@@ -44,8 +44,8 @@ export default function NetworkTopology() {
     try {
       const res = await fetch(`${BACKEND_URL}/api/devices/topology/${orgId}`, {
         headers: {
-          "Authorization": `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (res.ok) {
         const data = await res.json();
@@ -105,7 +105,7 @@ export default function NetworkTopology() {
     const cx = 350;
     const cy = 80;
     const positions = {};
-    
+
     if (devices.length === 0) return { positions, cx, cy };
 
     const radius = Math.min(180, 60 + devices.length * 20);
@@ -141,7 +141,9 @@ export default function NetworkTopology() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Network Topology</h2>
-          <p className="text-gray-600 text-sm">Live real-time device map — direct connections</p>
+          <p className="text-gray-600 text-sm">
+            Live real-time device map — direct connections
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {lastRefresh && (
@@ -175,7 +177,9 @@ export default function NetworkTopology() {
           <div className="text-center">
             <p className="text-gray-400 text-4xl mb-2">📡</p>
             <p className="text-gray-500 font-medium">No devices connected</p>
-            <p className="text-gray-400 text-sm">Provision a device to see it here</p>
+            <p className="text-gray-400 text-sm">
+              Provision a device to see it here
+            </p>
           </div>
         ) : (
           <svg
@@ -206,7 +210,13 @@ export default function NetworkTopology() {
             })}
 
             {/* Central Server */}
-            <rect x={cx - 30} y={cy - 20} width="60" height="40" fill="#111827" />
+            <rect
+              x={cx - 30}
+              y={cy - 20}
+              width="60"
+              height="40"
+              fill="#111827"
+            />
             <text
               x={cx}
               y={cy + 4}
@@ -222,10 +232,14 @@ export default function NetworkTopology() {
             {devices.map((d) => {
               const pos = positions[d.mac];
               if (!pos) return null;
-              
+
               const color = getNodeColor(d);
               const isSelected = selectedNode?.mac === d.mac;
-              const displayName = d.name ? (d.name.length > 12 ? d.name.substring(0, 12) + "…" : d.name) : "Unknown";
+              const displayName = d.name
+                ? d.name.length > 12
+                  ? d.name.substring(0, 12) + "…"
+                  : d.name
+                : "Unknown";
               const shortMac = d.mac ? d.mac.slice(-8) : "N/A";
 
               return (
@@ -239,7 +253,15 @@ export default function NetworkTopology() {
                 >
                   {/* Selection Highlight */}
                   {isSelected && (
-                    <rect x={pos.x - 26} y={pos.y - 18} width="52" height="36" fill="none" stroke="#6366f1" strokeWidth="2" />
+                    <rect
+                      x={pos.x - 26}
+                      y={pos.y - 18}
+                      width="52"
+                      height="36"
+                      fill="none"
+                      stroke="#6366f1"
+                      strokeWidth="2"
+                    />
                   )}
 
                   {/* Node Rectangle */}
@@ -261,12 +283,12 @@ export default function NetworkTopology() {
                   />
 
                   {/* Connection Type Pill */}
-                  <rect 
-                    x={pos.x - 18} 
-                    y={pos.y - 28} 
-                    width="36" 
-                    height="12" 
-                    fill="#1f2937" 
+                  <rect
+                    x={pos.x - 18}
+                    y={pos.y - 28}
+                    width="36"
+                    height="12"
+                    fill="#1f2937"
                   />
                   <text
                     x={pos.x}
@@ -326,7 +348,7 @@ export default function NetworkTopology() {
           </div>
           <div className="ml-auto text-xs text-gray-400">
             {devices.length} device{devices.length !== 1 ? "s" : ""} •{" "}
-            {devices.filter(d => d.status === "online").length} online
+            {devices.filter((d) => d.status === "online").length} online
           </div>
         </div>
       )}
@@ -343,47 +365,66 @@ export default function NetworkTopology() {
               ×
             </button>
           </div>
-          
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6 text-sm">
             <div>
               <p className="text-gray-500 font-medium mb-1">Name</p>
-              <p className="font-semibold text-gray-900">{selectedNode.name || "Unknown"}</p>
+              <p className="font-semibold text-gray-900">
+                {selectedNode.name || "Unknown"}
+              </p>
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">MAC Address</p>
-              <p className="font-semibold text-gray-900 font-mono text-xs">{selectedNode.mac}</p>
+              <p className="font-semibold text-gray-900 font-mono text-xs">
+                {selectedNode.mac}
+              </p>
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">Status</p>
-              <p className={`font-semibold capitalize ${
-                selectedNode.status === "online" ? "text-green-600" : 
-                selectedNode.status === "pending" ? "text-yellow-600" : "text-gray-600"
-              }`}>
+              <p
+                className={`font-semibold capitalize ${
+                  selectedNode.status === "online"
+                    ? "text-green-600"
+                    : selectedNode.status === "pending"
+                      ? "text-yellow-600"
+                      : "text-gray-600"
+                }`}
+              >
                 {getStatusLabel(selectedNode)}
               </p>
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">Connection</p>
-              <p className="font-semibold text-gray-900 capitalize">{selectedNode.connectionType || "direct"}</p>
+              <p className="font-semibold text-gray-900 capitalize">
+                {selectedNode.connectionType || "direct"}
+              </p>
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">Last Seen</p>
-              <p className="font-semibold text-gray-900">{getRelativeTime(selectedNode.lastSeen)}</p>
+              <p className="font-semibold text-gray-900">
+                {getRelativeTime(selectedNode.lastSeen)}
+              </p>
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">IP Address</p>
-              <p className="font-semibold text-gray-900 font-mono text-xs">{selectedNode.ipAddress || "N/A"}</p>
+              <p className="font-semibold text-gray-900 font-mono text-xs">
+                {selectedNode.ipAddress || "N/A"}
+              </p>
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">Authenticated</p>
-              <p className={`font-semibold ${selectedNode.authenticated ? "text-green-600" : "text-gray-400"}`}>
+              <p
+                className={`font-semibold ${selectedNode.authenticated ? "text-green-600" : "text-gray-400"}`}
+              >
                 {selectedNode.authenticated ? "Yes" : "No"}
               </p>
             </div>
             <div>
               <p className="text-gray-500 font-medium mb-1">Signal (RSSI)</p>
               <p className="font-semibold text-gray-900">
-                {selectedNode.rssi != null ? `${selectedNode.rssi} dBm (${getSignalLabel(selectedNode.rssi)})` : "N/A"}
+                {selectedNode.rssi != null
+                  ? `${selectedNode.rssi} dBm (${getSignalLabel(selectedNode.rssi)})`
+                  : "N/A"}
               </p>
             </div>
           </div>

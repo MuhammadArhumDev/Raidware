@@ -6,13 +6,7 @@ import useAuthStore from "@/store/useAuthStore";
 import DashboardLayout from "@/components/Dashboard/DashboardLayout";
 import StatsCard from "@/components/Dashboard/StatsCard";
 import MetricChart from "@/components/Dashboard/MetricChart";
-import {
-  Network,
-  Activity,
-  Shield,
-  Wifi,
-  Server,
-} from "lucide-react";
+import { Network, Activity, Shield, Wifi, Server } from "lucide-react";
 import TopologyView from "@/components/Dashboard/TopologyView";
 import MessageSender from "@/components/Dashboard/MessageSender";
 
@@ -37,7 +31,7 @@ export default function DashboardPage() {
   // Compute stats
   const nodeCount = Object.keys(nodes).length;
   const onlineNodes = Object.values(nodes).filter(
-    (node) => node.status === "online"
+    (node) => node.status === "online",
   ).length;
 
   useEffect(() => {
@@ -66,8 +60,8 @@ export default function DashboardPage() {
             Dashboard Overview
           </h1>
           <p className="text-gray-600">
-            Cloud platform for secure IoT network management with sensors
-            and IDS protection
+            Cloud platform for secure IoT network management with sensors and
+            IDS protection
           </p>
         </div>
 
@@ -118,8 +112,13 @@ export default function DashboardPage() {
         <div className="bg-white rounded-none shadow-sm border-[1.5px] border-gray-200">
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">Recent Network Logs</h2>
-              <p className="text-sm text-gray-500 mt-1">Live IDS-analyzed device traffic — updates in real-time via WebSocket</p>
+              <h2 className="text-xl font-semibold text-gray-900">
+                Recent Network Logs
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Live IDS-analyzed device traffic — updates in real-time via
+                WebSocket
+              </p>
             </div>
             <a
               href="/dashboard/logs"
@@ -144,7 +143,10 @@ export default function DashboardPage() {
               <tbody>
                 {recentLogs.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
+                    <td
+                      colSpan={7}
+                      className="px-4 py-8 text-center text-gray-400"
+                    >
                       No network logs yet. Waiting for device traffic...
                     </td>
                   </tr>
@@ -161,28 +163,42 @@ export default function DashboardPage() {
                       log.action === "BLOCK"
                         ? "bg-red-100 text-red-700"
                         : log.action === "FLAG"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-green-100 text-green-700";
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-green-100 text-green-700";
                     const rowClass =
                       log.action === "BLOCK"
                         ? "bg-red-50"
                         : log.action === "FLAG"
-                        ? "bg-yellow-50"
-                        : "bg-white";
+                          ? "bg-yellow-50"
+                          : "bg-white";
 
                     return (
                       <tr
                         key={log.id || log._id || idx}
                         className={`${rowClass} border-b border-gray-100 hover:bg-gray-50`}
                       >
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-500">{timeStr}</td>
-                        <td className="px-4 py-3 font-medium text-gray-900">{log.deviceName || "Unknown"}</td>
-                        <td className="px-4 py-3 text-gray-600 font-mono text-xs">{log.srcIp}</td>
-                        <td className="px-4 py-3 text-gray-600">{log.protocol}</td>
-                        <td className="px-4 py-3 text-gray-600">{log.dstPort}</td>
-                        <td className="px-4 py-3 text-gray-900">{log.prediction || "—"}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-500">
+                          {timeStr}
+                        </td>
+                        <td className="px-4 py-3 font-medium text-gray-900">
+                          {log.deviceName || "Unknown"}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 font-mono text-xs">
+                          {log.srcIp}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {log.protocol}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">
+                          {log.dstPort}
+                        </td>
+                        <td className="px-4 py-3 text-gray-900">
+                          {log.prediction || "—"}
+                        </td>
                         <td className="px-4 py-3">
-                          <span className={`px-2.5 py-0.5 rounded-none text-xs font-medium ${actionClass}`}>
+                          <span
+                            className={`px-2.5 py-0.5 rounded-none text-xs font-medium ${actionClass}`}
+                          >
                             {log.action}
                           </span>
                         </td>
@@ -212,7 +228,9 @@ export default function DashboardPage() {
         {/* System Status & Security */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-none shadow-sm p-6 border-[1.5px] border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">System Status</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              System Status
+            </h2>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-4 bg-linear-to-r from-green-50 to-green-100 rounded-none border border-green-200">
                 <div className="flex items-center gap-3">
@@ -221,10 +239,14 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">IoT Network</p>
-                    <p className="text-xs text-gray-600">{onlineNodes}/{nodeCount} nodes online</p>
+                    <p className="text-xs text-gray-600">
+                      {onlineNodes}/{nodeCount} nodes online
+                    </p>
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-none text-sm font-medium ${onlineNodes > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                <span
+                  className={`px-3 py-1 rounded-none text-sm font-medium ${onlineNodes > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                >
                   {onlineNodes > 0 ? "Operational" : "Offline"}
                 </span>
               </div>
@@ -234,11 +256,17 @@ export default function DashboardPage() {
                     <Server className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">Gateway Connection</p>
-                    <p className="text-xs text-gray-600">Direct HTTPS connection</p>
+                    <p className="font-medium text-gray-900">
+                      Gateway Connection
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      Direct HTTPS connection
+                    </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-none text-sm font-medium">Connected</span>
+                <span className="px-3 py-1 bg-green-100 text-green-800 rounded-none text-sm font-medium">
+                  Connected
+                </span>
               </div>
               <div className="flex items-center justify-between p-4 bg-linear-to-r from-blue-50 to-blue-100 rounded-none border border-blue-200">
                 <div className="flex items-center gap-3">
@@ -247,10 +275,14 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">Data Sync</p>
-                    <p className="text-xs text-gray-600">Real-time via WebSocket</p>
+                    <p className="text-xs text-gray-600">
+                      Real-time via WebSocket
+                    </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-none text-sm font-medium">Active</span>
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-none text-sm font-medium">
+                  Active
+                </span>
               </div>
               <div className="flex items-center justify-between p-4 bg-linear-to-r from-yellow-50 to-yellow-100 rounded-none border border-yellow-200">
                 <div className="flex items-center gap-3">
@@ -258,43 +290,68 @@ export default function DashboardPage() {
                     <Shield className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">Intrusion Detection</p>
-                    <p className="text-xs text-gray-600">IDS monitoring active</p>
+                    <p className="font-medium text-gray-900">
+                      Intrusion Detection
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      IDS monitoring active
+                    </p>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-none text-sm font-medium">Monitoring</span>
+                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-none text-sm font-medium">
+                  Monitoring
+                </span>
               </div>
             </div>
           </div>
 
           <div className="bg-white rounded-none shadow-sm p-6 border-[1.5px] border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Security Status</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Security Status
+            </h2>
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Encryption (Kyber-768)</span>
-                  <span className="text-sm font-semibold text-green-600">Active</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Encryption (Kyber-768)
+                  </span>
+                  <span className="text-sm font-semibold text-green-600">
+                    Active
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-none h-2">
-                  <div className="bg-green-600 h-2 rounded-none" style={{ width: "100%" }} />
+                  <div
+                    className="bg-green-600 h-2 rounded-none"
+                    style={{ width: "100%" }}
+                  />
                 </div>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Online Devices</span>
-                  <span className="text-sm font-semibold text-indigo-600">{onlineNodes} / {nodeCount}</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Online Devices
+                  </span>
+                  <span className="text-sm font-semibold text-indigo-600">
+                    {onlineNodes} / {nodeCount}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-none h-2">
                   <div
                     className="bg-indigo-600 h-2 rounded-none"
-                    style={{ width: `${(onlineNodes / (nodeCount || 1)) * 100}%` }}
+                    style={{
+                      width: `${(onlineNodes / (nodeCount || 1)) * 100}%`,
+                    }}
                   />
                 </div>
               </div>
               <div className="pt-4 border-t-[1.5px] border-gray-200">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">Encryption Status</span>
-                  <span className="text-2xl font-bold text-green-600">SECURE</span>
+                  <span className="text-sm font-medium text-gray-700">
+                    Encryption Status
+                  </span>
+                  <span className="text-2xl font-bold text-green-600">
+                    SECURE
+                  </span>
                 </div>
               </div>
             </div>
