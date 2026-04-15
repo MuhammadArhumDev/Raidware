@@ -9,6 +9,8 @@ import {
   User,
   AlertCircle,
   Loader2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import Link from "next/link";
 import useAuthStore from "@/store/useAuthStore";
@@ -23,6 +25,8 @@ export default function Signup() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
 
   const signup = useAuthStore((state) => state.signup);
@@ -179,14 +183,21 @@ export default function Signup() {
               <input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleChange}
                 required
                 minLength={8}
-                className="w-full pl-10 pr-4 py-3 border-[1.5px] border-gray-300  rounded-none focus:ring-0 focus:border-black bg-white  text-gray-900 "
+                className="w-full pl-10 pr-10 py-3 border-[1.5px] border-gray-300  rounded-none focus:ring-0 focus:border-black bg-white  text-gray-900 "
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
             <p className="text-xs text-gray-500  mt-1">
               Minimum 8 characters
@@ -205,13 +216,20 @@ export default function Signup() {
               <input
                 id="confirmPassword"
                 name="confirmPassword"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                className="w-full pl-10 pr-4 py-3 border-[1.5px] border-gray-300  rounded-none focus:ring-0 focus:border-black bg-white  text-gray-900 "
+                className="w-full pl-10 pr-10 py-3 border-[1.5px] border-gray-300  rounded-none focus:ring-0 focus:border-black bg-white  text-gray-900 "
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
           </div>
 
@@ -235,7 +253,7 @@ export default function Signup() {
           <p className="text-sm text-gray-600 ">
             Already have an account?{" "}
             <Link
-              href="/"
+              href="/login"
               className="font-medium text-indigo-600  hover:underline"
             >
               Sign in

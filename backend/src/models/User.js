@@ -17,6 +17,11 @@ const userSchema = new mongoose.Schema(
       enum: ["admin", "organization"],
       default: "organization",
     },
+    organizationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      default: null
+    },
     refreshTokens: [
       { token: String, createdAt: { type: Date, default: Date.now } },
     ],

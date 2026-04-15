@@ -10,7 +10,7 @@ export function middleware(request) {
   const isLoggedIn = !!(adminToken || orgToken || refreshToken);
 
   // If user is trying to access auth pages (login/signup) while logged in
-  if (isLoggedIn && (pathname === '/' || pathname.startsWith('/signup'))) {
+  if (isLoggedIn && (pathname === '/login' || pathname.startsWith('/signup'))) {
     if (adminToken) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     } else if (orgToken) {
@@ -24,7 +24,7 @@ export function middleware(request) {
 
   // If user is trying to access protected routes without being logged in
   if (!isLoggedIn && (pathname.startsWith('/dashboard') || pathname.startsWith('/admin'))) {
-    return NextResponse.redirect(new URL('/', request.url));
+    return NextResponse.redirect(new URL('/login', request.url));
   }
   
   // Role-based protection between user and admin
@@ -42,5 +42,5 @@ export function middleware(request) {
 }
 
 export const config = {
-  matcher: ['/', '/signup', '/dashboard/:path*', '/admin/:path*'],
+  matcher: ['/login', '/signup', '/dashboard/:path*', '/admin/:path*'],
 };

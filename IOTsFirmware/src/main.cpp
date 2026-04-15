@@ -36,6 +36,7 @@ bool ledOn = false;
 
 void hexStringToBytes(String hex, uint8_t* bytes, size_t len);
 String bytesToHexString(const uint8_t* bytes, size_t len);
+void sendNetworkLog(String dstIp, uint16_t dstPort, String protocol, uint16_t srcPort);
 
 
 

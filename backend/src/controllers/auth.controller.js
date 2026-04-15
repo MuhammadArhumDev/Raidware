@@ -5,6 +5,7 @@ import {
   generateRefreshToken,
 } from "../utils/generateToken.js";
 import config from "../config/index.js";
+import Organization from "../models/Organization.js";
 
 export async function register(req, res, next) {
   try {
@@ -13,10 +14,22 @@ export async function register(req, res, next) {
     if (exists)
       return sendResponse(res, 400, false, "Email already registered");
 
-    const user = new User({ name, email, password, role: role || "user" });
+    const userRole = role || "organization";
+    let orgId = null;
+
+    if (userRole !== "admin") {
+      let org = await Organization.findOne({ email });
+      if (!org) {
+        org = new Organization({ name, email });
+        await org.save();
+      }
+      orgId = org._id;
+    }
+
+    const user = new User({ name, email, password, role: userRole, organizationId: orgId });
     await user.save();
 
-    const accessToken = generateAccessToken({ id: user._id, role: user.role });
+    const accessToken = generateAccessToken({ id: user._id, role: user.role, organizationId: orgId });
     const refreshToken = generateRefreshToken({ id: user._id });
 
     user.refreshTokens.push({ token: refreshToken });
@@ -36,6 +49,7 @@ export async function register(req, res, next) {
         name: user.name,
         email: user.email,
         role: user.role,
+        organizationId: orgId,
       },
     });
   } catch (err) {
@@ -53,7 +67,16 @@ export async function login(req, res, next) {
     const match = await user.comparePassword(password);
     if (!match) return sendResponse(res, 401, false, "Invalid credentials");
 
-    const accessToken = generateAccessToken({ id: user._id, role: user.role });
+    let orgId = user.organizationId;
+    if (!orgId && user.role !== "admin") {
+      const org = await Organization.findOne({ email: user.email });
+      if (org) {
+        orgId = org._id;
+        user.organizationId = orgId;
+      }
+    }
+
+    const accessToken = generateAccessToken({ id: user._id, role: user.role, organizationId: orgId });
     const refreshToken = generateRefreshToken({ id: user._id });
 
     user.refreshTokens.push({ token: refreshToken });
@@ -95,6 +118,7 @@ export async function login(req, res, next) {
         name: user.name,
         email: user.email,
         role: user.role,
+        organizationId: orgId,
       },
     });
   } catch (err) {
@@ -139,6 +163,7 @@ export async function refreshToken(req, res, next) {
               const newAccess = generateAccessToken({
                 id: user._id,
                 role: user.role,
+                organizationId: user.organizationId,
               });
               const newRefresh = generateRefreshToken({ id: user._id });
 
@@ -179,11 +204,17 @@ export async function logout(req, res, next) {
     const token =
       req.cookies?.[config.cookie.refreshTokenName] || req.body.refreshToken;
 
-    res.clearCookie("organization_token");
-    res.clearCookie("admin_token");
+    const cookieOptions = {
+      httpOnly: true,
+      secure: config.cookie.secure,
+      sameSite: "lax",
+    };
+
+    res.clearCookie("organization_token", cookieOptions);
+    res.clearCookie("admin_token", cookieOptions);
 
     if (!token) {
-      res.clearCookie(config.cookie.refreshTokenName);
+      res.clearCookie(config.cookie.refreshTokenName, cookieOptions);
       return sendResponse(res, 200, true, "Logged out");
     }
 
@@ -195,19 +226,19 @@ export async function logout(req, res, next) {
           User.findById(userId)
             .then(async (user) => {
               if (!user) {
-                res.clearCookie(config.cookie.refreshTokenName);
+                res.clearCookie(config.cookie.refreshTokenName, cookieOptions);
                 return sendResponse(res, 200, true, "Logged out");
               }
               user.refreshTokens = user.refreshTokens.filter(
                 (rt) => rt.token !== token
               );
               await user.save();
-              res.clearCookie(config.cookie.refreshTokenName);
+              res.clearCookie(config.cookie.refreshTokenName, cookieOptions);
               return sendResponse(res, 200, true, "Logged out");
             })
             .catch(next);
         } catch (err) {
-          res.clearCookie(config.cookie.refreshTokenName);
+          res.clearCookie(config.cookie.refreshTokenName, cookieOptions);
           return sendResponse(res, 200, true, "Logged out");
         }
       })
@@ -226,8 +257,25 @@ export async function me(req, res, next) {
       .maxTimeMS(4000);
     console.log('[AuthMe] DB returned');
     if (!user) return sendResponse(res, 404, false, "User not found");
+
+    let orgId = user.organizationId;
+    if (!orgId && user.role !== "admin") {
+      const org = await Organization.findOne({ email: user.email });
+      if (org) {
+        orgId = org._id;
+        user.organizationId = orgId;
+        await user.save();
+      }
+    }
+
     console.log('[AuthMe] Sending response');
-    return sendResponse(res, 200, true, "User profile", { user });
+    return sendResponse(res, 200, true, "User profile", { 
+      user: {
+        ...user.toObject(),
+        id: user._id,
+        organizationId: orgId,
+      }
+    });
   } catch (err) {
     next(err);
   }

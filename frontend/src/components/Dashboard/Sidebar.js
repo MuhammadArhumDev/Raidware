@@ -21,6 +21,7 @@ const menuItems = [
   { icon: Map, label: "Network Topology", path: "/dashboard/map" },
   { icon: Activity, label: "Network Logs", path: "/dashboard/logs" },
   { icon: Bell, label: "IDS Alerts", path: "/dashboard/alerts" },
+  { icon: Network, label: "Device Setup", path: "/dashboard/setup" },
   { icon: Settings, label: "Settings", path: "/dashboard/settings" },
 ];
 
@@ -33,7 +34,8 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     await logout();
-    router.push("/");
+    // Redirect is handled by the auth store, but we can have this as fallback
+    router.push("/login");
   };
 
   const handleNavigation = (path) => {

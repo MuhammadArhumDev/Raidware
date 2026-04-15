@@ -160,7 +160,17 @@ const useAuthStore = create(
         }
       },
 
-      logout: () => {
+      logout: async () => {
+        try {
+          await fetch(`${BACKEND_URL}/api/auth/logout`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+          });
+        } catch (err) {
+          console.error("Failed to clear backend cookies during logout", err);
+        }
+
         set({
           user: null,
           token: null,
@@ -169,6 +179,7 @@ const useAuthStore = create(
           isInitialized: true,
           _hasHydrated: true,
         });
+        
         if (typeof window !== 'undefined') {
           window.location.href = '/login';
         }

@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import useAuthStore from "@/store/useAuthStore";
 import { useRouter } from "next/navigation";
-import { Lock, Mail, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Lock, Mail, AlertCircle, CheckCircle, Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const login = useAuthStore((state) => state.login);
   const authError = useAuthStore((state) => state.error);
@@ -117,13 +119,20 @@ export default function Login() {
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full pl-10 pr-4 py-3 border-[1.5px] border-gray-300  rounded-none focus:ring-0 focus:border-black bg-white  text-gray-900 "
+                className="w-full pl-10 pr-10 py-3 border-[1.5px] border-gray-300  rounded-none focus:ring-0 focus:border-black bg-white  text-gray-900 "
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
           </div>
 
@@ -146,12 +155,12 @@ export default function Login() {
         <div className="mt-6 text-center space-y-2">
           <p className="text-sm text-gray-600 ">
             Don't have an account?{" "}
-            <a
+            <Link
               href="/signup"
               className="text-indigo-600  hover:underline font-medium"
             >
               Sign up
-            </a>
+            </Link>
           </p>
         </div>
       </div>
