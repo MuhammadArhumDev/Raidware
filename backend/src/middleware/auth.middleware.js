@@ -3,6 +3,7 @@ import config from "../config/index.js";
 import { checkDeviceAuth } from "../services/deviceAuth.service.js";
 
 export async function protect(req, res, next) {
+  console.log('[Auth Middleware] verifyToken called');
   try {
     let token;
 
@@ -43,9 +44,11 @@ export async function protect(req, res, next) {
     const payload = jwt.verify(token, config.jwt.accessSecret);
     console.log("Token Verified Successfully.");
     console.log("Payload:", JSON.stringify(payload));
+    console.log('[Auth Middleware] token decoded:', payload.id);
 
     req.user = { id: payload.id, role: payload.role };
     next();
+    console.log('[Auth Middleware] next() called');
   } catch (err) {
     console.error("Auth Middleware Error:", err.message);
     if (err.name === "JsonWebTokenError") {

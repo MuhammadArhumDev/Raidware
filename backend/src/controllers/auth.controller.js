@@ -218,9 +218,15 @@ export async function logout(req, res, next) {
 }
 
 export async function me(req, res, next) {
+  console.log('[AuthMe] Controller hit');
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    console.log('[AuthMe] About to query DB');
+    const user = await User.findById(req.user.id)
+      .select("-password")
+      .maxTimeMS(4000);
+    console.log('[AuthMe] DB returned');
     if (!user) return sendResponse(res, 404, false, "User not found");
+    console.log('[AuthMe] Sending response');
     return sendResponse(res, 200, true, "User profile", { user });
   } catch (err) {
     next(err);

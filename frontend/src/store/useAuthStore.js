@@ -3,6 +3,16 @@ import { persist } from "zustand/middleware";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
+const isTokenExpired = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // exp is in seconds, Date.now() is in milliseconds
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true; // treat malformed token as expired
+  }
+};
+
 const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -71,49 +81,49 @@ const useAuthStore = create(
       },
 
       checkAuth: async () => {
-        // Skip if not hydrated yet or already authenticated
         const state = get();
+        const token = state.token;
+
+        if (!token || isTokenExpired(token)) {
+          get().logout();
+          return null;
+        }
+
+        // Skip if not hydrated yet or already authenticated
         if (!state._hasHydrated) {
           console.log("[checkAuth] Skipping - not hydrated yet");
+          set({ isLoading: false, isInitialized: true });
           return state.user;
         }
         if (state.isAuthenticated && state.user) {
           console.log("[checkAuth] Skipping - already authenticated");
+          set({ isLoading: false, isInitialized: true });
           return state.user;
         }
 
         set({ isLoading: true });
+        
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        
         try {
-          let res = await fetch(`${BACKEND_URL}/api/auth/me`, {
+          const response = await fetch(`${BACKEND_URL}/api/auth/me`, {
             method: "GET",
-            headers: { "Content-Type": "application/json" },
+            signal: controller.signal,
+            headers: { 
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
             credentials: "include",
           });
+          clearTimeout(timeout);
           
-          if (res.status === 401) {
-             console.log("[checkAuth] 401 received. Attempting to refresh token...");
-             const refreshRes = await fetch(`${BACKEND_URL}/api/auth/refresh-token`, {
-               method: "POST",
-               credentials: "include",
-             });
-             
-             if (refreshRes.ok) {
-               const refreshData = await refreshRes.json();
-               set({ token: refreshData.data.accessToken });
-               // Retry the /me endpoint
-               res = await fetch(`${BACKEND_URL}/api/auth/me`, {
-                 method: "GET",
-                 headers: { 
-                   "Content-Type": "application/json",
-                   "Authorization": `Bearer ${refreshData.data.accessToken}`
-                 },
-                 credentials: "include",
-               });
-             }
+          if (!response.ok) {
+            get().logout();
+            return null;
           }
-
-          const data = await res.json();
-          if (!res.ok) throw new Error("Session invalid");
+          
+          const data = await response.json();
 
           set({
             user: data.data.user,
@@ -123,21 +133,13 @@ const useAuthStore = create(
           });
           return data.data.user;
         } catch (err) {
-          // If all fails, logout to clear cookies so we don't get stuck
-          try {
-            await fetch(`${BACKEND_URL}/api/auth/logout`, {
-              method: "POST",
-              credentials: "include",
-            });
-          } catch(e) {}
-          
-          set({
-            user: null,
-            token: null,
-            isAuthenticated: false,
-            isLoading: false,
-            isInitialized: true,
-          });
+          clearTimeout(timeout);
+          if (err.name === 'AbortError') {
+            console.error('[checkAuth] Timed out — clearing auth');
+          } else {
+            console.error('[checkAuth] Error:', err.message);
+          }
+          get().logout();
           return null;
         }
       },
@@ -166,11 +168,10 @@ const useAuthStore = create(
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
-        // Guarantee checkAuth runs on first mount by clearing transient state
         if (state) {
-          state.isInitialized = false;
+          state._hasHydrated = true;
+          state.isInitialized = true;
           state.isLoading = false;
-          state.setHasHydrated(true);
         }
       },
     }

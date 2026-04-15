@@ -97,12 +97,17 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([
-        fetchStats(),
-        fetchGrowthAnalytics(),
-        fetchDeviceActivity(),
-      ]);
-      setLoading(false);
+      try {
+        await Promise.all([
+          fetchStats(),
+          fetchGrowthAnalytics(),
+          fetchDeviceActivity(),
+        ]);
+      } catch (err) {
+        console.error("Error loading data:", err);
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, [fetchStats, fetchGrowthAnalytics, fetchDeviceActivity]);

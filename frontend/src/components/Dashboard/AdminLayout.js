@@ -11,19 +11,30 @@ export default function AdminLayout({ children }) {
   const isLoading = useAuthStore((state) => state.isLoading);
   const isInitialized = useAuthStore((state) => state.isInitialized);
   const _hasHydrated = useAuthStore((state) => state._hasHydrated);
-  const checkAuth = useAuthStore((state) => state.checkAuth);
   const router = useRouter();
 
   // Derive loading and userRole
-  const loading = !_hasHydrated || !isInitialized || isLoading;
+  const loading = isLoading;
   const userRole = user?.role || null;
 
-  // Run checkAuth on mount if hydrated
   useEffect(() => {
+    const { _hasHydrated, isInitialized, isLoading, checkAuth } = 
+      useAuthStore.getState();
     if (_hasHydrated && !isInitialized && !isLoading) {
       checkAuth();
     }
-  }, [_hasHydrated, isInitialized, isLoading, checkAuth]);
+  }, []);
+
+  useEffect(() => {
+    const safety = setTimeout(() => {
+      useAuthStore.setState({ 
+        isLoading: false, 
+        isInitialized: true,
+        _hasHydrated: true 
+      });
+    }, 2000);
+    return () => clearTimeout(safety);
+  }, []);
 
   // Handle redirects
   useEffect(() => {
