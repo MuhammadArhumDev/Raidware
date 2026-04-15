@@ -1,6 +1,96 @@
 import NetworkLog from '../models/NetworkLog.js';
-// Assuming redis is exported from a config file. If the path differs, adjust accordingly.
 import redis from '../config/redis.js';
+
+const IDS_URL = process.env.IDS_ENGINE_URL || 'http://127.0.0.1:9632';
+
+/**
+ * Call the IDS engine and return { prediction, confidence, action }.
+ *
+ * Strategy:
+ *  - If 76 features are provided  → POST /analyze (full LightGBM ML model)
+ *  - Otherwise                    → POST /predict (rule-based, always succeeds)
+ *
+ * Never throws — always returns a usable default on failure.
+ */
+async function callIDS(logData) {
+  const {
+    orgId, macAddress, deviceName,
+    srcIp, dstIp, protocol, srcPort, dstPort,
+    flowDuration, packetCount, byteCount,
+    features,
+  } = logData;
+
+  const hasFullFeatures = Array.isArray(features) && features.length === 76;
+
+  try {
+    if (hasFullFeatures) {
+      // ── Full ML analysis ────────────────────────────────────────────────────
+      const res = await fetch(`${IDS_URL}/analyze`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          src_ip:      srcIp,
+          mac_address: macAddress,
+          device_name: deviceName,
+          org_id:      orgId,
+          features,
+        }),
+        signal: AbortSignal.timeout(4000),
+      });
+
+      if (res.ok) {
+        const result = await res.json();
+        return {
+          prediction:  result.prediction  || 'BENIGN',
+          confidence:  result.confidence  ?? 0,
+          action:      result.action      || 'ALLOW',
+          rawFeatures: true,
+        };
+      }
+
+      console.warn(`[NetworkLog] IDS /analyze returned ${res.status} — falling back to /predict`);
+    }
+
+    // ── Rule-based metadata analysis (no features required) ──────────────────
+    const res = await fetch(`${IDS_URL}/predict`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        src_ip:       srcIp,
+        dst_ip:       dstIp,
+        protocol:     protocol  || 'TCP',
+        src_port:     srcPort   || 0,
+        dst_port:     dstPort   || 0,
+        packet_count: packetCount || 0,
+        byte_count:   byteCount   || 0,
+        flow_duration: flowDuration || 0,
+        mac_address:  macAddress,
+        device_name:  deviceName,
+        org_id:       orgId,
+      }),
+      signal: AbortSignal.timeout(4000),
+    });
+
+    if (res.ok) {
+      const result = await res.json();
+      return {
+        prediction:  result.prediction  || 'BENIGN',
+        confidence:  result.confidence  ?? 0,
+        action:      result.action      || 'ALLOW',
+        rawFeatures: false,
+      };
+    }
+
+    console.warn(`[NetworkLog] IDS /predict returned ${res.status}`);
+  } catch (err) {
+    console.warn(`[NetworkLog] IDS unreachable (${IDS_URL}): ${err.message}`);
+  }
+
+  // ── Safe default when IDS is completely unreachable ───────────────────────
+  return { prediction: 'BENIGN', confidence: 0.5, action: 'ALLOW', rawFeatures: false };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const saveAndAnalyzeLog = async (logData) => {
   try {
@@ -8,50 +98,17 @@ export const saveAndAnalyzeLog = async (logData) => {
       orgId, macAddress, deviceName,
       srcIp, dstIp, protocol, srcPort, dstPort,
       flowDuration, packetCount, byteCount,
-      features
+      features,
     } = logData;
 
-    let prediction = 'UNKNOWN';
-    let confidence = 0;
-    let action = 'ALLOW';
-    
-    const isValidFeatures = Array.isArray(features) && features.length === 76;
-    const rawFeatures = isValidFeatures;
+    // Always call the IDS — every log gets a prediction
+    const { prediction, confidence, action, rawFeatures } = await callIDS(logData);
 
-    if (rawFeatures) {
-      try {
-        const idsUrl = process.env.IDS_ENGINE_URL || 'http://127.0.0.1:9632';
-        const response = await fetch(`${idsUrl}/analyze`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            src_ip: srcIp,
-            mac_address: macAddress,
-            device_name: deviceName,
-            org_id: orgId,
-            features: features
-          })
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          prediction = result.prediction || 'BENIGN';
-          confidence = result.confidence || 0;
-          action = result.action || 'ALLOW';
-          
-          if (action === 'BLOCK' || action === 'FLAG') {
-            console.log(`[NetworkLog] ${action} VERDICT | IP: ${srcIp} | Device: ${deviceName} | Prediction: ${prediction} (${confidence})`);
-          }
-        } else {
-          console.warn(`[NetworkLog] IDS engine returned non-200 status: ${response.status}`);
-        }
-      } catch (error) {
-        console.warn(`[NetworkLog] IDS engine unreachable: ${error.message}`);
-      }
-    } else {
-      console.log("[NetworkLog] No features provided — skipping IDS analysis");
+    if (action === 'BLOCK' || action === 'FLAG') {
+      console.log(
+        `[NetworkLog] ${action} VERDICT | IP: ${srcIp} | Device: ${deviceName} ` +
+        `| Prediction: ${prediction} (${(confidence * 100).toFixed(1)}%)`
+      );
     }
 
     const newLog = await NetworkLog.create({
@@ -66,26 +123,28 @@ export const saveAndAnalyzeLog = async (logData) => {
       flowDuration,
       packetCount,
       byteCount,
-      features: features || [],
+      features:   features || [],
       prediction,
       confidence,
       action,
-      rawFeatures
+      rawFeatures,
     });
 
     return newLog;
-  } catch (error) {
-    console.error(`[NetworkLog] Error in saveAndAnalyzeLog: ${error.message}`);
+  } catch (err) {
+    console.error(`[NetworkLog] Error in saveAndAnalyzeLog: ${err.message}`);
     return null;
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const getLogsForOrg = async (orgId, options = {}) => {
   try {
     const { limit = 50, skip = 0, alertsOnly = false } = options;
-    
+
     const query = { orgId };
-    
+
     if (alertsOnly) {
       query.action = { $in: ['FLAG', 'BLOCK'] };
     }
@@ -97,8 +156,8 @@ export const getLogsForOrg = async (orgId, options = {}) => {
       .lean();
 
     return logs;
-  } catch (error) {
-    console.error(`[NetworkLog] Error in getLogsForOrg: ${error.message}`);
+  } catch (err) {
+    console.error(`[NetworkLog] Error in getLogsForOrg: ${err.message}`);
     return [];
   }
 };

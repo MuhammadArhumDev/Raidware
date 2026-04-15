@@ -277,6 +277,7 @@ void initializeDeviceAuth() {
 
   Serial.println("\n[DEVICE] ✅ WiFi connected!");
   Serial.println("[DEVICE] IP Address: " + WiFi.localIP().toString());
+  Serial.println("[DEVICE] MAC Address: " + WiFi.macAddress());
   
   // Attempt authentication immediately
   if (authenticateWithServer()) {

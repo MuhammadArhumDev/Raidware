@@ -165,6 +165,14 @@ export async function authenticateDevice(req, res) {
     device.lastSeen = new Date();
     device.ipAddress = req.ip || req.connection.remoteAddress;
     if (device.macAddress !== macAddress) {
+      // Avoid E11000 Duplicate Key Error: if another device record holds this MAC,
+      // it means the physical hardware was re-provisioned. Clear the old record's MAC.
+      const existingDevice = await Device.findOne({ macAddress });
+      if (existingDevice && existingDevice._id.toString() !== device._id.toString()) {
+        console.log(`[Auth] Clearing duplicate MAC ${macAddress} from old device ${existingDevice.deviceId}`);
+        // Remove old device entirely since its hardware was re-provisioned
+        await Device.findByIdAndDelete(existingDevice._id);
+      }
       device.macAddress = macAddress;
     }
     await device.save();
