@@ -11,6 +11,7 @@ import { verifyToken } from "../middleware/auth.middleware.js";
 import Device from "../models/Device.js";
 import redis from "../config/redis.js";
 import crypto from "crypto";
+import { getLogsForOrg } from '../services/networkLog.service.js';
 
 const router = express.Router();
 
@@ -221,6 +222,41 @@ router.post("/provision", verifyToken, async (req, res) => {
     if (error.message === 'Device already provisioned') {
       return res.status(409).json({ success: false, error: 'Device already provisioned' });
     }
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ──────────────────────────────────────────────
+// NETWORK LOGS ROUTES
+// ──────────────────────────────────────────────
+
+// Get network logs for an organization
+router.get("/logs/:orgId", verifyToken, async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    let limit = parseInt(req.query.limit, 10) || 50;
+    if (limit > 200) limit = 200;
+    const skip = parseInt(req.query.skip, 10) || 0;
+    const alertsOnly = req.query.alertsOnly === 'true';
+
+    const logs = await getLogsForOrg(orgId, { limit, skip, alertsOnly });
+    res.status(200).json({ success: true, logs, count: logs.length });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Get alerts only
+router.get("/logs/:orgId/alerts", verifyToken, async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    let limit = parseInt(req.query.limit, 10) || 50;
+    if (limit > 200) limit = 200;
+    const skip = parseInt(req.query.skip, 10) || 0;
+
+    const logs = await getLogsForOrg(orgId, { limit, skip, alertsOnly: true });
+    res.status(200).json({ success: true, logs, count: logs.length });
+  } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
 });

@@ -155,10 +155,20 @@ String bytesToHexString(const uint8_t* bytes, size_t len) {
 
 
 
+// Network log tracking
+unsigned long lastNetworkLog = 0;
+const unsigned long NETWORK_LOG_INTERVAL = 15000; // every 15 seconds
+uint32_t totalPacketsSent = 0;
+uint32_t totalBytesSent = 0;
+
 void sendSocketEvent(String eventName, DynamicJsonDocument& doc) {
     String jsonString;
     serializeJson(doc, jsonString);
     String output = "42[\"" + eventName + "\"," + jsonString + "]";
+    
+    totalPacketsSent++;
+    totalBytesSent += output.length();
+
     webSocket.sendTXT(output);
 }
 
@@ -279,6 +289,32 @@ void setup() {
     webSocket.setReconnectInterval(5000);
 }
 
+void sendNetworkLog() {
+    if (!isAuthenticated || !hasSharedSecret) return;
+
+    DynamicJsonDocument doc(512);
+    doc["deviceName"]   = macAddress;
+    doc["srcIp"]        = WiFi.localIP().toString();
+    doc["dstIp"]        = SECRET_HOST;
+    doc["protocol"]     = "TCP";
+    doc["srcPort"]      = 0;
+    doc["dstPort"]      = SECRET_PORT;
+    doc["flowDuration"] = NETWORK_LOG_INTERVAL;
+    doc["packetCount"]  = totalPacketsSent;
+    doc["byteCount"]    = totalBytesSent;
+    JsonArray features = doc.createNestedArray("features");
+
+    sendSocketEvent("network:log", doc);
+
+    Serial.println("[NetLog] Sent network log | packets=" + 
+                   String(totalPacketsSent) + 
+                   " bytes=" + String(totalBytesSent));
+
+    // Reset counters after sending
+    totalPacketsSent = 0;
+    totalBytesSent   = 0;
+}
+
 unsigned long lastPulse = 0;
 
 void loop() {
@@ -303,5 +339,11 @@ void loop() {
         DynamicJsonDocument out(512);
         deserializeJson(out, enc);
         sendSocketEvent("pulse", out);
+    }
+
+    // Network log — send every 15 seconds
+    if (isAuthenticated && millis() - lastNetworkLog > NETWORK_LOG_INTERVAL) {
+        lastNetworkLog = millis();
+        sendNetworkLog();
     }
 }

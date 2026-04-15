@@ -8,6 +8,10 @@ services:
     restart: always
     env_file:
       - ./backend/.env
+    environment:
+      - IDS_ENGINE_URL=http://raidware-ids:9632
+    networks:
+      - raidware-internal
 
   frontend:
     build:
@@ -22,3 +26,26 @@ services:
       - ./frontend/.env
     depends_on:
       - backend
+
+  ids-engine:
+    build:
+      context: ./ids-engine
+      dockerfile: Dockerfile
+    container_name: raidware-ids
+    restart: unless-stopped
+    volumes:
+      - ./ids-engine/models:/app/models:ro
+    environment:
+      - MODEL_DIR=/app/models
+    networks:
+      - raidware-internal
+    # No ports: block — internal only, not exposed to the internet
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9632/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  raidware-internal:
+    driver: bridge

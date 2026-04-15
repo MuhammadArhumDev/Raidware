@@ -1,6 +1,7 @@
 import redis from '../config/redis.js';
 import Device from '../models/Device.js';
 import { initiateAuth, verifyAuthResponse, decryptPulse } from './deviceAuth.service.js';
+import { saveAndAnalyzeLog } from './networkLog.service.js';
 
 export const getTopologyForOrg = async (orgId) => {
   const devices = await Device.find({ organizationId: orgId });
@@ -149,6 +150,56 @@ export const initSocketService = (io) => {
       } catch (err) {
         console.error(`[Socket] disconnect error:`, err);
       }
+    });
+
+    // ── network:log ────────────────────────────────────────────────────────
+    socket.on('network:log', async (payload) => {
+      // 1. Ignore if not authenticated
+      if (!socket.isAuthenticated) {
+        console.log('[Socket] Unauthenticated network:log ignored');
+        return;
+      }
+
+      // 2. Build logData from payload, filling defaults for missing fields
+      const logData = {
+        orgId:        socket.orgId,
+        macAddress:   socket.macAddress,
+        deviceName:   payload.deviceName  || socket.macAddress,
+        srcIp:        payload.srcIp       || '0.0.0.0',
+        dstIp:        payload.dstIp       || '0.0.0.0',
+        protocol:     payload.protocol    || 'TCP',
+        srcPort:      payload.srcPort     || 0,
+        dstPort:      payload.dstPort     || 0,
+        flowDuration: payload.flowDuration || 0,
+        packetCount:  payload.packetCount  || 0,
+        byteCount:    payload.byteCount    || 0,
+        features:     Array.isArray(payload.features) ? payload.features : []
+      };
+
+      // 3. Save + analyze (never throws — service handles errors internally)
+      const savedLog = await saveAndAnalyzeLog(logData);
+      if (!savedLog) return;
+
+      // 4. Broadcast to org room so dashboard updates in real time
+      //    Emit the full saved log document
+      _io.to(`org:${socket.orgId}`).emit('network:log:new', {
+        log: {
+          id:           savedLog._id,
+          macAddress:   savedLog.macAddress,
+          deviceName:   savedLog.deviceName,
+          srcIp:        savedLog.srcIp,
+          dstIp:        savedLog.dstIp,
+          protocol:     savedLog.protocol,
+          srcPort:      savedLog.srcPort,
+          dstPort:      savedLog.dstPort,
+          prediction:   savedLog.prediction,
+          confidence:   savedLog.confidence,
+          action:       savedLog.action,
+          timestamp:    savedLog.timestamp
+        }
+      });
+
+      console.log(`[Socket] network:log processed | ${savedLog.macAddress} | ${savedLog.action}`);
     });
   });
 };
