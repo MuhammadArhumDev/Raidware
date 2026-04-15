@@ -252,6 +252,8 @@ void sendNetworkLog() {
 
   if (httpCode == 200) {
     Serial.println("[NETLOG] ✅ Network log sent");
+    Serial.println("         MAC: " + WiFi.macAddress() + " | IP: " + WiFi.localIP().toString());
+    Serial.println("         Src: " + WiFi.localIP().toString() + " -> Dst: " + WiFi.gatewayIP().toString());
   } else {
     Serial.println("[NETLOG] ❌ Failed: HTTP " + String(httpCode));
   }
