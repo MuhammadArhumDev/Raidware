@@ -32,7 +32,7 @@ services:
     networks:
       - raidware-internal
 
-  IDSengine:
+  idsengine:
     build:
       context: ./IDSengine
       dockerfile: Dockerfile
