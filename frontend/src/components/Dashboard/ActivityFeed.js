@@ -39,7 +39,7 @@ export default function ActivityFeed({ activities = [] }) {
     },
     {
       id: 'act4',
-      type: 'cctv',
+      type: 'device',
       title: 'Sensor Alert',
       description: 'Motion detected in loading dock',
       timestamp: Date.now() - 1200000,

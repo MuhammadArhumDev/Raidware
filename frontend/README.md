@@ -1,6 +1,6 @@
 # Raidware - Cloud IoT Security Platform
 
-A multi-tenant cloud platform that provides secure IoT network management services to organizations. Features include mutual authentication, strong encryption (AES-256, ASCON), Intrusion Detection System (IDS), CCTV integration with AI analytics, and comprehensive sensor monitoring. Organizations can sign up, configure their networks, and monitor security threats in real-time.
+A multi-tenant cloud platform that provides secure IoT network management services to organizations. Features include mutual authentication, strong encryption (AES-256, ASCON), Intrusion Detection System (IDS), and comprehensive sensor monitoring. Organizations can sign up, configure their networks, and monitor security threats in real-time.
 
 Built with Next.js and real-time data visualization. Currently uses mock data - easily integrate with your own backend!
 

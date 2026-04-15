@@ -148,7 +148,7 @@ export default function DashboardPage() {
             Dashboard Overview
           </h1>
           <p className="text-gray-600 ">
-            Cloud platform for secure IoT network management with CCTV, sensors,
+            Cloud platform for secure IoT network management with sensors,
             and IDS protection
           </p>
         </div>

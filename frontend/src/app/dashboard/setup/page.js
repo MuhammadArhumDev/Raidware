@@ -11,7 +11,6 @@ export default function SetupPage() {
     networkName: '',
     encryptionType: 'AES-256',
     mutualAuth: true,
-    cctvEnabled: true,
     sensorTypes: ['temperature', 'humidity', 'pressure', 'motion'],
   });
 
@@ -151,20 +150,6 @@ export default function SetupPage() {
             </div>
 
             <div className="space-y-3">
-              <label className="flex items-center justify-between p-4 border-[1.5px] border-gray-200  rounded-none cursor-pointer hover:bg-gray-50 ">
-                <div>
-                  <p className="font-medium text-gray-900 ">CCTV Cameras</p>
-                  <p className="text-sm text-gray-600 ">
-                    Enable CCTV camera integration with AI analytics
-                  </p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={networkConfig.cctvEnabled}
-                  onChange={(e) => setNetworkConfig({ ...networkConfig, cctvEnabled: e.target.checked })}
-                  className="w-5 h-5 text-indigo-600 rounded-none"
-                />
-              </label>
 
               <div className="p-4 border-[1.5px] border-gray-200  rounded-none">
                 <p className="font-medium text-gray-900  mb-3">Sensor Types</p>
