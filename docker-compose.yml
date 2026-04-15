@@ -32,14 +32,14 @@ services:
     networks:
       - raidware-internal
 
-  ids-engine:
+  IDSengine:
     build:
-      context: ./ids-engine
+      context: ./IDSengine
       dockerfile: Dockerfile
     container_name: raidware-ids
     restart: unless-stopped
     volumes:
-      - ./ids-engine/models:/app/models:ro
+      - ./IDSengine/models:/app/models:ro
     environment:
       - MODEL_DIR=/app/models
     networks:
