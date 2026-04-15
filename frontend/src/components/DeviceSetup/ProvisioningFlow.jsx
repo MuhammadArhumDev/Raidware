@@ -252,7 +252,7 @@ export default function ProvisioningFlow({ orgId }) {
             <p className="text-sm font-semibold text-blue-900 mb-2">🔧 For ESP32/Arduino Devices:</p>
             <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
               <li>Connect to device via USB or WiFi web portal</li>
-              <li>Open device web interface (usually http:
+              <li>Open device web interface (usually http://192.168.4.1)</li>
               <li>Go to Settings → Security → Device Credentials</li>
               <li>Paste the three values into the corresponding fields:
                 <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
