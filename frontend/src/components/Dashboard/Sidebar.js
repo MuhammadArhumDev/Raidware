@@ -19,6 +19,7 @@ import { useState } from "react";
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: Map, label: "Network Topology", path: "/dashboard/map" },
+  { icon: Activity, label: "Network Logs", path: "/dashboard/logs" },
   { icon: Bell, label: "IDS Alerts", path: "/dashboard/alerts" },
   { icon: Settings, label: "Settings", path: "/dashboard/settings" },
 ];

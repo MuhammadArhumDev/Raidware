@@ -12,6 +12,8 @@ export default function NetworkLogs() {
   const [error, setError] = useState(null);
   const [alertsOnly, setAlertsOnly] = useState(false);
   const [newLogIds, setNewLogIds] = useState(new Set());
+  const [selectedDevice, setSelectedDevice] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
 
   const orgId = user?.organizationId || user?.id;
 
@@ -88,6 +90,8 @@ export default function NetworkLogs() {
   const handleFilterChange = (isAlerts) => {
     if (alertsOnly !== isAlerts) {
       setAlertsOnly(isAlerts);
+      setSelectedDevice('all');
+      setSelectedType('all');
     }
   };
 
@@ -119,10 +123,23 @@ export default function NetworkLogs() {
     }
   };
 
-  const totalLogs = logs.length;
-  const blockedCount = logs.filter(l => l.action === "BLOCK").length;
-  const flaggedCount = logs.filter(l => l.action === "FLAG").length;
-  const cleanCount = logs.filter(l => l.action === "ALLOW").length;
+  const deviceOptions = ['all', ...new Set(logs.map(l => l.deviceName).filter(Boolean))];
+  const typeOptions = ['all', 'BENIGN', 'DoS Hulk', 'DoS GoldenEye', 
+    'DoS Slowloris', 'DoS Slowhttptest', 'DDoS', 'PortScan', 
+    'Brute Force', 'Web Attack', 'Botnet', 'Heartbleed'];
+
+  const filteredLogs = logs.filter(log => {
+    const deviceMatch = selectedDevice === 'all' || 
+                        log.deviceName === selectedDevice;
+    const typeMatch = selectedType === 'all' || 
+                      log.prediction === selectedType;
+    return deviceMatch && typeMatch;
+  });
+
+  const totalLogs = filteredLogs.length;
+  const blockedCount = filteredLogs.filter(l => l.action === "BLOCK").length;
+  const flaggedCount = filteredLogs.filter(l => l.action === "FLAG").length;
+  const cleanCount = filteredLogs.filter(l => l.action === "ALLOW").length;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -174,6 +191,54 @@ export default function NetworkLogs() {
         </div>
       </div>
 
+      <div className="flex gap-4 mb-4">
+        
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-600">Device:</label>
+          <select
+            value={selectedDevice}
+            onChange={(e) => setSelectedDevice(e.target.value)}
+            className="text-sm border border-gray-300 rounded-md px-3 py-1.5
+                       bg-white text-gray-700 focus:outline-none 
+                       focus:ring-2 focus:ring-indigo-500"
+          >
+            {deviceOptions.map(d => (
+              <option key={d} value={d}>
+                {d === 'all' ? 'All Devices' : d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-600">Type:</label>
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
+            className="text-sm border border-gray-300 rounded-md px-3 py-1.5
+                       bg-white text-gray-700 focus:outline-none
+                       focus:ring-2 focus:ring-indigo-500"
+          >
+            {typeOptions.map(t => (
+              <option key={t} value={t}>
+                {t === 'all' ? 'All Types' : t}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {(selectedDevice !== 'all' || selectedType !== 'all') && (
+          <button
+            onClick={() => { setSelectedDevice('all'); setSelectedType('all'); }}
+            className="text-sm text-indigo-600 hover:text-indigo-800 
+                       font-medium underline"
+          >
+            Clear filters
+          </button>
+        )}
+
+      </div>
+
       {loading ? (
         <div className="overflow-x-auto border border-gray-200 rounded-lg">
           <table className="w-full text-sm text-left">
@@ -206,20 +271,26 @@ export default function NetworkLogs() {
           </table>
         </div>
       ) : error ? (
-        <div className="text-center py-10">
-          <p className="text-red-500 font-medium mb-4">{error}</p>
-          <button
-            onClick={() => fetchLogs(alertsOnly)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors"
-          >
-            Retry
-          </button>
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <p className="text-gray-400 text-4xl">📡</p>
+          <p className="text-gray-500 font-medium">No logs yet</p>
+          <p className="text-gray-400 text-sm">Waiting for devices to connect and send data</p>
         </div>
-      ) : logs.length === 0 ? (
-        <div className="flex justify-center items-center py-20">
-          <span className="text-gray-500 font-medium">
-            No logs yet — waiting for devices to connect
-          </span>
+      ) : filteredLogs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <p className="text-gray-400 text-4xl">
+            {logs.length === 0 ? "📡" : "🔍"}
+          </p>
+          <p className="text-gray-500 font-medium">
+            {logs.length === 0 
+              ? "No logs yet" 
+              : "No logs match the selected filters"}
+          </p>
+          <p className="text-gray-400 text-sm">
+            {logs.length === 0 
+              ? "Waiting for devices to connect and send data"
+              : "Try adjusting your device or type filter"}
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto border border-gray-200 rounded-lg">
@@ -238,7 +309,7 @@ export default function NetworkLogs() {
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log) => {
+                {filteredLogs.map((log) => {
                   const timeStr = new Date(log.timestamp).toLocaleTimeString([], {
                     hour: '2-digit', minute: '2-digit', second: '2-digit'
                   });
