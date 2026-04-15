@@ -9,11 +9,9 @@ const seedUsers = async () => {
     });
     console.log("Connected to MongoDB");
 
-    // Clear existing users
     console.log("Clearing existing users...");
     await User.deleteMany({});
 
-    // 1. Create Admin
     const adminEmail = process.env.ADMIN_EMAIL || "admin@raidware.com";
     const adminPassword = process.env.ADMIN_PASSWORD || "admin";
 
@@ -25,7 +23,6 @@ const seedUsers = async () => {
       role: "admin",
     });
 
-    // 2. Create Normal Users (Organization role)
     const usersToCreate = [
       {
         name: "Riphah IT",

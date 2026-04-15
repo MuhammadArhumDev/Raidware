@@ -84,16 +84,11 @@ export function requireAdmin(req, res, next) {
   next();
 }
 
-/**
- * Middleware: check Redis cache for device auth hash.
- * Enriches req.cachedDevice with cached data if found.
- * Never blocks — only enriches the request object.
- */
 export async function checkDeviceCache(req, res, next) {
   const macAddress = req.headers["x-device-mac"];
 
   if (!macAddress) {
-    // No MAC header present — skip cache check, continue normally
+
     req.cachedDevice = null;
     return next();
   }

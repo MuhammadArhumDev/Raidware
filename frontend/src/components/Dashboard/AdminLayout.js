@@ -13,7 +13,6 @@ export default function AdminLayout({ children }) {
   const _hasHydrated = useAuthStore((state) => state._hasHydrated);
   const router = useRouter();
 
-  // Derive loading and userRole
   const loading = isLoading;
   const userRole = user?.role || null;
 
@@ -36,7 +35,6 @@ export default function AdminLayout({ children }) {
     return () => clearTimeout(safety);
   }, []);
 
-  // Handle redirects
   useEffect(() => {
     if (!loading && !user) {
       router.push("/");

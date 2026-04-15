@@ -30,7 +30,6 @@ export default function SetupPage() {
     sensorTypes: ["temperature", "humidity", "pressure", "motion"],
   });
 
-  // Provisioning state
   const [deviceName, setDeviceName] = useState("");
   const [macAddress, setMacAddress] = useState("");
   const [provisionLoading, setProvisionLoading] = useState(false);
@@ -40,7 +39,6 @@ export default function SetupPage() {
   const [copiedSecrets, setCopiedSecrets] = useState(false);
   const [fetchedOrgId, setFetchedOrgId] = useState("");
 
-  // Debug: Log auth store state on every render
   console.log("Debug [SetupPage] Render — user:", user);
   console.log("Debug [SetupPage] Render — token present:", !!token);
   console.log("Debug [SetupPage] Render — user.organizationId from store:", user?.organizationId);
@@ -87,7 +85,6 @@ export default function SetupPage() {
     }
   }, [token]);
 
-  // Use the fetched org ID or fallback to the user store
   const displayOrgId = fetchedOrgId || user?.organizationId || "";
   console.log("Debug [SetupPage] displayOrgId resolved to:", displayOrgId);
 
@@ -96,7 +93,6 @@ export default function SetupPage() {
     setLoading(true);
     setSaved(false);
 
-    // TODO: Replace with actual API call
     setTimeout(() => {
       setLoading(false);
       setSaved(true);
@@ -161,7 +157,7 @@ export default function SetupPage() {
           </p>
         </div>
 
-        {/* Organization ID Card */}
+        {}
         <div className="bg-indigo-50 border-[1.5px] border-indigo-100 rounded-none p-6 shadow-sm">
           <div className="flex justify-between items-start">
             <div>
@@ -208,7 +204,7 @@ export default function SetupPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Network Configuration */}
+          {}
           <div className="bg-white rounded-none shadow-sm p-6 border-[1.5px] border-gray-200">
             <div className="flex items-center gap-3 mb-6">
               <Network className="w-6 h-6 text-indigo-600" />
@@ -263,7 +259,7 @@ export default function SetupPage() {
             </div>
           </div>
 
-          {/* Security Settings */}
+          {}
           <div className="bg-white rounded-none shadow-sm p-6 border-[1.5px] border-gray-200">
             <div className="flex items-center gap-3 mb-6">
               <Shield className="w-6 h-6 text-indigo-600" />
@@ -329,7 +325,7 @@ export default function SetupPage() {
             </div>
           </div>
 
-          {/* Device Types */}
+          {}
           <div className="bg-white rounded-none shadow-sm p-6 border-[1.5px] border-gray-200">
             <div className="flex items-center gap-3 mb-6">
               <Wifi className="w-6 h-6 text-indigo-600" />
@@ -384,7 +380,7 @@ export default function SetupPage() {
             </div>
           </div>
 
-          {/* Submit Button */}
+          {}
           <div className="flex justify-end">
             <button
               type="submit"
@@ -411,7 +407,7 @@ export default function SetupPage() {
           </div>
         </form>
 
-        {/* Device Provisioning Card */}
+        {}
         <div className="bg-white rounded-none shadow-sm p-6 border-[1.5px] border-gray-200">
           <div className="flex items-center gap-3 mb-6">
             <PlusCircle className="w-6 h-6 text-indigo-600" />
@@ -523,7 +519,7 @@ export default function SetupPage() {
                 </pre>
               </div>
 
-              {/* Firmware Flash Guide */}
+              {}
               <div className="bg-blue-50 border border-blue-200 rounded-md p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Info className="w-5 h-5 text-blue-600" />

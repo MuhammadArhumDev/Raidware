@@ -45,7 +45,7 @@ export default function SecurityPage() {
 
   useEffect(() => {
     fetchSecurityData();
-    // Refresh every 30 seconds
+
     const interval = setInterval(fetchSecurityData, 30000);
     return () => clearInterval(interval);
   }, [fetchSecurityData]);
@@ -86,7 +86,7 @@ export default function SecurityPage() {
           </p>
         </div>
 
-        {/* Loading State */}
+        {}
         {loading && (
           <div className="space-y-6">
             <SkeletonGrid count={4} />
@@ -94,7 +94,7 @@ export default function SecurityPage() {
           </div>
         )}
 
-        {/* Error State */}
+        {}
         {error && !loading && (
           <div className="bg-red-50  rounded-none p-6 text-center">
             <p className="text-red-600 ">{error}</p>
@@ -109,7 +109,7 @@ export default function SecurityPage() {
 
         {!loading && !error && (
           <>
-            {/* Security Stats */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
                 <div className="flex items-center justify-between mb-4">
@@ -168,7 +168,7 @@ export default function SecurityPage() {
               </div>
             </div>
 
-            {/* Security Compliance */}
+            {}
             <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
               <h2 className="text-xl font-semibold text-gray-900  mb-4">
                 Security Compliance
@@ -215,7 +215,7 @@ export default function SecurityPage() {
               </div>
             </div>
 
-            {/* Recent Threats */}
+            {}
             <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
               <h2 className="text-xl font-semibold text-gray-900  mb-4">
                 Recent Security Threats

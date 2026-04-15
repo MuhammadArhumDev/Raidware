@@ -31,7 +31,6 @@ export default function AdminDashboardPage() {
   });
   const [loading, setLoading] = useState(true);
 
-  // Fetch stats from API
   const fetchStats = useCallback(async () => {
     try {
       const response = await authFetch("/api/admin/stats");
@@ -44,7 +43,6 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // Fetch growth analytics
   const fetchGrowthAnalytics = useCallback(async () => {
     try {
       const response = await authFetch(
@@ -53,7 +51,6 @@ export default function AdminDashboardPage() {
       if (response.ok) {
         const data = await response.json();
 
-        // Format data for charts
         const orgData = data.organizations.map((item, index) => ({
           timestamp: new Date(item.date).getTime(),
           value:
@@ -78,7 +75,6 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // Fetch device activity
   const fetchDeviceActivity = useCallback(async () => {
     try {
       const response = await authFetch(
@@ -93,7 +89,6 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // Initial data load
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -112,7 +107,6 @@ export default function AdminDashboardPage() {
     loadData();
   }, [fetchStats, fetchGrowthAnalytics, fetchDeviceActivity]);
 
-  // Real-time updates for system health from monitoring endpoint
   useEffect(() => {
     const fetchSystemHealth = async () => {
       try {
@@ -121,7 +115,6 @@ export default function AdminDashboardPage() {
           const data = await response.json();
           const now = Date.now();
 
-          // Calculate a real health score from service statuses
           let score = 0;
           const services = [data.apiServer, data.database, data.redis];
           services.forEach((svc) => {
@@ -148,7 +141,6 @@ export default function AdminDashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Socket.IO for real-time device updates
   useEffect(() => {
     const socket = io(`${SOCKET_URL}/frontend`, {
       transports: ["websocket"],
@@ -176,7 +168,6 @@ export default function AdminDashboardPage() {
     };
   }, [fetchDeviceActivity, fetchStats]);
 
-  // Refresh data periodically
   useEffect(() => {
     const interval = setInterval(() => {
       fetchStats();
@@ -209,7 +200,7 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        {/* Stats Grid */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard
             icon={Building2}
@@ -241,7 +232,7 @@ export default function AdminDashboardPage() {
           />
         </div>
 
-        {/* Real-time Charts */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <MetricChart
             title="Organizations Growth"
@@ -276,7 +267,7 @@ export default function AdminDashboardPage() {
             gradient={true}
           />
 
-          {/* Device Status Card */}
+          {}
           <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
             <h3 className="text-lg font-semibold text-gray-900  mb-4">
               IoT Device Status
@@ -312,7 +303,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Platform Overview Chart */}
+        {}
         <RealTimeChart
           type="line"
           height={300}
@@ -345,7 +336,7 @@ export default function AdminDashboardPage() {
           }}
         />
 
-        {/* Quick Actions */}
+        {}
         <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <h2 className="text-xl font-semibold text-gray-900  mb-4">
             Quick Actions
@@ -387,7 +378,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* System Status */}
+        {}
         <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <h2 className="text-xl font-semibold text-gray-900  mb-4">
             System Status

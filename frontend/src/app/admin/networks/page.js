@@ -82,7 +82,7 @@ export default function NetworksPage() {
           </div>
         </div>
 
-        {/* Filters */}
+        {}
         <div className="bg-white  rounded-none shadow-sm p-4 border-[1.5px] border-gray-200 ">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
@@ -111,10 +111,10 @@ export default function NetworksPage() {
           </div>
         </div>
 
-        {/* Loading State */}
+        {}
         {loading && <SkeletonTable rows={5} cols={6} />}
 
-        {/* Error State */}
+        {}
         {error && !loading && (
           <div className="bg-red-50  rounded-none p-6 text-center">
             <p className="text-red-600 ">{error}</p>
@@ -127,7 +127,7 @@ export default function NetworksPage() {
           </div>
         )}
 
-        {/* Networks Table */}
+        {}
         {!loading && !error && filteredNetworks.length > 0 && (
           <div className="bg-white  rounded-none shadow-sm border-[1.5px] border-gray-200  overflow-hidden">
             <div className="overflow-x-auto">

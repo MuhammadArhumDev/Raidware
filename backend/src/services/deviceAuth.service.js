@@ -8,7 +8,7 @@ const pendingAuths = new Map();
 export const initiateAuth = async (macAddress) => {
   const nonce = crypto.randomBytes(32).toString('hex');
   const { publicKey: pk, secretKey: sk } = Kyber768.keyPair();
-  
+
   pendingAuths.set(macAddress, {
     nonce,
     sk,
@@ -45,7 +45,7 @@ export const verifyAuthResponse = async (macAddress, signature, ciphertextHex) =
   try {
     const ciphertextBuf = Buffer.from(ciphertextHex, 'hex');
     const ciphertextArray = new Uint8Array(ciphertextBuf);
-    
+
     const sharedSecretBytes = Kyber768.decapsulate(ciphertextArray, session.sk);
     const sharedSecretHex = Buffer.from(sharedSecretBytes).toString('hex');
 
@@ -100,8 +100,6 @@ const cleanupExpiredSessions = () => {
 
 setInterval(cleanupExpiredSessions, 60000);
 
-// Also keeping dummy exports for previously existing functions imported elsewhere 
-// to prevent "export not found" errors that would crash the server on startup.
 export const hashDeviceID = () => {};
 export const generateNonce = () => {};
 export const verifySignature = () => {};

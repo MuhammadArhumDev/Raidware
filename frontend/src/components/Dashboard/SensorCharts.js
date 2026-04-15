@@ -123,7 +123,7 @@ export default function SensorCharts() {
 
   return (
     <div className="space-y-6">
-      {/* Current Readings */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <div className="flex items-center justify-between mb-4">
@@ -164,7 +164,7 @@ export default function SensorCharts() {
         </div>
       </div>
 
-      {/* Charts */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <h3 className="text-xl font-semibold text-gray-900  mb-4">

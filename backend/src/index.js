@@ -1,6 +1,6 @@
 import express from "express";
 import helmet from "helmet";
-// import cors from "cors";
+
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import mongoSanitize from "express-mongo-sanitize";
@@ -23,9 +23,6 @@ import { initRedisPubSub } from "./services/redisPubSub.service.js";
 const app = express();
 const httpServer = createServer(app);
 
-// app.use(helmet());
-
-// Manual CORS middleware
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
   res.header("Access-Control-Allow-Credentials", "true");
@@ -37,7 +34,7 @@ app.use((req, res, next) => {
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   );
-  // Handle preflight
+
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -55,10 +52,8 @@ app.use(safeMongoSanitize);
 
 app.use(hpp());
 
-// Device routes use a generous limiter (600 req/15min) — must come BEFORE globalLimiter
 app.use("/api/devices", deviceLimiter, deviceRoutes);
 
-// Global limiter applies to everything else (auth, admin, frontend API)
 app.use(globalLimiter);
 
 app.use("/api/auth", authRoutes);
@@ -75,11 +70,9 @@ const start = async () => {
     });
     initSocketService(io);
 
-    // Make io and redis available to all route handlers via req.app.get()
     app.set('io', io);
     app.set('redis', redis);
 
-    // Initialize Redis Pub/Sub for device heartbeat monitoring
     await initRedisPubSub(io);
 
     await syncDeviceHashes();

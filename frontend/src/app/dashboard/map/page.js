@@ -6,7 +6,6 @@ import useAuthStore from "@/store/useAuthStore";
 import useDeviceStore from "@/store/useDeviceStore";
 import { Wifi, WifiOff, Server, RefreshCw, Clock, Signal } from "lucide-react";
 
-// ── helpers ──────────────────────────────────────────────────────────────────
 function getRelativeTime(date) {
   if (!date) return "—";
   const s = Math.floor((Date.now() - new Date(date)) / 1000);
@@ -19,7 +18,7 @@ function getRelativeTime(date) {
 
 function nodeColor(device) {
   if (device.status === "online") {
-    // Stale at 45s — gives a 15s yellow warning before the 60s liveness timer fires
+
     const stale = Date.now() - new Date(device.lastSeen).getTime() > 45_000;
     return stale ? "#eab308" : "#22c55e";
   }
@@ -35,7 +34,6 @@ function signalLabel(rssi) {
   return "Poor";
 }
 
-// ── SVG topology canvas ───────────────────────────────────────────────────────
 function TopologySVG({ devices, selectedMac, onSelect }) {
   const W = 700;
   const H = 420;
@@ -68,7 +66,7 @@ function TopologySVG({ devices, selectedMac, onSelect }) {
       style={{ maxHeight: 420 }}
       onClick={(e) => e.target.tagName === "svg" && onSelect(null)}
     >
-      {/* Edges */}
+      {}
       {devices.map((d) => {
         const pos = positions[d.mac || d.id];
         if (!pos) return null;
@@ -85,12 +83,12 @@ function TopologySVG({ devices, selectedMac, onSelect }) {
         );
       })}
 
-      {/* Central server */}
+      {}
       <rect x={cx - 36} y={cy - 22} width={72} height={44} fill="#111827" />
       <text x={cx} y={cy + 2} textAnchor="middle" fill="#fff" fontSize={11} fontWeight="700">SERVER</text>
       <text x={cx} y={cy + 15} textAnchor="middle" fill="#6b7280" fontSize={8}>Raidware Cloud</text>
 
-      {/* Device nodes */}
+      {}
       {devices.map((d) => {
         const pos = positions[d.mac || d.id];
         if (!pos) return null;
@@ -106,7 +104,7 @@ function TopologySVG({ devices, selectedMac, onSelect }) {
             onClick={(e) => { e.stopPropagation(); onSelect(d.mac || d.id); }}
             className="cursor-pointer"
           >
-            {/* Selection ring */}
+            {}
             {selected && (
               <rect
                 x={pos.x - 30} y={pos.y - 20}
@@ -116,21 +114,21 @@ function TopologySVG({ devices, selectedMac, onSelect }) {
                 strokeWidth={2}
               />
             )}
-            {/* Node rect */}
+            {}
             <rect x={pos.x - 26} y={pos.y - 16} width={52} height={32} fill={color} />
 
-            {/* Status dot */}
+            {}
             {d.status === "online" && (
               <circle cx={pos.x + 20} cy={pos.y - 12} r={4} fill="#fff" opacity={0.85} />
             )}
 
-            {/* Connection type pill */}
+            {}
             <rect x={pos.x - 20} y={pos.y - 32} width={40} height={13} fill="#1f2937" />
             <text x={pos.x} y={pos.y - 23} textAnchor="middle" fill="#9ca3af" fontSize={7} fontWeight="600">
               {d.connectionType || "direct"}
             </text>
 
-            {/* Label */}
+            {}
             <text x={pos.x} y={pos.y + 34} textAnchor="middle" fill="#374151" fontSize={10} fontWeight="600">
               {label}
             </text>
@@ -141,7 +139,7 @@ function TopologySVG({ devices, selectedMac, onSelect }) {
         );
       })}
 
-      {/* Empty state */}
+      {}
       {devices.length === 0 && (
         <text x={W / 2} y={H / 2} textAnchor="middle" fill="#9ca3af" fontSize={14}>
           No devices connected — waiting for heartbeats…
@@ -151,7 +149,6 @@ function TopologySVG({ devices, selectedMac, onSelect }) {
   );
 }
 
-// ── Device detail panel ───────────────────────────────────────────────────────
 function DevicePanel({ device, onClose }) {
   if (!device) return null;
   const color = nodeColor(device);
@@ -191,7 +188,6 @@ function DevicePanel({ device, onClose }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 export default function NetworkTopologyPage() {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
@@ -223,7 +219,7 @@ export default function NetworkTopologyPage() {
     <DashboardLayout>
       <div className="space-y-6">
 
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Network Topology</h1>
@@ -240,7 +236,7 @@ export default function NetworkTopologyPage() {
           </button>
         </div>
 
-        {/* Stats row */}
+        {}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Total Devices",   value: devices.length, color: "indigo" },
@@ -255,10 +251,10 @@ export default function NetworkTopologyPage() {
           ))}
         </div>
 
-        {/* Topology canvas + device list */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* SVG topology — takes 2/3 width */}
+          {}
           <div className="lg:col-span-2 bg-white border-[1.5px] border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Live Network Map</h2>
@@ -275,7 +271,7 @@ export default function NetworkTopologyPage() {
               />
             </div>
 
-            {/* Legend */}
+            {}
             <div className="flex items-center gap-6 mt-4 pt-4 border-t border-gray-100">
               <div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-500" /><span className="text-xs text-gray-500">Online</span></div>
               <div className="flex items-center gap-2"><div className="w-3 h-3 bg-yellow-500" /><span className="text-xs text-gray-500">Stale / Pending</span></div>
@@ -283,11 +279,11 @@ export default function NetworkTopologyPage() {
               <span className="ml-auto text-xs text-gray-400">Click a node for details</span>
             </div>
 
-            {/* Device detail inline */}
+            {}
             <DevicePanel device={selectedDev} onClose={() => setSelectedMac(null)} />
           </div>
 
-          {/* Device list — 1/3 width */}
+          {}
           <div className="bg-white border-[1.5px] border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
               All Devices

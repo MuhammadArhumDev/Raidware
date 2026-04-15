@@ -20,7 +20,6 @@ export default function DashboardPage() {
 
   const orgId = user?.organizationId || user?.id;
 
-  // Start real-time updates (socket + polling)
   useEffect(() => {
     if (orgId && token) {
       startRealtime(orgId, token);
@@ -28,7 +27,6 @@ export default function DashboardPage() {
     return () => stopRealtime();
   }, [orgId, token, startRealtime, stopRealtime]);
 
-  // Trust the status field sent by backend (topology endpoint only returns online devices)
   const nodeCount = Object.keys(nodes).length;
   const onlineNodes = Object.values(nodes).filter(
     (node) => node.status === 'online'
@@ -49,7 +47,6 @@ export default function DashboardPage() {
     });
   }, [nodeCount, onlineNodes]);
 
-  // Recent logs for the dashboard
   const recentLogs = logs.slice(0, 8);
 
   return (
@@ -65,7 +62,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Stats Grid */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatsCard
             icon={Network}
@@ -93,7 +90,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Topology + Health Chart */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <TopologyView nodes={nodes} />
           <MetricChart
@@ -108,7 +105,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Recent Network Logs */}
+        {}
         <div className="bg-white rounded-none shadow-sm border-[1.5px] border-gray-200">
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div>
@@ -211,7 +208,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Node Count Chart + Messaging */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <MetricChart
             title="Active Nodes Count"
@@ -225,7 +222,7 @@ export default function DashboardPage() {
           <MessageSender />
         </div>
 
-        {/* System Status & Security */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-none shadow-sm p-6 border-[1.5px] border-gray-200">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">

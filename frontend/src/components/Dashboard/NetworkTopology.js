@@ -64,15 +64,13 @@ export default function NetworkTopology() {
 
   useEffect(() => {
     fetchTopology();
-    // Auto-refresh every 10 seconds
+
     const interval = setInterval(fetchTopology, 10000);
 
-    // Also listen for real-time topology updates via socket
     const socket = io(BACKEND_URL, {
       transports: ["websocket", "polling"],
     });
 
-    // Join the org room to receive org-scoped topology:update events
     socket.on("connect", () => {
       if (orgId) socket.emit("join:org", orgId);
     });
@@ -97,7 +95,7 @@ export default function NetworkTopology() {
     if (device.status === "offline") return "#6b7280";
     if (device.status === "pending") return "#eab308";
     const timeSince = Date.now() - new Date(device.lastSeen).getTime();
-    if (timeSince > 60000) return "#eab308"; // stale after 60s
+    if (timeSince > 60000) return "#eab308"; 
     return "#22c55e";
   };
 
@@ -109,7 +107,6 @@ export default function NetworkTopology() {
     return "Online";
   };
 
-  // Direct connection layout: all devices connect directly to server (star topology)
   const buildLayout = () => {
     const cx = 350;
     const cy = 80;
@@ -120,11 +117,11 @@ export default function NetworkTopology() {
     const radius = Math.min(180, 60 + devices.length * 20);
 
     devices.forEach((d, i) => {
-      const angleSpread = Math.PI * 0.8; // 144 degrees spread
-      const startAngle = Math.PI / 2 - angleSpread / 2; // centered below server
+      const angleSpread = Math.PI * 0.8; 
+      const startAngle = Math.PI / 2 - angleSpread / 2; 
       let angle;
       if (devices.length === 1) {
-        angle = Math.PI / 2; // straight down
+        angle = Math.PI / 2; 
       } else {
         angle = startAngle + (i * angleSpread) / (devices.length - 1);
       }
@@ -198,7 +195,7 @@ export default function NetworkTopology() {
             className="w-full h-auto max-h-[400px]"
             onClick={handleSvgClick}
           >
-            {/* Draw Edges — all devices connect to server */}
+            {}
             {devices.map((d) => {
               const pos = positions[d.mac];
               if (!pos) return null;
@@ -218,7 +215,7 @@ export default function NetworkTopology() {
               );
             })}
 
-            {/* Central Server */}
+            {}
             <rect
               x={cx - 30}
               y={cy - 20}
@@ -237,7 +234,7 @@ export default function NetworkTopology() {
               SERVER
             </text>
 
-            {/* Draw Nodes */}
+            {}
             {devices.map((d) => {
               const pos = positions[d.mac];
               if (!pos) return null;
@@ -260,7 +257,7 @@ export default function NetworkTopology() {
                   }}
                   className="cursor-pointer"
                 >
-                  {/* Selection Highlight */}
+                  {}
                   {isSelected && (
                     <rect
                       x={pos.x - 26}
@@ -273,7 +270,7 @@ export default function NetworkTopology() {
                     />
                   )}
 
-                  {/* Node Rectangle */}
+                  {}
                   <rect
                     x={pos.x - 22}
                     y={pos.y - 14}
@@ -282,7 +279,7 @@ export default function NetworkTopology() {
                     fill={color}
                   />
 
-                  {/* Status dot */}
+                  {}
                   <circle
                     cx={pos.x + 16}
                     cy={pos.y - 8}
@@ -291,7 +288,7 @@ export default function NetworkTopology() {
                     opacity="0.8"
                   />
 
-                  {/* Connection Type Pill */}
+                  {}
                   <rect
                     x={pos.x - 18}
                     y={pos.y - 28}
@@ -311,7 +308,7 @@ export default function NetworkTopology() {
                     {d.connectionType || "direct"}
                   </text>
 
-                  {/* Labels Below */}
+                  {}
                   <text
                     x={pos.x}
                     y={pos.y + 26}
@@ -340,7 +337,7 @@ export default function NetworkTopology() {
         )}
       </div>
 
-      {/* Legend */}
+      {}
       {devices.length > 0 && (
         <div className="flex items-center gap-6 mt-4 pt-4 border-t border-gray-200">
           <div className="flex items-center gap-2">
@@ -362,7 +359,7 @@ export default function NetworkTopology() {
         </div>
       )}
 
-      {/* Info Panel */}
+      {}
       {selectedNode && (
         <div className="mt-6 p-5 bg-white border-[1.5px] border-gray-200 rounded-none shadow-sm">
           <div className="flex justify-between items-center mb-4">

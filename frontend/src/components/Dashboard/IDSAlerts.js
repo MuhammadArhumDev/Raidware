@@ -64,10 +64,9 @@ export default function IDSAlerts() {
   const [filter, setFilter] = useState("all");
   const [attackTypeFilter, setAttackTypeFilter] = useState("all");
 
-  // Enhance alerts with attack type information
   const enhancedAlerts = useMemo(() => {
     return allAlerts.map((alert) => {
-      // Detect attack type from alert source/message
+
       let attackType = "unknown";
       const message = alert.message?.toLowerCase() || "";
 
@@ -157,7 +156,7 @@ export default function IDSAlerts() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {}
       <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
         <div className="flex items-center gap-3 mb-4">
           <Shield className="w-8 h-8 text-indigo-600 " />
@@ -172,7 +171,7 @@ export default function IDSAlerts() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
+      {}
       <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
         <div className="mb-4">
           <p className="text-sm font-medium text-gray-700  mb-2">
@@ -246,7 +245,7 @@ export default function IDSAlerts() {
         </div>
       </div>
 
-      {/* Alerts List */}
+      {}
       <div className="space-y-4">
         {alerts.length === 0 ? (
           <div className="bg-white  rounded-none shadow-sm p-12 text-center border-[1.5px] border-gray-200 ">

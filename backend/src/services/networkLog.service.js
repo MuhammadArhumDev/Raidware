@@ -3,15 +3,6 @@ import redis from '../config/redis.js';
 
 const IDS_URL = process.env.IDS_ENGINE_URL || 'http://127.0.0.1:9632';
 
-/**
- * Call the IDS engine and return { prediction, confidence, action }.
- *
- * Strategy:
- *  - If 76 features are provided  → POST /analyze (full LightGBM ML model)
- *  - Otherwise                    → POST /predict (rule-based, always succeeds)
- *
- * Never throws — always returns a usable default on failure.
- */
 async function callIDS(logData) {
   const {
     orgId, macAddress, deviceName,
@@ -24,7 +15,7 @@ async function callIDS(logData) {
 
   try {
     if (hasFullFeatures) {
-      // ── Full ML analysis ────────────────────────────────────────────────────
+
       const res = await fetch(`${IDS_URL}/analyze`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -51,7 +42,6 @@ async function callIDS(logData) {
       console.warn(`[NetworkLog] IDS /analyze returned ${res.status} — falling back to /predict`);
     }
 
-    // ── Rule-based metadata analysis (no features required) ──────────────────
     const res = await fetch(`${IDS_URL}/predict`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -86,11 +76,8 @@ async function callIDS(logData) {
     console.warn(`[NetworkLog] IDS unreachable (${IDS_URL}): ${err.message}`);
   }
 
-  // ── Safe default when IDS is completely unreachable ───────────────────────
   return { prediction: 'BENIGN', confidence: 0.5, action: 'ALLOW', rawFeatures: false };
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const saveAndAnalyzeLog = async (logData) => {
   try {
@@ -101,7 +88,6 @@ export const saveAndAnalyzeLog = async (logData) => {
       features,
     } = logData;
 
-    // Always call the IDS — every log gets a prediction
     const { prediction, confidence, action, rawFeatures } = await callIDS(logData);
 
     if (action === 'BLOCK' || action === 'FLAG') {
@@ -136,8 +122,6 @@ export const saveAndAnalyzeLog = async (logData) => {
     return null;
   }
 };
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 export const getLogsForOrg = async (orgId, options = {}) => {
   try {

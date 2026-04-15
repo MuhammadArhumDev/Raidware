@@ -22,7 +22,6 @@ export default function Login() {
 
   const router = useRouter();
 
-  // Redirect authenticated users away from login page
   useEffect(() => {
     if (_hasHydrated && isInitialized && user) {
       if (user.role === "admin") {
@@ -44,7 +43,6 @@ export default function Login() {
     if (user) {
       setSuccessMsg("Login successful! Redirecting...");
 
-      // Use full navigation so Next.js middleware reads the fresh cookie
       setTimeout(() => {
         if (user.role === "admin") {
           window.location.href = "/admin/dashboard";

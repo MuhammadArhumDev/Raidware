@@ -60,7 +60,7 @@ const deviceSchema = new mongoose.Schema(
       of: String,
       default: {},
     },
-    // ADD THESE NEW FIELDS FOR HMAC AUTH
+
     deviceId: { type: String, unique: true, sparse: true },
     sharedSecret: { 
       type: String, 
@@ -109,7 +109,6 @@ deviceSchema.index({ organizationId: 1, connectionType: 1 });
 deviceSchema.index({ deviceId: 1 });
 deviceSchema.index({ macAddress: 1 });
 
-// ── DIAGNOSTIC HOOKS — find ALL offline writes ──
 deviceSchema.pre('findOneAndUpdate', function () {
   const update = this.getUpdate();
   if (update && (update.status === 'offline' || (update.$set && update.$set.status === 'offline'))) {

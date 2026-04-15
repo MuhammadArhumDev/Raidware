@@ -30,7 +30,6 @@ export default function NetworkLogs() {
 
   const orgId = user?.organizationId || user?.id;
 
-  // ── Merge helper: dedup by id, newest first ─────────────────────────────
   const mergeLogs = (a, b) => {
     const seen = new Set();
     return [...a, ...b]
@@ -44,7 +43,6 @@ export default function NetworkLogs() {
       .slice(0, 300);
   };
 
-  // ── Fetch MongoDB org-wide history ───────────────────────────────────────
   const fetchMongoLogs = useCallback(async (isAlertsOnly) => {
     if (!orgId || !token) return [];
     const url = isAlertsOnly
@@ -56,7 +54,6 @@ export default function NetworkLogs() {
     return (data.logs || []).map((l) => ({ ...l, _source: "db" }));
   }, [orgId, token]);
 
-  // ── Fetch Redis per-device buffer ────────────────────────────────────────
   const fetchRedisLogs = useCallback(async () => {
     const macs = Object.keys(nodes);
     if (!macs.length || !token) return [];
@@ -75,7 +72,6 @@ export default function NetworkLogs() {
     return combined;
   }, [nodes, token]);
 
-  // ── Master load: Redis + MongoDB merged ──────────────────────────────────
   const loadAll = useCallback(async (isAlertsOnly) => {
     if (!orgId) return;
     setLoading(true);
@@ -95,10 +91,8 @@ export default function NetworkLogs() {
     }
   }, [orgId, fetchMongoLogs, fetchRedisLogs]);
 
-  // Initial load + re-load when alertsOnly changes
   useEffect(() => { loadAll(alertsOnly); }, [loadAll, alertsOnly]);
 
-  // ── WebSocket: live new logs ─────────────────────────────────────────────
   useEffect(() => {
     const socket = io(BACKEND_URL, { auth: { token }, transports: ["websocket"] });
 
@@ -110,7 +104,6 @@ export default function NetworkLogs() {
       setLogs((prev) => mergeLogs([log], prev));
       setRedisCount((c) => c + 1);
 
-      // Flash animation
       const id = log.id || log._id;
       setNewLogIds((prev) => new Set(prev).add(id));
       setTimeout(() => {
@@ -121,7 +114,6 @@ export default function NetworkLogs() {
     return () => socket.disconnect();
   }, [token, alertsOnly]);
 
-  // ── Derived state ────────────────────────────────────────────────────────
   const deviceOptions = ["all", ...new Set(logs.map((l) => l.deviceName).filter(Boolean))];
 
   const filteredLogs = logs.filter((log) => {
@@ -135,7 +127,6 @@ export default function NetworkLogs() {
   const flaggedCount = filteredLogs.filter((l) => l.action === "FLAG").length;
   const cleanCount   = filteredLogs.filter((l) => l.action === "ALLOW").length;
 
-  // ── Style helpers ────────────────────────────────────────────────────────
   const getRowClass = (log) => {
     const isNew = newLogIds.has(log.id || log._id);
     const base  = "transition-colors duration-500 border-b border-gray-100 hover:bg-gray-50 ";
@@ -153,7 +144,7 @@ export default function NetworkLogs() {
 
   return (
     <div className="bg-white rounded-none shadow-sm border-[1.5px] border-gray-200 p-6">
-      {/* Header */}
+      {}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Network Logs</h2>
@@ -167,7 +158,7 @@ export default function NetworkLogs() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Source legend */}
+          {}
           <div className="flex items-center gap-1 text-xs text-gray-500 mr-2">
             <Zap className="w-3 h-3 text-indigo-500" />
             <span>Redis live</span>
@@ -200,7 +191,7 @@ export default function NetworkLogs() {
         </div>
       </div>
 
-      {/* Stats */}
+      {}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-gray-50 p-4 border border-gray-100 text-center">
           <p className="text-gray-500 text-xs font-medium mb-1">Total</p>
@@ -221,7 +212,7 @@ export default function NetworkLogs() {
         </div>
       </div>
 
-      {/* Filters */}
+      {}
       <div className="flex gap-4 mb-4 flex-wrap items-center">
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-600">Device:</label>
@@ -257,7 +248,7 @@ export default function NetworkLogs() {
         )}
       </div>
 
-      {/* Table */}
+      {}
       {loading ? (
         <div className="overflow-x-auto border border-gray-200">
           <table className="w-full text-sm text-left">

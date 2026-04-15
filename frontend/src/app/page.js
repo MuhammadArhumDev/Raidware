@@ -13,7 +13,7 @@ export default function Home() {
   const _hasHydrated = useAuthStore((state) => state._hasHydrated);
 
   useEffect(() => {
-    if (!_hasHydrated || !isInitialized) return; // wait for hydration
+    if (!_hasHydrated || !isInitialized) return; 
 
     if (isAuthenticated && user) {
       if (user.role === 'admin') {

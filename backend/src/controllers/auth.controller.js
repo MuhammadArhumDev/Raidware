@@ -195,7 +195,7 @@ export async function refreshToken(req, res, next) {
             })
             .catch(next);
         } catch (err) {
-          // Token verification failed (expired or invalid signature)
+
           if (err.name === "TokenExpiredError") {
             res.clearCookie(config.cookie.refreshTokenName);
           }

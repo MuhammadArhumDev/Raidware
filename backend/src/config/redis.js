@@ -8,7 +8,7 @@ const redis = new Redis(REDIS_URL, {
   retryStrategy(times) {
     if (times > 5) {
       console.error("Redis: Max retry attempts reached. Giving up.");
-      return null; // Stop retrying
+      return null; 
     }
     const delay = Math.min(times * 500, 3000);
     console.log(`Redis: Reconnecting in ${delay}ms (attempt ${times})...`);
@@ -22,9 +22,7 @@ redis.on("connect", () => {
 
 redis.on("ready", () => {
   console.log("[Redis] Ready");
-  // Enable keyspace notifications for key-expiration events (required by Pub/Sub service)
-  // 'K' = keyspace, 'x' = expired events  →  together: 'Kx'
-  // We use 'Ex' so subscribers on __keyevent@0__:expired receive notifications
+
   redis
     .config("SET", "notify-keyspace-events", "Ex")
     .then(() => console.log("[Redis] notify-keyspace-events set to 'Ex'"))

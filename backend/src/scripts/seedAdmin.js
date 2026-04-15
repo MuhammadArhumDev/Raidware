@@ -11,13 +11,11 @@ const seedData = async () => {
     });
     console.log("Connected to MongoDB");
 
-    // Clear existing data
     await Organization.deleteMany({});
     await Network.deleteMany({});
     await Threat.deleteMany({});
     console.log("Cleared existing data");
 
-    // Create organizations with different creation dates
     const organizations = [];
     const orgData = [
       { name: "Acme Corporation", email: "admin@acme.com", daysAgo: 6 },
@@ -41,24 +39,22 @@ const seedData = async () => {
       console.log(`Created organization: ${org.name}`);
     }
 
-    // Create one network per organization
     const networks = [];
     for (let i = 0; i < organizations.length; i++) {
       const org = organizations[i];
       const createdAt = new Date(org.createdAt);
-      createdAt.setHours(createdAt.getHours() + 2); // Network created 2 hours after org
+      createdAt.setHours(createdAt.getHours() + 2); 
 
       const network = await Network.create({
         name: `${org.name.split(" ")[0]} Main Network`,
         organizationId: org._id,
-        status: i === 3 ? "degraded" : "online", // One degraded network
+        status: i === 3 ? "degraded" : "online", 
         createdAt,
       });
       networks.push(network);
       console.log(`Created network: ${network.name}`);
     }
 
-    // Create some threats
     const threatTypes = [
       { type: "Rogue AP Detected", severity: "critical" },
       { type: "ARP Spoofing", severity: "high" },
@@ -67,11 +63,10 @@ const seedData = async () => {
       { type: "MITM Attack Detected", severity: "critical" },
     ];
 
-    // Add threats to some organizations
     const threatsToCreate = [
-      { orgIndex: 1, netIndex: 1, threatIndex: 0, daysAgo: 0 }, // Tech Industries - Critical
-      { orgIndex: 2, netIndex: 2, threatIndex: 1, daysAgo: 1 }, // Global Logistics - High
-      { orgIndex: 2, netIndex: 2, threatIndex: 2, daysAgo: 2 }, // Global Logistics - Medium
+      { orgIndex: 1, netIndex: 1, threatIndex: 0, daysAgo: 0 }, 
+      { orgIndex: 2, netIndex: 2, threatIndex: 1, daysAgo: 1 }, 
+      { orgIndex: 2, netIndex: 2, threatIndex: 2, daysAgo: 2 }, 
     ];
 
     for (const t of threatsToCreate) {

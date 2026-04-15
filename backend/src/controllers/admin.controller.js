@@ -7,7 +7,6 @@ import redis from "../config/redis.js";
 import mongoose from "mongoose";
 import { hashDeviceID } from "../services/deviceAuth.service.js";
 
-// Server start time for uptime calculation
 const serverStartTime = Date.now();
 
 export const getStats = async (req, res) => {
@@ -49,8 +48,6 @@ export const getOrganizations = async (req, res) => {
           status: "active",
         });
 
-        // Use MongoDB for device count — the old Redis key pattern (device:*:status)
-        // is no longer written by the current socket service.
         const deviceCount = await Device.countDocuments({ organizationId: org._id });
 
         return {
@@ -74,7 +71,6 @@ export const getOrganizations = async (req, res) => {
     res.status(500).json({ error: "Failed to get organizations", details: error.message });
   }
 };
-
 
 export const getNetworks = async (req, res) => {
   try {
@@ -367,33 +363,27 @@ export const updateOrgKeys = async (req, res) => {
   }
 };
 
-// ── Device Flash Provisioning ────────────────────────────
 export const provisionDevice = async (req, res) => {
   try {
     const { organizationId, macAddress, deviceName, meshRole, wifiSSID, wifiPassword } = req.body;
 
-    // Validate all required fields
     if (!organizationId || !macAddress || !deviceName || !meshRole || !wifiSSID || !wifiPassword) {
       return res.status(400).json({ error: "All fields are required: organizationId, macAddress, deviceName, meshRole, wifiSSID, wifiPassword" });
     }
 
-    // Check organization exists
     const org = await Organization.findById(organizationId);
     if (!org) {
       return res.status(404).json({ error: "Organization not found" });
     }
 
-    // Check device does not already exist
     const existingDevice = await Device.findOne({ macAddress });
     if (existingDevice) {
       return res.status(409).json({ error: "Device with this MAC address already exists" });
     }
 
-    // Generate cryptographic shared secret
     const sharedSecret = crypto.randomBytes(32).toString("hex");
     const hashedId = hashDeviceID(macAddress);
 
-    // Create device in MongoDB
     const device = new Device({
       macAddress,
       hashedId,
@@ -405,18 +395,15 @@ export const provisionDevice = async (req, res) => {
     });
     await device.save();
 
-    // Cache in Redis immediately (same pattern as syncDeviceHashes)
     const redisKey = `device:${macAddress}:auth`;
     await redis.hset(redisKey, { hashedId, sharedSecret });
-    await redis.expire(redisKey, 60 * 60 * 4); // 4 hour TTL
+    await redis.expire(redisKey, 60 * 60 * 4); 
 
-    // Build Secrets.h content
     const serverHost = process.env.SERVER_HOST || "5.189.167.55";
     const serverPort = process.env.SERVER_PORT || "9631";
     const rootCaCert = process.env.ROOT_CA_CERT || "PLACEHOLDER_ROOT_CA";
     const now = new Date().toISOString();
 
-    // Format root CA cert into 64-char PEM lines
     const certLines = rootCaCert.replace(/\\n/g, "\n").split("\n")
       .filter(line => line.trim().length > 0)
       .map(line => `"${line}\\n" \\`)

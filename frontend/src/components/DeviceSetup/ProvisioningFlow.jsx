@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Copy, Check, AlertCircle, ChevronRight } from 'lucide-react';
 
 export default function ProvisioningFlow({ orgId }) {
-  const [step, setStep] = useState(1); // 1-5 steps
+  const [step, setStep] = useState(1); 
   const [macAddress, setMacAddress] = useState('');
   const [deviceName, setDeviceName] = useState('');
   const [provisioning, setProvisioning] = useState(null);
@@ -22,7 +22,7 @@ export default function ProvisioningFlow({ orgId }) {
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
       const token = localStorage.getItem('auth-storage') ? JSON.parse(localStorage.getItem('auth-storage'))?.state?.token : null;
-      
+
       const response = await fetch(`${backendUrl}/api/devices/device-provisioning/generate-keys/${orgId}`, {
         method: 'POST',
         headers: { 
@@ -33,7 +33,7 @@ export default function ProvisioningFlow({ orgId }) {
       });
       const data = await response.json();
       if (!data.success) throw new Error(data.error || 'Failed to generate keys');
-      
+
       setProvisioning(data.provisioning);
       setStep(2);
     } catch (err) {
@@ -51,7 +51,7 @@ export default function ProvisioningFlow({ orgId }) {
 
   return (
     <div className="w-full max-w-4xl mx-auto p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg border border-slate-200">
-      {/* Header */}
+      {}
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-slate-900">Device Provisioning Setup</h2>
         <p className="text-slate-600 mt-2">
@@ -59,7 +59,7 @@ export default function ProvisioningFlow({ orgId }) {
         </p>
       </div>
 
-      {/* Step Indicators */}
+      {}
       <div className="flex justify-between mb-8">
         {[1, 2, 3, 4, 5].map((s) => (
           <div
@@ -80,7 +80,7 @@ export default function ProvisioningFlow({ orgId }) {
         ))}
       </div>
 
-      {/* Error Alert */}
+      {}
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -88,7 +88,7 @@ export default function ProvisioningFlow({ orgId }) {
         </div>
       )}
 
-      {/* STEP 1: Enter Device Info */}
+      {}
       {step === 1 && (
         <div className="bg-white rounded-lg p-6 border border-slate-200">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Step 1: Device Information</h3>
@@ -96,7 +96,7 @@ export default function ProvisioningFlow({ orgId }) {
             Enter your IoT device's MAC address (found on device label or network settings). 
             Your device will connect <strong>directly to the server</strong> — no mesh parent required.
           </p>
-          
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <p className="text-sm text-blue-900">
               <strong>ℹ️ Direct Connection:</strong> Your device will authenticate directly with our server 
@@ -155,7 +155,7 @@ export default function ProvisioningFlow({ orgId }) {
           </p>
 
           <div className="space-y-4">
-            {/* Device ID */}
+            {}
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
               <p className="text-xs font-semibold text-slate-600 uppercase mb-2">Device ID</p>
               <div className="flex items-center gap-2">
@@ -175,7 +175,7 @@ export default function ProvisioningFlow({ orgId }) {
               </div>
             </div>
 
-            {/* Shared Secret */}
+            {}
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
               <p className="text-xs font-semibold text-slate-600 uppercase mb-2">Shared Secret (HMAC Key)</p>
               <div className="flex items-center gap-2">
@@ -198,7 +198,7 @@ export default function ProvisioningFlow({ orgId }) {
               </p>
             </div>
 
-            {/* Server Public Key */}
+            {}
             <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
               <p className="text-xs font-semibold text-slate-600 uppercase mb-2">Server Public Key</p>
               <div className="flex items-center gap-2">
@@ -252,7 +252,7 @@ export default function ProvisioningFlow({ orgId }) {
             <p className="text-sm font-semibold text-blue-900 mb-2">🔧 For ESP32/Arduino Devices:</p>
             <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800">
               <li>Connect to device via USB or WiFi web portal</li>
-              <li>Open device web interface (usually http://192.168.x.x or via Serial Monitor)</li>
+              <li>Open device web interface (usually http:
               <li>Go to Settings → Security → Device Credentials</li>
               <li>Paste the three values into the corresponding fields:
                 <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
@@ -288,7 +288,7 @@ export default function ProvisioningFlow({ orgId }) {
         </div>
       )}
 
-      {/* STEP 4: Verification */}
+      {}
       {step >= 4 && (
         <div className="bg-white rounded-lg p-6 border border-slate-200 mb-6">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Step 4: Verify Connection</h3>
@@ -316,7 +316,7 @@ export default function ProvisioningFlow({ orgId }) {
         </div>
       )}
 
-      {/* STEP 5: Summary */}
+      {}
       {step >= 5 && (
         <div className="bg-white rounded-lg p-6 border border-slate-200">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Step 5: Complete</h3>

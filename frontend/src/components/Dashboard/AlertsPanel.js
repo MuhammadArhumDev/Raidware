@@ -75,7 +75,7 @@ export default function AlertsPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Filter Tabs */}
+      {}
       <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
         <div className="flex flex-wrap gap-2">
           {Object.entries(alertCounts).map(([key, count]) => (
@@ -97,7 +97,7 @@ export default function AlertsPanel() {
         </div>
       </div>
 
-      {/* Alerts List */}
+      {}
       <div className="space-y-4">
         {filteredAlerts.length === 0 ? (
           <div className="bg-white  rounded-none shadow-sm p-12 text-center border-[1.5px] border-gray-200 ">

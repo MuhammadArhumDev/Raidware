@@ -32,12 +32,11 @@ export default function Sidebar() {
   const user = useAuthStore((state) => state.user);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Debug log to trace what the sidebar sees
   console.log("[Sidebar Debug] Current user state from store:", user);
 
   const handleLogout = async () => {
     await logout();
-    // Redirect is handled by the auth store, but we can have this as fallback
+
     router.push("/login");
   };
 
@@ -48,7 +47,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
+      {}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-none bg-black text-white shadow-lg cursor-pointer"
@@ -60,7 +59,7 @@ export default function Sidebar() {
         )}
       </button>
 
-      {/* Sidebar */}
+      {}
       <aside
         className={`
           fixed top-0 left-0 h-full w-64 bg-black border-r border-gray-800
@@ -73,7 +72,7 @@ export default function Sidebar() {
         `}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
+          {}
           <div className="p-6 border-b border-gray-800">
             <h1 className="text-2xl font-bold text-white">
               Raidware
@@ -83,7 +82,7 @@ export default function Sidebar() {
             </p>
           </div>
 
-          {/* Navigation */}
+          {}
           <nav className="flex-1 p-4 space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
@@ -109,7 +108,7 @@ export default function Sidebar() {
             })}
           </nav>
 
-          {/* User info and logout */}
+          {}
           <div className="p-4 border-t border-gray-800">
             <div className="mb-4 px-4 py-2">
               <p className="text-sm font-medium text-white truncate">
@@ -141,7 +140,7 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* Overlay for mobile */}
+      {}
       {mobileMenuOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black/50 z-30"

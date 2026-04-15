@@ -4,12 +4,11 @@ import Organization from "../models/Organization.js";
 import Network from "../models/Network.js";
 import Threat from "../models/Threat.js";
 
-// Helper to get random item from array
 const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
-// Helper to get random number between min and max
+
 const getRandomInt = (min, max) =>
   Math.floor(Math.random() * (max - min + 1)) + min;
-// Helper to get random date within last X days
+
 const getRandomDate = (daysAgo) => {
   const date = new Date();
   date.setDate(date.getDate() - getRandomInt(0, daysAgo));
@@ -24,13 +23,11 @@ const seedData = async () => {
     });
     console.log("Connected to MongoDB");
 
-    // Clear existing data
     console.log("Clearing existing data...");
     await Organization.deleteMany({});
     await Network.deleteMany({});
     await Threat.deleteMany({});
 
-    // 1. Create Organizations
     const organizations = [];
     const orgNames = [
       "Acme Corp",
@@ -51,18 +48,17 @@ const seedData = async () => {
       const org = await Organization.create({
         name,
         email: `admin@${name.replace(/\s+/g, "").toLowerCase()}.com`,
-        status: getRandom(["active", "active", "active", "suspended"]), // Mostly active
+        status: getRandom(["active", "active", "active", "suspended"]), 
         createdAt,
       });
       organizations.push(org);
     }
 
-    // 2. Create Networks (One per Organization)
     const networks = [];
     console.log("Creating networks...");
     for (const org of organizations) {
       const createdAt = new Date(org.createdAt);
-      createdAt.setHours(createdAt.getHours() + 1); // Created shortly after org
+      createdAt.setHours(createdAt.getHours() + 1); 
 
       const network = await Network.create({
         name: `${org.name} Network`,
@@ -73,7 +69,6 @@ const seedData = async () => {
       networks.push(network);
     }
 
-    // 3. Create Threats (Few threats)
     const threatTypes = [
       { type: "Rogue AP Detected", severity: "critical" },
       { type: "ARP Spoofing", severity: "high" },
@@ -83,13 +78,13 @@ const seedData = async () => {
 
     console.log("Creating threats...");
     let threatCount = 0;
-    // Generate minimal threats
+
     for (const net of networks) {
-      // 0 to 2 threats per network
+
       const numThreats = getRandomInt(0, 2);
       for (let i = 0; i < numThreats; i++) {
         const threatMeta = getRandom(threatTypes);
-        const createdAt = getRandomDate(10); // Recent threats
+        const createdAt = getRandomDate(10); 
 
         await Threat.create({
           type: threatMeta.type,

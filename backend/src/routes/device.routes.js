@@ -24,11 +24,6 @@ import {
 
 const router = express.Router();
 
-// ──────────────────────────────────────────────
-// EXISTING ROUTES
-// ──────────────────────────────────────────────
-
-// Register a device
 router.post("/register", async (req, res, next) => {
   try {
     const { deviceId, publicKey } = req.body;
@@ -42,7 +37,6 @@ router.post("/register", async (req, res, next) => {
   }
 });
 
-// Authenticate
 router.post("/auth", async (req, res, next) => {
   try {
     const { deviceId, timestamp, nonce, signature } = req.body;
@@ -61,7 +55,6 @@ router.post("/auth", async (req, res, next) => {
   }
 });
 
-// Heartbeat / Data update
 router.post("/heartbeat", async (req, res, next) => {
   try {
     const { deviceId, payload } = req.body;
@@ -75,7 +68,6 @@ router.post("/heartbeat", async (req, res, next) => {
   }
 });
 
-// Get all devices (for frontend)
 router.get("/", async (req, res, next) => {
   try {
     const devices = await deviceService.getAllDevices();
@@ -85,11 +77,6 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-// ──────────────────────────────────────────────
-// REDIS DEVICE AUTH HASH CACHE ROUTES
-// ──────────────────────────────────────────────
-
-// Cache a device auth hash after successful mTLS authentication
 router.post("/auth/cache", async (req, res, next) => {
   try {
     const { macAddress, deviceId } = req.body;
@@ -111,7 +98,6 @@ router.post("/auth/cache", async (req, res, next) => {
   }
 });
 
-// Check if a device's auth hash exists in Redis
 router.get("/auth/check/:macAddress", async (req, res, next) => {
   try {
     const macAddress = decodeURIComponent(req.params.macAddress);
@@ -122,7 +108,6 @@ router.get("/auth/check/:macAddress", async (req, res, next) => {
   }
 });
 
-// Revoke a device's auth hash (instant lockout)
 router.delete("/auth/revoke", async (req, res, next) => {
   try {
     const { macAddress } = req.body;
@@ -138,17 +123,10 @@ router.delete("/auth/revoke", async (req, res, next) => {
   }
 });
 
-// ──────────────────────────────────────────────
-// TOPOLOGY & ORG DEVICE ROUTES
-// ──────────────────────────────────────────────
-
-// Get live topology for a specific organization (online devices only)
-// Offline devices remain in MongoDB — use GET /api/devices/org/:orgId for full list
 router.get("/topology/:orgId", verifyToken, async (req, res) => {
   try {
     const { orgId } = req.params;
 
-    // Only show online devices on the live dashboard
     const devices = await Device.find({
       organizationId: orgId,
       status: 'online'
@@ -176,7 +154,6 @@ router.get("/topology/:orgId", verifyToken, async (req, res) => {
   }
 });
 
-// Get all devices for an organization (admin dashboard device list)
 router.get("/org/:orgId", verifyToken, async (req, res) => {
   try {
     const { orgId } = req.params;
@@ -196,7 +173,6 @@ router.get("/org/:orgId", verifyToken, async (req, res) => {
   }
 });
 
-// Revoke a device — delete Redis auth key + set offline in MongoDB
 router.post("/revoke", verifyToken, async (req, res) => {
   try {
     const { macAddress } = req.body;
@@ -205,10 +181,8 @@ router.post("/revoke", verifyToken, async (req, res) => {
       return res.status(400).json({ success: false, error: 'macAddress is required' });
     }
 
-    // Delete Redis auth key
     await redis.del(`device:${macAddress}:auth`);
 
-    // Set device offline in MongoDB
     await Device.findOneAndUpdate(
       { macAddress },
       { status: "offline", lastSeen: new Date() }
@@ -220,11 +194,6 @@ router.post("/revoke", verifyToken, async (req, res) => {
   }
 });
 
-// ──────────────────────────────────────────────
-// PROVISIONING ROUTE
-// ──────────────────────────────────────────────
-
-// Provision a new device
 router.post("/provision", verifyToken, async (req, res) => {
   try {
     const { macAddress, orgId, deviceName } = req.body;
@@ -243,11 +212,6 @@ router.post("/provision", verifyToken, async (req, res) => {
   }
 });
 
-// ──────────────────────────────────────────────
-// NETWORK LOGS ROUTES
-// ──────────────────────────────────────────────
-
-// Get alerts only
 router.get("/logs/:orgId/alerts", verifyToken, async (req, res) => {
   try {
     const { orgId } = req.params;
@@ -262,7 +226,6 @@ router.get("/logs/:orgId/alerts", verifyToken, async (req, res) => {
   }
 });
 
-// Get network logs for an organization
 router.get("/logs/:orgId", verifyToken, async (req, res) => {
   try {
     const { orgId } = req.params;
@@ -278,9 +241,8 @@ router.get("/logs/:orgId", verifyToken, async (req, res) => {
   }
 });
 
-// Device Provisioning Routes (HMAC + Key Generation)
 router.post('/device-provisioning/generate-keys/:orgId', verifyToken, generateDeviceKeys);
-router.post('/device-provisioning/authenticate', authenticateDevice); // No auth needed (device doesn't have token yet)
+router.post('/device-provisioning/authenticate', authenticateDevice); 
 router.get('/device-provisioning/copy-secrets/:orgId/:macAddress', verifyToken, getCopyableSecrets);
 router.post('/device-provisioning/verify-server-signature', verifyServerSignature);
 router.post('/device-provisioning/heartbeat', deviceHeartbeat);

@@ -3,15 +3,10 @@ import { persist } from "zustand/middleware";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 
-// ── Cookie helpers (client-side only) ───────────────────────────────────────
-// We set cookies from the frontend so Next.js middleware can read them.
-// Backend cookies are set on the backend origin and won't be forwarded to
-// the Next.js server when frontend and backend are on different ports/domains.
-
 function setAuthCookie(role, token) {
   if (typeof document === "undefined") return;
   const name = role === "admin" ? "admin_token" : "organization_token";
-  const maxAge = 7 * 24 * 60 * 60; // 7 days in seconds
+  const maxAge = 7 * 24 * 60 * 60; 
   document.cookie = `${name}=${token}; path=/; max-age=${maxAge}; SameSite=Lax`;
 }
 
@@ -60,7 +55,6 @@ const useAuthStore = create(
           const user = data.data.user;
           const token = data.data.accessToken;
 
-          // Set client-side cookie so Next.js middleware can route correctly
           setAuthCookie(user.role, token);
 
           set({
@@ -93,7 +87,6 @@ const useAuthStore = create(
           const user = data.data.user;
           const token = data.data.accessToken;
 
-          // Set client-side cookie so Next.js middleware can route correctly
           setAuthCookie(user.role, token);
 
           set({
@@ -127,10 +120,9 @@ const useAuthStore = create(
           return null;
         }
 
-        // Valid token + user in store — restore without a network round-trip
         if (token && user) {
           console.log("[checkAuth] Valid token + user — restoring session");
-          // Re-set the cookie in case it was cleared (e.g. browser cookie expiry)
+
           setAuthCookie(user.role, token);
           set({
             isLoading: false,
@@ -141,7 +133,6 @@ const useAuthStore = create(
           return user;
         }
 
-        // Token exists but no user — fetch from backend
         set({ isLoading: true });
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
@@ -166,7 +157,6 @@ const useAuthStore = create(
           const data = await response.json();
           const fetchedUser = data.data.user;
 
-          // Set cookie for the fetched user
           setAuthCookie(fetchedUser.role, token);
 
           set({
@@ -202,7 +192,6 @@ const useAuthStore = create(
           console.error("Failed to clear backend cookies during logout", err);
         }
 
-        // Clear both client-side routing cookies
         clearAuthCookies();
 
         set({
@@ -233,13 +222,10 @@ const useAuthStore = create(
           state.isInitialized = true;
           state.isLoading = false;
 
-          // Re-set the routing cookie from stored token so middleware keeps
-          // working after a page refresh (cookie may have been cleared by TTL
-          // while localStorage still holds a valid JWT).
           if (state.token && state.user && !isTokenExpired(state.token)) {
             setAuthCookie(state.user.role, state.token);
           } else if (state.token && isTokenExpired(state.token)) {
-            // Expired token in storage — clear everything
+
             clearAuthCookies();
             state.user = null;
             state.token = null;

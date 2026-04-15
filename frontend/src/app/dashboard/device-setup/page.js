@@ -18,7 +18,7 @@ export default function DeviceSetupPage() {
       router.push('/login');
       return;
     }
-    // Handle async setup page loading logic to find correct org
+
     const setupOrgId = async () => {
       try {
         const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";

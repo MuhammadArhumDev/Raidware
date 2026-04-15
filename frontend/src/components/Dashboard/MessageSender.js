@@ -8,7 +8,7 @@ export default function MessageSender() {
   const { nodes, socket } = useDeviceStore();
   const [selectedDevice, setSelectedDevice] = useState("");
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState(null); // { type: 'success' | 'error', text: string }
+  const [status, setStatus] = useState(null); 
 
   const handleSend = () => {
     if (!message.trim() || !selectedDevice) return;
@@ -18,7 +18,6 @@ export default function MessageSender() {
       return;
     }
 
-    // Emit event to backend
     socket.emit("frontend:send_message", {
       targetMac: selectedDevice,
       message: message,
@@ -26,7 +25,6 @@ export default function MessageSender() {
 
     setStatus({ type: "sending", text: "Encrypting with Kyber..." });
 
-    // Listen for acknowledgment (one-off)
     socket.once("message:status", (response) => {
       if (response.target === selectedDevice) {
         if (response.success) {
@@ -36,7 +34,6 @@ export default function MessageSender() {
           setStatus({ type: "error", text: `Failed: ${response.reason}` });
         }
 
-        // Clear status after 3s
         setTimeout(() => setStatus(null), 3000);
       }
     });

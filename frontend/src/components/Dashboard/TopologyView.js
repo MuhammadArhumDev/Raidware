@@ -10,7 +10,6 @@ export default function TopologyView({ nodes }) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
-    // Resize canvas
     const resize = () => {
       const parent = canvas.parentElement;
       if (parent) {
@@ -21,17 +20,14 @@ export default function TopologyView({ nodes }) {
     resize();
     window.addEventListener("resize", resize);
 
-    // Render Nodes
     const nodeList = Object.values(nodes);
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw Central Server/Backend (rectangle, no border-radius)
       const cx = canvas.width / 2;
       const cy = 40;
 
-      // Server rectangle
       ctx.fillStyle = "#111827";
       ctx.fillRect(cx - 30, cy - 16, 60, 32);
 
@@ -40,7 +36,6 @@ export default function TopologyView({ nodes }) {
       ctx.textAlign = "center";
       ctx.fillText("SERVER", cx, cy + 4);
 
-      // Draw Nodes in a star topology (all connected to server)
       if (nodeList.length === 0) {
         ctx.fillStyle = "#9ca3af";
         ctx.font = "13px sans-serif";
@@ -51,7 +46,7 @@ export default function TopologyView({ nodes }) {
       const radius = Math.min(120, 50 + nodeList.length * 15);
 
       nodeList.forEach((node, i) => {
-        // Position nodes in a semicircle below server
+
         const angleSpread = Math.PI * 0.7;
         const startAngle = Math.PI / 2 - angleSpread / 2;
         let angle;
@@ -64,7 +59,6 @@ export default function TopologyView({ nodes }) {
         const x = cx + Math.cos(angle) * radius;
         const y = cy + Math.sin(angle) * radius + 20;
 
-        // Draw Line to Server (Direct Connection)
         ctx.beginPath();
         ctx.moveTo(cx, cy + 16);
         ctx.lineTo(x, y - 12);
@@ -81,7 +75,6 @@ export default function TopologyView({ nodes }) {
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // Draw Node Rectangle (no border-radius)
         const nodeColor =
           node.status === "online"
             ? "#22c55e"
@@ -91,7 +84,6 @@ export default function TopologyView({ nodes }) {
         ctx.fillStyle = nodeColor;
         ctx.fillRect(x - 16, y - 10, 32, 20);
 
-        // Node label
         ctx.fillStyle = "#374151";
         ctx.font = "10px sans-serif";
         ctx.textAlign = "center";
@@ -104,7 +96,6 @@ export default function TopologyView({ nodes }) {
             : "???";
         ctx.fillText(label, x, y + 24);
 
-        // Status text
         ctx.fillStyle = "#9ca3af";
         ctx.font = "8px sans-serif";
         ctx.fillText(node.status || "unknown", x, y + 34);

@@ -5,22 +5,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "";
 const isTokenExpired = (token) => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
-    // exp is in seconds, Date.now() is in milliseconds
+
     return payload.exp * 1000 < Date.now();
   } catch {
-    return true; // treat malformed token as expired
+    return true; 
   }
 };
 
-/**
- * Authenticated fetch wrapper.
- * Automatically attaches the Bearer token from the auth store
- * and includes credentials for cross-origin cookie support.
- *
- * @param {string} endpoint - API endpoint path (e.g., "/api/admin/organizations")
- * @param {RequestInit} options - Additional fetch options
- * @returns {Promise<Response>}
- */
 export async function authFetch(endpoint, options = {}) {
   const token = useAuthStore.getState().token;
 
@@ -42,7 +33,7 @@ export async function authFetch(endpoint, options = {}) {
   }
 
   const url = endpoint.startsWith("http") ? endpoint : API_BASE_URL + endpoint;
-  
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
 
@@ -65,7 +56,7 @@ export async function authFetch(endpoint, options = {}) {
   }
 
   if (response.status === 401) {
-    // Token expired or invalid — clear auth and redirect
+
     useAuthStore.getState().logout();
     if (typeof window !== 'undefined') {
       window.location.href = '/login';

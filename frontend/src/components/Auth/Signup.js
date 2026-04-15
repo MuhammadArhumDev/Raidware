@@ -45,7 +45,6 @@ export default function Signup() {
     setError("");
     setLoading(true);
 
-    // Validation
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       setLoading(false);
@@ -59,18 +58,18 @@ export default function Signup() {
     }
 
     const payload = {
-      name: formData.organizationName, // Use Organization Name as main name
+      name: formData.organizationName, 
       email: formData.email,
       password: formData.password,
-      role: "organization", // Hardcoded role
-      // Additional fields if model supports them, e.g. contactPerson: formData.fullName
+      role: "organization", 
+
     };
 
     const user = await signup(payload);
 
     if (user) {
       setLoading(false);
-      // Determine redirect based on role (though it should be organization)
+
       if (user.role === "admin") {
         router.push("/admin/dashboard");
       } else {

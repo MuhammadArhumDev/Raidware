@@ -144,7 +144,7 @@ export default function RealTimeChart({
   };
 
   const renderChart = () => {
-    // For area charts, use Line with fill enabled
+
     const areaData = type === 'area' && data ? {
       ...data,
       datasets: data.datasets.map(dataset => ({

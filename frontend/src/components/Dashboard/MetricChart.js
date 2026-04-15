@@ -42,7 +42,6 @@ export default function MetricChart({
       };
     }
 
-    // Get last 20 data points
     const recentData = dataSource.slice(-20);
     const labels = recentData.map((item, index) => {
       const timestamp = item.timestamp || item[dataKey + '_timestamp'] || Date.now() - (20 - index) * 60000;

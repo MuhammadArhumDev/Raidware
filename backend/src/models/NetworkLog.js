@@ -74,10 +74,8 @@ const networkLogSchema = new mongoose.Schema({
   }
 });
 
-// Compound index for fast dashboard queries
 networkLogSchema.index({ orgId: 1, timestamp: -1 });
 
-// TTL index to expire logs after 7 days (604800 seconds)
 networkLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 604800 });
 
 export default mongoose.model('NetworkLog', networkLogSchema);

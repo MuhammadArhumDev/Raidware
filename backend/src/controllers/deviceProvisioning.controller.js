@@ -14,13 +14,6 @@ import { saveAndAnalyzeLog } from '../services/networkLog.service.js';
 import { emitDeviceUpdate } from '../services/socket.service.js';
 import { publishHeartbeat } from '../services/redisPubSub.service.js';
 
-/**
- * POST /api/device-provisioning/generate-keys/:orgId
- * 
- * Generates server key pair + shared secret for device setup
- * Admin calls this once per device they want to add
- * Returns data to be copied and flashed to device
- */
 export async function generateDeviceKeys(req, res) {
   try {
     const { orgId } = req.params;
@@ -30,7 +23,6 @@ export async function generateDeviceKeys(req, res) {
       return res.status(400).json({ success: false, error: 'macAddress is required' });
     }
 
-    // Check if device already exists
     let device = await Device.findOne({ macAddress, organizationId: orgId });
     if (device && device.provisioned) {
       return res.status(409).json({
@@ -39,7 +31,6 @@ export async function generateDeviceKeys(req, res) {
       });
     }
 
-    // Generate cryptographic material
     const { privateKey: serverPrivateKey, publicKey: serverPublicKey } = generateServerKeyPair();
     const deviceId = generateDeviceId();
     const sharedSecret = generateSharedSecret();
@@ -47,7 +38,7 @@ export async function generateDeviceKeys(req, res) {
     const { token: provisioningToken, expiresAt: provisioningTokenExpiry } = generateProvisioningToken();
 
     if (device) {
-      // Update existing unprovision device
+
       device.deviceId = deviceId;
       device.sharedSecret = sharedSecret;
       device.hashedId = hashedId;
@@ -59,7 +50,7 @@ export async function generateDeviceKeys(req, res) {
       device.status = 'pending';
       await device.save();
     } else {
-      // Create new device
+
       device = new Device({
         macAddress,
         organizationId: orgId,
@@ -77,7 +68,6 @@ export async function generateDeviceKeys(req, res) {
       await device.save();
     }
 
-    // Return provisioning data (DO NOT expose serverPrivateKey to client)
     return res.status(200).json({
       success: true,
       provisioning: {
@@ -87,7 +77,7 @@ export async function generateDeviceKeys(req, res) {
         macAddress,
         deviceName: device.name,
         connectionType: 'direct',
-        // Instructions for user
+
         instructions: {
           step1: 'Copy the deviceId, sharedSecret, and serverPublicKey below',
           step2: 'Flash these values to your IoT device via its configuration interface',
@@ -103,12 +93,6 @@ export async function generateDeviceKeys(req, res) {
   }
 }
 
-/**
- * POST /api/device-provisioning/authenticate
- * 
- * Device calls this during connection with HMAC-signed message
- * Returns JWT token for subsequent authenticated requests
- */
 export async function authenticateDevice(req, res) {
   try {
     const { deviceId, macAddress, timestamp, signature } = req.body;
@@ -120,7 +104,6 @@ export async function authenticateDevice(req, res) {
       });
     }
 
-    // Find device by deviceId
     const device = await Device.findOne({ deviceId });
     if (!device) {
       return res.status(404).json({
@@ -136,7 +119,6 @@ export async function authenticateDevice(req, res) {
       });
     }
 
-    // Validate HMAC signature: device must sign "deviceId|timestamp"
     const message = `${deviceId}|${timestamp}`;
     const isValid = verifyHmacSignature(device.sharedSecret, message, signature);
 
@@ -147,7 +129,6 @@ export async function authenticateDevice(req, res) {
       });
     }
 
-    // Check if provisioning token has expired (optional: enforce provisioning token first)
     if (device.provisioningTokenExpiry && new Date() > device.provisioningTokenExpiry) {
       return res.status(403).json({
         success: false,
@@ -155,30 +136,25 @@ export async function authenticateDevice(req, res) {
       });
     }
 
-    // Create JWT token for device session
     const token = createDeviceJWT(deviceId, device.serverPrivateKey);
 
-    // Update device status for direct connection (no mesh parent needed)
     device.provisioned = true;
     device.status = 'online';
     device.connectionType = 'direct';
     device.lastSeen = new Date();
     device.ipAddress = req.ip || req.connection.remoteAddress;
     if (device.macAddress !== macAddress) {
-      // Avoid E11000 Duplicate Key Error: if another device record holds this MAC,
-      // it means the physical hardware was re-provisioned. Clear the old record's MAC.
+
       const existingDevice = await Device.findOne({ macAddress });
       if (existingDevice && existingDevice._id.toString() !== device._id.toString()) {
         console.log(`[Auth] Clearing duplicate MAC ${macAddress} from old device ${existingDevice.deviceId}`);
-        // Remove old device entirely since its hardware was re-provisioned
+
         await Device.findByIdAndDelete(existingDevice._id);
       }
       device.macAddress = macAddress;
     }
     await device.save();
 
-    // Set Redis heartbeat key (65s TTL) immediately on auth
-    // Key format: device:heartbeat:{mac} — watched by Pub/Sub expiration listener
     await redis.set(
       `device:heartbeat:${device.macAddress}`,
       new Date().toISOString(),
@@ -186,7 +162,6 @@ export async function authenticateDevice(req, res) {
       65
     );
 
-    // Broadcast topology update immediately so dashboard sees device online
     if (device.organizationId) {
       const onlineDevices = await Device.find({
         organizationId: device.organizationId,
@@ -220,12 +195,6 @@ export async function authenticateDevice(req, res) {
   }
 }
 
-/**
- * GET /api/device-provisioning/copy-secrets/:orgId/:macAddress
- * 
- * Allows admin to retrieve provisioning data again (e.g., if they didn't copy it)
- * Only returns data if device not yet provisioned
- */
 export async function getCopyableSecrets(req, res) {
   try {
     const { orgId, macAddress } = req.params;
@@ -264,12 +233,6 @@ export async function getCopyableSecrets(req, res) {
   }
 }
 
-/**
- * POST /api/device-provisioning/verify-server-signature
- * 
- * Optional: Device can verify server's JWT signature using SERVER_PUBLIC_KEY
- * This enables mutual authentication (server proves it knows the private key)
- */
 export async function verifyServerSignature(req, res) {
   try {
     const { deviceId, token } = req.body;
@@ -298,12 +261,6 @@ export async function verifyServerSignature(req, res) {
   }
 }
 
-/**
- * POST /api/device-provisioning/heartbeat
- * 
- * Device sends periodic heartbeat with status, RSSI, IP, etc.
- * Updates device record and broadcasts topology update
- */
 export async function deviceHeartbeat(req, res) {
   try {
     const { deviceId, macAddress, status, rssi, ipAddress, freeHeap, uptime } = req.body;
@@ -312,7 +269,6 @@ export async function deviceHeartbeat(req, res) {
       return res.status(400).json({ success: false, error: 'deviceId is required' });
     }
 
-    // Find device first — needed for throttle check and org broadcast
     const device = await Device.findOne({ deviceId });
     if (!device) {
       return res.status(404).json({ success: false, error: 'Device not found' });
@@ -320,19 +276,15 @@ export async function deviceHeartbeat(req, res) {
 
     const effectiveMac = macAddress || device.macAddress;
 
-    // ── 1. Refresh Redis heartbeat key (65s TTL) ─────────────────────────────
-    // Key format: device:heartbeat:{mac}  — watched by Pub/Sub expiration listener
     await redis.set(
       `device:heartbeat:${effectiveMac}`,
       new Date().toISOString(),
       'EX',
-      65   // 60s grace + 5s buffer
+      65   
     );
 
-    // ── 2. Publish heartbeat event for cross-instance broadcast ──────────────
     await publishHeartbeat(effectiveMac, status || 'online', rssi, ipAddress).catch(() => {});
 
-    // ── 3. Throttle MongoDB writes: update only every 30s OR on status change ─
     const now = new Date();
     const lastUpdate = device.lastSeen;
     const secondsSinceLastUpdate = lastUpdate ? (now - new Date(lastUpdate)) / 1000 : 60;
@@ -355,8 +307,6 @@ export async function deviceHeartbeat(req, res) {
         console.log(`[Heartbeat] ${deviceId} came back ONLINE`);
       }
 
-      // ── 4. Broadcast topology on every DB write so frontend stays in sync ──
-      // (Fires at most once per 30s due to throttle — cheap socket emit)
       if (device.organizationId) {
         const onlineDevices = await Device.find({
           organizationId: device.organizationId,
@@ -385,11 +335,6 @@ export async function deviceHeartbeat(req, res) {
   }
 }
 
-/**
- * POST /api/device-provisioning/network-log
- * 
- * Device sends network connection data for IDS analysis
- */
 export async function deviceNetworkLog(req, res) {
   try {
     const { deviceId, macAddress, srcIp, dstIp, protocol, srcPort, dstPort, packetCount, byteCount, features } = req.body;
@@ -421,9 +366,7 @@ export async function deviceNetworkLog(req, res) {
     const savedLog = await saveAndAnalyzeLog(logData);
 
     if (savedLog) {
-      // ── Redis network-log buffer ──────────────────────────────────────────
-      // Retain last 200 log entries per device for 30 minutes.
-      // Key: device:{mac}:netlogs  Type: Redis List (newest at head)
+
       const redisKey = `device:${logData.macAddress}:netlogs`;
       const logEntry = JSON.stringify({
         id:         savedLog._id,
@@ -439,14 +382,13 @@ export async function deviceNetworkLog(req, res) {
         action:     savedLog.action,
         timestamp:  savedLog.timestamp,
       });
-      // Push to head, keep only newest 200, refresh 30-min TTL
-      // ioredis uses lowercase commands (not camelCase like the 'redis' npm package)
+
       await redis.lpush(redisKey, logEntry);
       await redis.ltrim(redisKey, 0, 199);
-      await redis.expire(redisKey, 1800); // 30 minutes
+      await redis.expire(redisKey, 1800); 
 
       if (device.organizationId) {
-        // Broadcast log to org dashboard
+
         emitDeviceUpdate('network:log:new', {
           log: {
             id:         savedLog._id,
@@ -473,12 +415,6 @@ export async function deviceNetworkLog(req, res) {
   }
 }
 
-/**
- * GET /api/devices/device-provisioning/netlogs/:mac
- * 
- * Returns the last N network log entries for a device from Redis (30-min buffer).
- * Query param: ?limit=50 (default 50, max 200)
- */
 export async function getDeviceNetlogs(req, res) {
   try {
     const { mac } = req.params;

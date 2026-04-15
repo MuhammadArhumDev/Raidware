@@ -46,7 +46,7 @@ export default function MonitoringPage() {
 
   useEffect(() => {
     fetchMonitoringData();
-    // Refresh every 10 seconds
+
     const interval = setInterval(fetchMonitoringData, 10000);
     return () => clearInterval(interval);
   }, [fetchMonitoringData]);
@@ -110,7 +110,7 @@ export default function MonitoringPage() {
           )}
         </div>
 
-        {/* Loading State */}
+        {}
         {loading && (
           <div className="space-y-6">
             <SkeletonGrid count={2} />
@@ -118,7 +118,7 @@ export default function MonitoringPage() {
           </div>
         )}
 
-        {/* Error State */}
+        {}
         {error && (
           <div className="bg-red-50  rounded-none p-6 text-center">
             <p className="text-red-600 ">{error}</p>
@@ -133,7 +133,7 @@ export default function MonitoringPage() {
 
         {!loading && (
           <>
-            {/* Performance Metrics */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
                 <h2 className="text-xl font-semibold text-gray-900  mb-4">
@@ -172,13 +172,13 @@ export default function MonitoringPage() {
               </div>
             </div>
 
-            {/* System Health Status */}
+            {}
             <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
               <h2 className="text-xl font-semibold text-gray-900  mb-4">
                 System Health Status
               </h2>
               <div className="space-y-3">
-                {/* API Server */}
+                {}
                 <div
                   className={`flex items-center justify-between p-4 ${getStatusColor(
                     monitoringData.apiServer.status,
@@ -209,7 +209,7 @@ export default function MonitoringPage() {
                   </span>
                 </div>
 
-                {/* Database */}
+                {}
                 <div
                   className={`flex items-center justify-between p-4 ${getStatusColor(
                     monitoringData.database.status,
@@ -243,7 +243,7 @@ export default function MonitoringPage() {
                   </span>
                 </div>
 
-                {/* Redis */}
+                {}
                 <div
                   className={`flex items-center justify-between p-4 ${getStatusColor(
                     monitoringData.redis.status,
@@ -279,7 +279,7 @@ export default function MonitoringPage() {
               </div>
             </div>
 
-            {/* Security Services */}
+            {}
             <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
               <h2 className="text-xl font-semibold text-gray-900  mb-4">
                 Security Services

@@ -61,7 +61,7 @@ export default function OrganizationsPage() {
           </div>
         </div>
 
-        {/* Search */}
+        {}
         <div className="bg-white  rounded-none shadow-sm p-4 border-[1.5px] border-gray-200 ">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -75,14 +75,14 @@ export default function OrganizationsPage() {
           </div>
         </div>
 
-        {/* Loading State */}
+        {}
         {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-none h-8 w-8 border-b-2 border-indigo-600"></div>
           </div>
         )}
 
-        {/* Error State */}
+        {}
         {error && !loading && (
           <div className="bg-red-50  rounded-none p-6 text-center">
             <p className="text-red-600 ">{error}</p>
@@ -95,7 +95,7 @@ export default function OrganizationsPage() {
           </div>
         )}
 
-        {/* Organizations List */}
+        {}
         {!loading && !error && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredOrgs.map((org) => (
@@ -129,7 +129,7 @@ export default function OrganizationsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {/* Network Info */}
+                  {}
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2 text-gray-600 ">
                       <Network className="w-4 h-4" />
@@ -155,7 +155,7 @@ export default function OrganizationsPage() {
                     </div>
                   </div>
 
-                  {/* Devices */}
+                  {}
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2 text-gray-600 ">
                       <Cpu className="w-4 h-4" />
@@ -166,7 +166,7 @@ export default function OrganizationsPage() {
                     </span>
                   </div>
 
-                  {/* Threats */}
+                  {}
                   <div className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2 text-gray-600 ">
                       <Shield className="w-4 h-4" />
@@ -183,7 +183,7 @@ export default function OrganizationsPage() {
                     </span>
                   </div>
 
-                  {/* Joined Date */}
+                  {}
                   <div className="pt-3 border-t-[1.5px] border-gray-200 ">
                     <p className="text-xs text-gray-500 ">
                       Joined: {formatDate(org.joinedDate)}

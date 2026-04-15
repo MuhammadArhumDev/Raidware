@@ -20,7 +20,7 @@ export default function SettingsPage() {
           </p>
         </div>
 
-        {/* Account Settings */}
+        {}
         <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <div className="flex items-center gap-3 mb-6">
             <User className="w-6 h-6 text-indigo-600 " />
@@ -56,7 +56,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Notification Settings */}
+        {}
         <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <div className="flex items-center gap-3 mb-6">
             <Bell className="w-6 h-6 text-indigo-600 " />
@@ -112,7 +112,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Security Settings */}
+        {}
         <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <div className="flex items-center gap-3 mb-6">
             <Shield className="w-6 h-6 text-indigo-600 " />
@@ -130,7 +130,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Organization Global Keys */}
+        {}
         <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <div className="flex items-center gap-3 mb-6">
             <Lock className="w-6 h-6 text-indigo-600 " />
@@ -182,7 +182,7 @@ export default function SettingsPage() {
           </form>
         </div>
 
-        {/* System Information */}
+        {}
         <div className="bg-white  rounded-none shadow-sm p-6 border-[1.5px] border-gray-200 ">
           <div className="flex items-center gap-3 mb-6">
             <Database className="w-6 h-6 text-indigo-600 " />

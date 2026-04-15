@@ -1,7 +1,7 @@
 import React from "react";
 
 export function Skeleton({ className = "" }) {
-  // A sharply cut, monochrome skeleton element: purely rectangular, light gray, pulse effect.
+
   return (
     <div
       className={`animate-pulse bg-gray-200 rounded-none ${className}`}
