@@ -11,51 +11,7 @@ const activityIcons = {
 };
 
 export default function ActivityFeed({ activities = [] }) {
-  // Mock activities if none provided
-  const defaultActivities = [
-    {
-      id: 'act1',
-      type: 'node',
-      title: 'Node node1 came online',
-      description: 'Mesh network node reconnected',
-      timestamp: Date.now() - 300000,
-      status: 'success',
-    },
-    {
-      id: 'act2',
-      type: 'security',
-      title: 'IDS Alert Resolved',
-      description: 'Rogue AP threat mitigated',
-      timestamp: Date.now() - 600000,
-      status: 'success',
-    },
-    {
-      id: 'act3',
-      type: 'alert',
-      title: 'High Temperature Detected',
-      description: 'Sensor reading exceeded threshold',
-      timestamp: Date.now() - 900000,
-      status: 'warning',
-    },
-    {
-      id: 'act4',
-      type: 'device',
-      title: 'Sensor Alert',
-      description: 'Motion detected in loading dock',
-      timestamp: Date.now() - 1200000,
-      status: 'info',
-    },
-    {
-      id: 'act5',
-      type: 'system',
-      title: 'Network Configuration Updated',
-      description: 'Encryption settings modified',
-      timestamp: Date.now() - 1800000,
-      status: 'success',
-    },
-  ];
-
-  const displayActivities = activities.length > 0 ? activities : defaultActivities;
+  const displayActivities = activities;
 
   const getStatusColor = (status) => {
     switch (status) {

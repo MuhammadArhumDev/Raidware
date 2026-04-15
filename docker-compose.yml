@@ -24,8 +24,13 @@ services:
     restart: always
     env_file:
       - ./frontend/.env
+    environment:
+      # Runtime URL for SSR server-side fetch (must NOT be localhost in Docker)
+      - NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}
     depends_on:
       - backend
+    networks:
+      - raidware-internal
 
   ids-engine:
     build:

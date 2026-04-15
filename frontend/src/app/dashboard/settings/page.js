@@ -196,7 +196,7 @@ export default function SettingsPage() {
                 Data Source
               </span>
               <span className="text-gray-900  font-medium">
-                Mock Data
+                Live API
               </span>
             </div>
             <div className="flex justify-between">

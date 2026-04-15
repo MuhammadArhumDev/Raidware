@@ -1,5 +1,6 @@
 import localFont from "next/font/local";
 import "./globals.css";
+import AuthHydrationProvider from "@/components/Providers/AuthHydrationProvider";
 
 const customSans = localFont({
   src: [
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
         className={`${customSans.className} antialiased bg-white text-gray-900 border-none outline-none`}
         suppressHydrationWarning
       >
+        <AuthHydrationProvider />
         {children}
       </body>
     </html>
